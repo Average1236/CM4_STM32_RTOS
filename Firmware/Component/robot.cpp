@@ -162,7 +162,7 @@ void Robot::ik_solve() {
     // Calculate motor velocities
     for (uint8_t i = 0; i < 4; i++) {
         motor_vel[i] = ((robot_real_vel[0] * WHEEL_VX_ANGLE[i] + 
-                        robot_real_vel[1] * WHEEL_VY_ANGLE[i] + 
+                        robot_real_vel[1] * WHEEL_VY_ANGLE[i] - 
                         robot_real_vel[2] * ROBOT_RADIUS) / WHEEL_RADIUS) 
                        * 30.0f / PI;
         // Limit wheel velocity

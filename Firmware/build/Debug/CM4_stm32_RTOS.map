@@ -9757,8 +9757,6 @@ Discarded input sections
                 0x00000000        0x4 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/robot.cpp.obj
  .rodata._ZL19VERTICAL_RESISTANCE
                 0x00000000        0x4 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/robot.cpp.obj
- .rodata._ZL15IK_SOLVE_PINV_A
-                0x00000000       0x30 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/robot.cpp.obj
  .rodata._ZNSt8__detail30__integer_to_chars_is_unsignedIjEE
                 0x00000000        0x1 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/robot.cpp.obj
  .rodata._ZNSt8__detail30__integer_to_chars_is_unsignedImEE
@@ -10027,14 +10025,6 @@ Discarded input sections
                 0x00000000       0x16 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
  .text._ZN12MotorDMH351011Parameter_tC2Ev
                 0x00000000       0x58 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
- .rodata._ZZN12MotorDMH351013pack_mit_dataEfffffPhE10kMITPosMin
-                0x00000000        0x4 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
- .rodata._ZZN12MotorDMH351013pack_mit_dataEfffffPhE10kMITPosMax
-                0x00000000        0x4 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
- .rodata._ZZN12MotorDMH351013pack_mit_dataEfffffPhE10kMITVelMin
-                0x00000000        0x4 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
- .rodata._ZZN12MotorDMH351013pack_mit_dataEfffffPhE10kMITVelMax
-                0x00000000        0x4 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
  .rodata._ZZN12MotorDMH351013pack_mit_dataEfffffPhE9kMITKpMin
                 0x00000000        0x4 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
  .rodata._ZZN12MotorDMH351013pack_mit_dataEfffffPhE9kMITKpMax
@@ -10042,10 +10032,6 @@ Discarded input sections
  .rodata._ZZN12MotorDMH351013pack_mit_dataEfffffPhE9kMITKdMin
                 0x00000000        0x4 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
  .rodata._ZZN12MotorDMH351013pack_mit_dataEfffffPhE9kMITKdMax
-                0x00000000        0x4 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
- .rodata._ZZN12MotorDMH351013pack_mit_dataEfffffPhE13kMITTorqueMin
-                0x00000000        0x4 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
- .rodata._ZZN12MotorDMH351013pack_mit_dataEfffffPhE13kMITTorqueMax
                 0x00000000        0x4 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
  .rodata._ZNSt8__detail30__integer_to_chars_is_unsignedIjEE
                 0x00000000        0x1 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
@@ -11557,7 +11543,7 @@ LOAD /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/crtn.o
                 0x08000000                g_pfnVectors
                 0x08000188                        . = ALIGN (0x4)
 
-.text           0x08000190    0x11448
+.text           0x08000190    0x11470
                 0x08000190                        . = ALIGN (0x4)
  *(.text)
  .text          0x08000190       0x88 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/crtbegin.o
@@ -12888,381 +12874,381 @@ LOAD /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/crtn.o
                 0x080105d0       0x28 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
                 0x080105d0                MotorDMH3510::pack_velocity_data(float, unsigned char*)
  .text._ZN12MotorDMH351013pack_mit_dataEfffffPh
-                0x080105f8      0x138 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
+                0x080105f8      0x160 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
                 0x080105f8                MotorDMH3510::pack_mit_data(float, float, float, float, float, unsigned char*)
  .text._ZN12MotorDMH351013uint_to_floatEiffi
-                0x08010730       0x74 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
-                0x08010730                MotorDMH3510::uint_to_float(int, float, float, int)
+                0x08010758       0x74 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
+                0x08010758                MotorDMH3510::uint_to_float(int, float, float, int)
  .text._ZN12MotorDMH351019parse_feedback_dataEPKh
-                0x080107a4      0x160 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
-                0x080107a4                MotorDMH3510::parse_feedback_data(unsigned char const*)
+                0x080107cc      0x160 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
+                0x080107cc                MotorDMH3510::parse_feedback_data(unsigned char const*)
  .text._ZN12MotorDMH351018build_set_mode_msgEN14WheelMotorBase4ModeER13can_Message_t
-                0x08010904       0x38 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
-                0x08010904                MotorDMH3510::build_set_mode_msg(WheelMotorBase::Mode, can_Message_t&)
+                0x0801092c       0x38 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
+                0x0801092c                MotorDMH3510::build_set_mode_msg(WheelMotorBase::Mode, can_Message_t&)
  .text._ZN12MotorDMH351016build_enable_msgER13can_Message_t
-                0x0801093c       0x6c Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
-                0x0801093c                MotorDMH3510::build_enable_msg(can_Message_t&)
+                0x08010964       0x6c Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
+                0x08010964                MotorDMH3510::build_enable_msg(can_Message_t&)
  .text._ZN12MotorDMH351017build_disable_msgER13can_Message_t
-                0x080109a8       0x6c Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
-                0x080109a8                MotorDMH3510::build_disable_msg(can_Message_t&)
+                0x080109d0       0x6c Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
+                0x080109d0                MotorDMH3510::build_disable_msg(can_Message_t&)
  .text._ZN12MotorDMH351021build_clear_error_msgER13can_Message_t
-                0x08010a14       0x6c Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
-                0x08010a14                MotorDMH3510::build_clear_error_msg(can_Message_t&)
+                0x08010a3c       0x6c Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
+                0x08010a3c                MotorDMH3510::build_clear_error_msg(can_Message_t&)
  .text._ZN12MotorDMH351019build_save_zero_msgER13can_Message_t
-                0x08010a80       0x6c Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
-                0x08010a80                MotorDMH3510::build_save_zero_msg(can_Message_t&)
+                0x08010aa8       0x6c Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
+                0x08010aa8                MotorDMH3510::build_save_zero_msg(can_Message_t&)
  .text._ZN12MotorDMH351017build_set_acc_msgEfR13can_Message_t
-                0x08010aec       0x2a Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
-                0x08010aec                MotorDMH3510::build_set_acc_msg(float, can_Message_t&)
+                0x08010b14       0x2a Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
+                0x08010b14                MotorDMH3510::build_set_acc_msg(float, can_Message_t&)
  .text._ZN12MotorDMH351017build_set_dec_msgEfR13can_Message_t
-                0x08010b16       0x2a Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
-                0x08010b16                MotorDMH3510::build_set_dec_msg(float, can_Message_t&)
+                0x08010b3e       0x2a Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
+                0x08010b3e                MotorDMH3510::build_set_dec_msg(float, can_Message_t&)
  .text._ZN12MotorDMH351025build_set_velocity_kp_msgEfR13can_Message_t
-                0x08010b40       0x2a Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
-                0x08010b40                MotorDMH3510::build_set_velocity_kp_msg(float, can_Message_t&)
+                0x08010b68       0x2a Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
+                0x08010b68                MotorDMH3510::build_set_velocity_kp_msg(float, can_Message_t&)
  .text._ZN12MotorDMH351025build_set_velocity_ki_msgEfR13can_Message_t
-                0x08010b6a       0x2a Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
-                0x08010b6a                MotorDMH3510::build_set_velocity_ki_msg(float, can_Message_t&)
+                0x08010b92       0x2a Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
+                0x08010b92                MotorDMH3510::build_set_velocity_ki_msg(float, can_Message_t&)
  .text._ZN12MotorDMH351018build_set_pmax_msgEfR13can_Message_t
-                0x08010b94       0x2a Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
-                0x08010b94                MotorDMH3510::build_set_pmax_msg(float, can_Message_t&)
+                0x08010bbc       0x2a Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
+                0x08010bbc                MotorDMH3510::build_set_pmax_msg(float, can_Message_t&)
  .text._ZN12MotorDMH351018build_set_vmax_msgEfR13can_Message_t
-                0x08010bbe       0x2a Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
-                0x08010bbe                MotorDMH3510::build_set_vmax_msg(float, can_Message_t&)
+                0x08010be6       0x2a Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
+                0x08010be6                MotorDMH3510::build_set_vmax_msg(float, can_Message_t&)
  .text._ZN12MotorDMH351018build_set_tmax_msgEfR13can_Message_t
-                0x08010be8       0x2a Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
-                0x08010be8                MotorDMH3510::build_set_tmax_msg(float, can_Message_t&)
+                0x08010c10       0x2a Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
+                0x08010c10                MotorDMH3510::build_set_tmax_msg(float, can_Message_t&)
  .text._ZN12MotorDMH351024build_write_register_msgEhmR13can_Message_t
-                0x08010c12       0x8c Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
-                0x08010c12                MotorDMH3510::build_write_register_msg(unsigned char, unsigned long, can_Message_t&)
+                0x08010c3a       0x8c Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
+                0x08010c3a                MotorDMH3510::build_write_register_msg(unsigned char, unsigned long, can_Message_t&)
  .text._ZNK12MotorDMH351014command_can_idEv
-                0x08010c9e       0x1a Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
-                0x08010c9e                MotorDMH3510::command_can_id() const
+                0x08010cc6       0x1a Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
+                0x08010cc6                MotorDMH3510::command_can_id() const
  .text._ZN12MotorDMH3510D2Ev
-                0x08010cb8       0x24 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
-                0x08010cb8                MotorDMH3510::~MotorDMH3510()
-                0x08010cb8                MotorDMH3510::~MotorDMH3510()
+                0x08010ce0       0x24 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
+                0x08010ce0                MotorDMH3510::~MotorDMH3510()
+                0x08010ce0                MotorDMH3510::~MotorDMH3510()
  .text._ZN12MotorDMH3510D0Ev
-                0x08010cdc       0x20 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
-                0x08010cdc                MotorDMH3510::~MotorDMH3510()
+                0x08010d04       0x20 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
+                0x08010d04                MotorDMH3510::~MotorDMH3510()
  .text._ZN4ZCAN6reinitEv
-                0x08010cfc       0x40 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
-                0x08010cfc                ZCAN::reinit()
+                0x08010d24       0x40 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+                0x08010d24                ZCAN::reinit()
  .text._ZN4ZCAN5startEP17CAN_HandleTypeDef
-                0x08010d3c       0x3c Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
-                0x08010d3c                ZCAN::start(CAN_HandleTypeDef*)
+                0x08010d64       0x3c Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+                0x08010d64                ZCAN::start(CAN_HandleTypeDef*)
  .text._ZN4ZCAN15process_rx_fifoEm
-                0x08010d78       0xbc Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
-                0x08010d78                ZCAN::process_rx_fifo(unsigned long)
+                0x08010da0       0xbc Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+                0x08010da0                ZCAN::process_rx_fifo(unsigned long)
  .text._ZN4ZCAN12send_messageERK13can_Message_t
-                0x08010e34       0x52 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
-                0x08010e34                ZCAN::send_message(can_Message_t const&)
- *fill*         0x08010e86        0x2 
+                0x08010e5c       0x52 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+                0x08010e5c                ZCAN::send_message(can_Message_t const&)
+ *fill*         0x08010eae        0x2 
  .text._ZN4ZCAN9subscribeERK16MsgIdFilterSpecsPFvPvRK13can_Message_tES3_PPN10CanBusBase15CanSubscriptionE
-                0x08010e88       0xcc Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
-                0x08010e88                ZCAN::subscribe(MsgIdFilterSpecs const&, void (*)(void*, can_Message_t const&), void*, CanBusBase::CanSubscription**)
+                0x08010eb0       0xcc Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+                0x08010eb0                ZCAN::subscribe(MsgIdFilterSpecs const&, void (*)(void*, can_Message_t const&), void*, CanBusBase::CanSubscription**)
  .text._ZN4ZCAN11unsubscribeEPN10CanBusBase15CanSubscriptionE
-                0x08010f54       0x48 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
-                0x08010f54                ZCAN::unsubscribe(CanBusBase::CanSubscription*)
+                0x08010f7c       0x48 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+                0x08010f7c                ZCAN::unsubscribe(CanBusBase::CanSubscription*)
  .text.HAL_CAN_TxMailbox0CompleteCallback
-                0x08010f9c        0x2 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
-                0x08010f9c                HAL_CAN_TxMailbox0CompleteCallback
+                0x08010fc4        0x2 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+                0x08010fc4                HAL_CAN_TxMailbox0CompleteCallback
  .text.HAL_CAN_TxMailbox1CompleteCallback
-                0x08010f9e        0x2 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
-                0x08010f9e                HAL_CAN_TxMailbox1CompleteCallback
+                0x08010fc6        0x2 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+                0x08010fc6                HAL_CAN_TxMailbox1CompleteCallback
  .text.HAL_CAN_TxMailbox2CompleteCallback
-                0x08010fa0        0x2 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
-                0x08010fa0                HAL_CAN_TxMailbox2CompleteCallback
+                0x08010fc8        0x2 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+                0x08010fc8                HAL_CAN_TxMailbox2CompleteCallback
  .text.HAL_CAN_TxMailbox0AbortCallback
-                0x08010fa2        0x2 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
-                0x08010fa2                HAL_CAN_TxMailbox0AbortCallback
+                0x08010fca        0x2 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+                0x08010fca                HAL_CAN_TxMailbox0AbortCallback
  .text.HAL_CAN_TxMailbox1AbortCallback
-                0x08010fa4        0x2 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
-                0x08010fa4                HAL_CAN_TxMailbox1AbortCallback
+                0x08010fcc        0x2 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+                0x08010fcc                HAL_CAN_TxMailbox1AbortCallback
  .text.HAL_CAN_TxMailbox2AbortCallback
-                0x08010fa6        0x2 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
-                0x08010fa6                HAL_CAN_TxMailbox2AbortCallback
+                0x08010fce        0x2 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+                0x08010fce                HAL_CAN_TxMailbox2AbortCallback
  .text.HAL_CAN_SleepCallback
-                0x08010fa8        0x2 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
-                0x08010fa8                HAL_CAN_SleepCallback
+                0x08010fd0        0x2 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+                0x08010fd0                HAL_CAN_SleepCallback
  .text.HAL_CAN_WakeUpFromRxMsgCallback
-                0x08010faa        0x2 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
-                0x08010faa                HAL_CAN_WakeUpFromRxMsgCallback
+                0x08010fd2        0x2 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+                0x08010fd2                HAL_CAN_WakeUpFromRxMsgCallback
  .text.HAL_CAN_ErrorCallback
-                0x08010fac        0x2 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
-                0x08010fac                HAL_CAN_ErrorCallback
+                0x08010fd4        0x2 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+                0x08010fd4                HAL_CAN_ErrorCallback
  .text._ZNSt5arrayIN4ZCAN16ZCANSubscriptionELj28EE5beginEv
-                0x08010fae        0x2 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
-                0x08010fae                std::array<ZCAN::ZCANSubscription, 28u>::begin()
+                0x08010fd6        0x2 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+                0x08010fd6                std::array<ZCAN::ZCANSubscription, 28u>::begin()
  .text._ZNSt5arrayIN4ZCAN16ZCANSubscriptionELj28EE3endEv
-                0x08010fb0        0x6 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
-                0x08010fb0                std::array<ZCAN::ZCANSubscription, 28u>::end()
+                0x08010fd8        0x6 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+                0x08010fd8                std::array<ZCAN::ZCANSubscription, 28u>::end()
  .text._ZSt7find_ifIPN4ZCAN16ZCANSubscriptionEZNS0_15process_rx_fifoEmEUlRT_E_ES3_S3_S3_T0_
-                0x08010fb6       0x52 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+                0x08010fde       0x52 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
  .text._ZSt7find_ifIPN4ZCAN16ZCANSubscriptionEZNS0_9subscribeERK16MsgIdFilterSpecsPFvPvRK13can_Message_tES6_PPN10CanBusBase15CanSubscriptionEEUlRT_E_ESG_SG_SG_T0_
-                0x08011008       0x26 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+                0x08011030       0x26 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
  .text._ZNSt8__detail9__variant7__get_nILj1ERKNS0_15_Variadic_unionIJtmEEEEEDcOT0_
-                0x0801102e       0x20 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
-                0x0801102e                decltype(auto) std::__detail::__variant::__get_n<1u, std::__detail::__variant::_Variadic_union<unsigned short, unsigned long> const&>(std::__detail::__variant::_Variadic_union<unsigned short, unsigned long> const&)
+                0x08011056       0x20 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+                0x08011056                decltype(auto) std::__detail::__variant::__get_n<1u, std::__detail::__variant::_Variadic_union<unsigned short, unsigned long> const&>(std::__detail::__variant::_Variadic_union<unsigned short, unsigned long> const&)
  .text._ZNSt8__detail9__variant5__getILj1ERKSt7variantIJtmEEEEDcOT0_
-                0x0801104e       0x20 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
-                0x0801104e                decltype(auto) std::__detail::__variant::__get<1u, std::variant<unsigned short, unsigned long> const&>(std::variant<unsigned short, unsigned long> const&)
+                0x08011076       0x20 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+                0x08011076                decltype(auto) std::__detail::__variant::__get<1u, std::variant<unsigned short, unsigned long> const&>(std::variant<unsigned short, unsigned long> const&)
  .text._ZSt3getILj1EJtmEERKNSt19variant_alternativeIXT_ESt7variantIJDpT0_EEE4typeERKS4_
-                0x0801106e       0x3c Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
-                0x0801106e                std::variant_alternative<1u, std::variant<unsigned short, unsigned long> >::type const& std::get<1u, unsigned short, unsigned long>(std::variant<unsigned short, unsigned long> const&)
+                0x08011096       0x3c Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+                0x08011096                std::variant_alternative<1u, std::variant<unsigned short, unsigned long> >::type const& std::get<1u, unsigned short, unsigned long>(std::variant<unsigned short, unsigned long> const&)
  .text._ZNSt8__detail9__variant7__get_nILj0ERKNS0_15_Variadic_unionIJtmEEEEEDcOT0_
-                0x080110aa       0x20 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
-                0x080110aa                decltype(auto) std::__detail::__variant::__get_n<0u, std::__detail::__variant::_Variadic_union<unsigned short, unsigned long> const&>(std::__detail::__variant::_Variadic_union<unsigned short, unsigned long> const&)
+                0x080110d2       0x20 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+                0x080110d2                decltype(auto) std::__detail::__variant::__get_n<0u, std::__detail::__variant::_Variadic_union<unsigned short, unsigned long> const&>(std::__detail::__variant::_Variadic_union<unsigned short, unsigned long> const&)
  .text._ZNSt8__detail9__variant5__getILj0ERKSt7variantIJtmEEEEDcOT0_
-                0x080110ca       0x20 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
-                0x080110ca                decltype(auto) std::__detail::__variant::__get<0u, std::variant<unsigned short, unsigned long> const&>(std::variant<unsigned short, unsigned long> const&)
+                0x080110f2       0x20 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+                0x080110f2                decltype(auto) std::__detail::__variant::__get<0u, std::variant<unsigned short, unsigned long> const&>(std::variant<unsigned short, unsigned long> const&)
  .text._ZSt3getILj0EJtmEERKNSt19variant_alternativeIXT_ESt7variantIJDpT0_EEE4typeERKS4_
-                0x080110ea       0x3c Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
-                0x080110ea                std::variant_alternative<0u, std::variant<unsigned short, unsigned long> >::type const& std::get<0u, unsigned short, unsigned long>(std::variant<unsigned short, unsigned long> const&)
+                0x08011112       0x3c Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+                0x08011112                std::variant_alternative<0u, std::variant<unsigned short, unsigned long> >::type const& std::get<0u, unsigned short, unsigned long>(std::variant<unsigned short, unsigned long> const&)
  .text._ZNSt5arrayIN4ZCAN16ZCANSubscriptionELj28EEixEj
-                0x08011126        0x8 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
-                0x08011126                std::array<ZCAN::ZCANSubscription, 28u>::operator[](unsigned int)
+                0x0801114e        0x8 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+                0x0801114e                std::array<ZCAN::ZCANSubscription, 28u>::operator[](unsigned int)
  .text._ZN9__gnu_cxx5__ops11__pred_iterIZN4ZCAN15process_rx_fifoEmEUlRT_E_EENS0_10_Iter_predIS3_EES3_
-                0x0801112e       0x38 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+                0x08011156       0x38 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
  .text._ZSt9__find_ifIPN4ZCAN16ZCANSubscriptionEN9__gnu_cxx5__ops10_Iter_predIZNS0_15process_rx_fifoEmEUlRT_E_EEES6_S6_S6_T0_
-                0x08011166       0x48 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+                0x0801118e       0x48 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
  .text._ZN9__gnu_cxx5__ops11__pred_iterIZN4ZCAN9subscribeERK16MsgIdFilterSpecsPFvPvRK13can_Message_tES6_PPN10CanBusBase15CanSubscriptionEEUlRT_E_EENS0_10_Iter_predISG_EESG_
-                0x080111ae       0x26 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+                0x080111d6       0x26 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
  .text._ZSt9__find_ifIPN4ZCAN16ZCANSubscriptionEN9__gnu_cxx5__ops10_Iter_predIZNS0_9subscribeERK16MsgIdFilterSpecsPFvPvRK13can_Message_tES9_PPN10CanBusBase15CanSubscriptionEEUlRT_E_EEESJ_SJ_SJ_T0_
-                0x080111d4       0x22 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+                0x080111fc       0x22 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
  .text._ZSt7forwardIRKSt7variantIJtmEEEOT_RNSt16remove_referenceIS4_E4typeE
-                0x080111f6       0x16 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
-                0x080111f6                std::variant<unsigned short, unsigned long> const& std::forward<std::variant<unsigned short, unsigned long> const&>(std::remove_reference<std::variant<unsigned short, unsigned long> const&>::type&)
+                0x0801121e       0x16 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+                0x0801121e                std::variant<unsigned short, unsigned long> const& std::forward<std::variant<unsigned short, unsigned long> const&>(std::remove_reference<std::variant<unsigned short, unsigned long> const&>::type&)
  .text._ZSt7forwardIRKNSt8__detail9__variant15_Variadic_unionIJtmEEEEOT_RNSt16remove_referenceIS6_E4typeE
-                0x0801120c       0x16 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
-                0x0801120c                std::__detail::__variant::_Variadic_union<unsigned short, unsigned long> const& std::forward<std::__detail::__variant::_Variadic_union<unsigned short, unsigned long> const&>(std::remove_reference<std::__detail::__variant::_Variadic_union<unsigned short, unsigned long> const&>::type&)
+                0x08011234       0x16 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+                0x08011234                std::__detail::__variant::_Variadic_union<unsigned short, unsigned long> const& std::forward<std::__detail::__variant::_Variadic_union<unsigned short, unsigned long> const&>(std::remove_reference<std::__detail::__variant::_Variadic_union<unsigned short, unsigned long> const&>::type&)
  .text._ZNKRSt8__detail9__variant14_UninitializedImLb1EE6_M_getEv
-                0x08011222       0x16 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
-                0x08011222                std::__detail::__variant::_Uninitialized<unsigned long, true>::_M_get() const &
+                0x0801124a       0x16 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+                0x0801124a                std::__detail::__variant::_Uninitialized<unsigned long, true>::_M_get() const &
  .text._ZNKRSt8__detail9__variant14_UninitializedItLb1EE6_M_getEv
-                0x08011238       0x16 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
-                0x08011238                std::__detail::__variant::_Uninitialized<unsigned short, true>::_M_get() const &
+                0x08011260       0x16 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+                0x08011260                std::__detail::__variant::_Uninitialized<unsigned short, true>::_M_get() const &
  .text._ZSt4moveIRZN4ZCAN15process_rx_fifoEmEUlRT_E_EONSt16remove_referenceIS1_E4typeEOS1_
-                0x0801124e       0x16 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+                0x08011276       0x16 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
  .text._ZN9__gnu_cxx5__ops10_Iter_predIZN4ZCAN15process_rx_fifoEmEUlRT_E_EC2ES5_
-                0x08011264       0x3a Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
- *fill*         0x0801129e        0x2 
+                0x0801128c       0x3a Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+ *fill*         0x080112c6        0x2 
  .text._ZSt9__find_ifIPN4ZCAN16ZCANSubscriptionEN9__gnu_cxx5__ops10_Iter_predIZNS0_15process_rx_fifoEmEUlRT_E_EEES6_S6_S6_T0_St26random_access_iterator_tag
-                0x080112a0      0x120 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+                0x080112c8      0x120 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
  .text._ZSt4moveIRZN4ZCAN9subscribeERK16MsgIdFilterSpecsPFvPvRK13can_Message_tES4_PPN10CanBusBase15CanSubscriptionEEUlRT_E_EONSt16remove_referenceISE_E4typeEOSE_
-                0x080113c0       0x16 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+                0x080113e8       0x16 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
  .text._ZN9__gnu_cxx5__ops10_Iter_predIZN4ZCAN9subscribeERK16MsgIdFilterSpecsPFvPvRK13can_Message_tES6_PPN10CanBusBase15CanSubscriptionEEUlRT_E_EC2ESI_
-                0x080113d6       0x1c Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
- *fill*         0x080113f2        0x2 
+                0x080113fe       0x1c Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+ *fill*         0x0801141a        0x2 
  .text._ZSt9__find_ifIPN4ZCAN16ZCANSubscriptionEN9__gnu_cxx5__ops10_Iter_predIZNS0_9subscribeERK16MsgIdFilterSpecsPFvPvRK13can_Message_tES9_PPN10CanBusBase15CanSubscriptionEEUlRT_E_EEESJ_SJ_SJ_T0_St26random_access_iterator_tag
-                0x080113f4      0x114 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+                0x0801141c      0x114 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
  .text._ZZN4ZCAN15process_rx_fifoEmENKUlRT_E_clINS_16ZCANSubscriptionEEEDaS1_
-                0x08011508       0x2a Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+                0x08011530       0x2a Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
  .text._ZN9__gnu_cxx5__ops10_Iter_predIZN4ZCAN15process_rx_fifoEmEUlRT_E_EclIPNS2_16ZCANSubscriptionEEEbS3_
-                0x08011532       0x1e Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+                0x0801155a       0x1e Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
  .text._ZZN4ZCAN9subscribeERK16MsgIdFilterSpecsPFvPvRK13can_Message_tES3_PPN10CanBusBase15CanSubscriptionEENKUlRT_E_clINS_16ZCANSubscriptionEEEDaSE_
-                0x08011550        0xc Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+                0x08011578        0xc Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
  .text._ZN9__gnu_cxx5__ops10_Iter_predIZN4ZCAN9subscribeERK16MsgIdFilterSpecsPFvPvRK13can_Message_tES6_PPN10CanBusBase15CanSubscriptionEEUlRT_E_EclIPNS2_16ZCANSubscriptionEEEbSG_
-                0x0801155c       0x1e Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+                0x08011584       0x1e Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
  .text.__aeabi_atexit
-                0x0801157a        0xa /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libstdc++_nano.a(atexit_arm.o)
-                0x0801157a                __aeabi_atexit
- .text._ZdlPvj  0x08011584        0x4 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libstdc++_nano.a(del_ops.o)
-                0x08011584                operator delete(void*, unsigned int)
- .text._Znwj    0x08011588       0x22 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libstdc++_nano.a(new_op.o)
-                0x08011588                operator new(unsigned int)
- .text._ZdlPv   0x080115aa        0x4 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libstdc++_nano.a(del_op.o)
-                0x080115aa                operator delete(void*)
- *fill*         0x080115ae        0x2 
+                0x080115a2        0xa /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libstdc++_nano.a(atexit_arm.o)
+                0x080115a2                __aeabi_atexit
+ .text._ZdlPvj  0x080115ac        0x4 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libstdc++_nano.a(del_ops.o)
+                0x080115ac                operator delete(void*, unsigned int)
+ .text._Znwj    0x080115b0       0x22 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libstdc++_nano.a(new_op.o)
+                0x080115b0                operator new(unsigned int)
+ .text._ZdlPv   0x080115d2        0x4 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libstdc++_nano.a(del_op.o)
+                0x080115d2                operator delete(void*)
+ *fill*         0x080115d6        0x2 
  .text._ZSt15get_new_handlerv
-                0x080115b0       0x10 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libstdc++_nano.a(new_handler.o)
-                0x080115b0                std::get_new_handler()
+                0x080115d8       0x10 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libstdc++_nano.a(new_handler.o)
+                0x080115d8                std::get_new_handler()
  *(.glue_7)
- .glue_7        0x080115c0        0x0 linker stubs
+ .glue_7        0x080115e8        0x0 linker stubs
  *(.glue_7t)
- .glue_7t       0x080115c0        0x0 linker stubs
+ .glue_7t       0x080115e8        0x0 linker stubs
  *(.eh_frame)
- .eh_frame      0x080115c0        0x0 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/crtbegin.o
+ .eh_frame      0x080115e8        0x0 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/crtbegin.o
  *(.init)
- .init          0x080115c0        0x4 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/crti.o
-                0x080115c0                _init
- .init          0x080115c4        0x8 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/crtn.o
+ .init          0x080115e8        0x4 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/crti.o
+                0x080115e8                _init
+ .init          0x080115ec        0x8 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/crtn.o
  *(.fini)
- .fini          0x080115cc        0x4 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/crti.o
-                0x080115cc                _fini
- .fini          0x080115d0        0x8 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/crtn.o
-                0x080115d8                        . = ALIGN (0x4)
-                0x080115d8                        _etext = .
+ .fini          0x080115f4        0x4 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/crti.o
+                0x080115f4                _fini
+ .fini          0x080115f8        0x8 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/crtn.o
+                0x08011600                        . = ALIGN (0x4)
+                0x08011600                        _etext = .
 
-.vfp11_veneer   0x080115d8        0x0
- .vfp11_veneer  0x080115d8        0x0 linker stubs
+.vfp11_veneer   0x08011600        0x0
+ .vfp11_veneer  0x08011600        0x0 linker stubs
 
-.v4_bx          0x080115d8        0x0
- .v4_bx         0x080115d8        0x0 linker stubs
+.v4_bx          0x08011600        0x0
+ .v4_bx         0x08011600        0x0 linker stubs
 
-.iplt           0x080115d8        0x0
- .iplt          0x080115d8        0x0 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/crtbegin.o
+.iplt           0x08011600        0x0
+ .iplt          0x08011600        0x0 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/crtbegin.o
 
-.rodata         0x080115d8      0x9d8
-                0x080115d8                        . = ALIGN (0x4)
+.rodata         0x08011600      0x9d8
+                0x08011600                        . = ALIGN (0x4)
  *(.rodata)
- .rodata        0x080115d8        0x5 Board/cmake/stm32cubemx/CMakeFiles/FreeRTOS.dir/__/__/Middlewares/Third_Party/FreeRTOS/Source/tasks.c.obj
- *fill*         0x080115dd        0x3 
- .rodata        0x080115e0        0xd Board/cmake/stm32cubemx/CMakeFiles/FreeRTOS.dir/__/__/Middlewares/Third_Party/FreeRTOS/Source/timers.c.obj
- *fill*         0x080115ed        0x3 
- .rodata        0x080115f0       0x6b Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/freertos.c.obj
- *fill*         0x0801165b        0x1 
- .rodata        0x0801165c       0x50 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Task/ctrl_task.cpp.obj
- .rodata        0x080116ac       0x15 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Task/main.cpp.obj
- *fill*         0x080116c1        0x3 
- .rodata        0x080116c4       0x10 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Task/motor_task.cpp.obj
- .rodata        0x080116d4       0x3c Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/robot.cpp.obj
- .rodata        0x08011710       0x10 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
- .rodata        0x08011720       0x10 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-e_sqrt.o)
- .rodata        0x08011730       0x18 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-ef_atan2.o)
- .rodata        0x08011748       0x20 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-sf_atan.o)
- .rodata        0x08011768      0x398 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-ef_rem_pio2.o)
- .rodata        0x08011b00       0x38 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-kf_rem_pio2.o)
- .rodata        0x08011b38        0x4 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-on_exit_args.o)
-                0x08011b38                __on_exit_args
+ .rodata        0x08011600        0x5 Board/cmake/stm32cubemx/CMakeFiles/FreeRTOS.dir/__/__/Middlewares/Third_Party/FreeRTOS/Source/tasks.c.obj
+ *fill*         0x08011605        0x3 
+ .rodata        0x08011608        0xd Board/cmake/stm32cubemx/CMakeFiles/FreeRTOS.dir/__/__/Middlewares/Third_Party/FreeRTOS/Source/timers.c.obj
+ *fill*         0x08011615        0x3 
+ .rodata        0x08011618       0x6b Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/freertos.c.obj
+ *fill*         0x08011683        0x1 
+ .rodata        0x08011684       0x50 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Task/ctrl_task.cpp.obj
+ .rodata        0x080116d4       0x15 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Task/main.cpp.obj
+ *fill*         0x080116e9        0x3 
+ .rodata        0x080116ec       0x10 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Task/motor_task.cpp.obj
+ .rodata        0x080116fc       0x3c Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/robot.cpp.obj
+ .rodata        0x08011738       0x10 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+ .rodata        0x08011748       0x10 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-e_sqrt.o)
+ .rodata        0x08011758       0x18 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-ef_atan2.o)
+ .rodata        0x08011770       0x20 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-sf_atan.o)
+ .rodata        0x08011790      0x398 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-ef_rem_pio2.o)
+ .rodata        0x08011b28       0x38 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-kf_rem_pio2.o)
+ .rodata        0x08011b60        0x4 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-on_exit_args.o)
+                0x08011b60                __on_exit_args
  *(.rodata*)
  .rodata.AHBPrescTable
-                0x08011b3c       0x10 Board/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Core/Src/system_stm32f4xx.c.obj
-                0x08011b3c                AHBPrescTable
+                0x08011b64       0x10 Board/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Core/Src/system_stm32f4xx.c.obj
+                0x08011b64                AHBPrescTable
  .rodata.APBPrescTable
-                0x08011b4c        0x8 Board/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Core/Src/system_stm32f4xx.c.obj
-                0x08011b4c                APBPrescTable
+                0x08011b74        0x8 Board/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Core/Src/system_stm32f4xx.c.obj
+                0x08011b74                APBPrescTable
  .rodata.flagBitshiftOffset.0
-                0x08011b54        0x8 Board/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma.c.obj
+                0x08011b7c        0x8 Board/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma.c.obj
  .rodata.defaultTask_attributes
-                0x08011b5c       0x24 Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/freertos.c.obj
-                0x08011b5c                defaultTask_attributes
+                0x08011b84       0x24 Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/freertos.c.obj
+                0x08011b84                defaultTask_attributes
  .rodata.OptFlowRxTask_attributes
-                0x08011b80       0x24 Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/freertos.c.obj
-                0x08011b80                OptFlowRxTask_attributes
+                0x08011ba8       0x24 Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/freertos.c.obj
+                0x08011ba8                OptFlowRxTask_attributes
  .rodata.CrtlTask_attributes
-                0x08011ba4       0x24 Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/freertos.c.obj
-                0x08011ba4                CrtlTask_attributes
+                0x08011bcc       0x24 Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/freertos.c.obj
+                0x08011bcc                CrtlTask_attributes
  .rodata.MotorRxTask_attributes
-                0x08011bc8       0x24 Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/freertos.c.obj
-                0x08011bc8                MotorRxTask_attributes
+                0x08011bf0       0x24 Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/freertos.c.obj
+                0x08011bf0                MotorRxTask_attributes
  .rodata.ImuRxTask_attributes
-                0x08011bec       0x24 Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/freertos.c.obj
-                0x08011bec                ImuRxTask_attributes
+                0x08011c14       0x24 Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/freertos.c.obj
+                0x08011c14                ImuRxTask_attributes
  .rodata.SpiExchangeTask_attributes
-                0x08011c10       0x24 Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/freertos.c.obj
-                0x08011c10                SpiExchangeTask_attributes
+                0x08011c38       0x24 Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/freertos.c.obj
+                0x08011c38                SpiExchangeTask_attributes
  .rodata.TelemetryTask_attributes
-                0x08011c34       0x24 Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/freertos.c.obj
-                0x08011c34                TelemetryTask_attributes
+                0x08011c5c       0x24 Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/freertos.c.obj
+                0x08011c5c                TelemetryTask_attributes
  .rodata.HealthTask_attributes
-                0x08011c58       0x24 Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/freertos.c.obj
-                0x08011c58                HealthTask_attributes
+                0x08011c80       0x24 Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/freertos.c.obj
+                0x08011c80                HealthTask_attributes
  .rodata._ZSt26__throw_bad_variant_accessb.str1.1
-                0x08011c7c       0x5a Board/CMakeFiles/CM4_stm32_RTOS.dir/board.cpp.obj
+                0x08011ca4       0x5a Board/CMakeFiles/CM4_stm32_RTOS.dir/board.cpp.obj
                                  0x41 (size before relaxing)
- *fill*         0x08011cd6        0x2 
+ *fill*         0x08011cfe        0x2 
  .rodata._ZTV10CanBusBase
-                0x08011cd8       0x14 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Task/main.cpp.obj
-                0x08011cd8                vtable for CanBusBase
+                0x08011d00       0x14 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Task/main.cpp.obj
+                0x08011d00                vtable for CanBusBase
  .rodata.StartTelemetryTask.str1.1
-                0x08011cec       0x19 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Task/telemetry_task.cpp.obj
+                0x08011d14       0x19 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Task/telemetry_task.cpp.obj
  .rodata.motor_info_M2006
-                0x08011cec       0x10 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/dribble_motor.cpp.obj
-                0x08011cec                motor_info_M2006
+                0x08011d14       0x10 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/dribble_motor.cpp.obj
+                0x08011d14                motor_info_M2006
  .rodata._ZTV10MotorM2006
-                0x08011cfc       0x1c Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/dribble_motor.cpp.obj
-                0x08011cfc                vtable for MotorM2006
+                0x08011d24       0x1c Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/dribble_motor.cpp.obj
+                0x08011d24                vtable for MotorM2006
  .rodata._ZTV15DibbleMotorBase
-                0x08011d18       0x1c Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/dribble_motor.cpp.obj
-                0x08011d18                vtable for DibbleMotorBase
+                0x08011d40       0x1c Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/dribble_motor.cpp.obj
+                0x08011d40                vtable for DibbleMotorBase
  .rodata._ZL5imu_k
-                0x08011d34        0xc Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/imu.cpp.obj
+                0x08011d5c        0xc Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/imu.cpp.obj
  .rodata._ZL13ACC_THRESHOLD
-                0x08011d40        0xc Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/robot.cpp.obj
+                0x08011d68        0xc Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/robot.cpp.obj
  .rodata._ZL14WHEEL_VX_ANGLE
-                0x08011d4c       0x10 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/robot.cpp.obj
+                0x08011d74       0x10 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/robot.cpp.obj
  .rodata._ZL14WHEEL_VY_ANGLE
-                0x08011d5c       0x10 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/robot.cpp.obj
+                0x08011d84       0x10 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/robot.cpp.obj
  .rodata._ZL18WHEEL_MOTOR_PARAMS
-                0x08011d6c       0x50 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/robot.cpp.obj
+                0x08011d94       0x50 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/robot.cpp.obj
  .rodata._ZL21DRIBBLER_MOTOR_PARAMS
-                0x08011dbc       0x14 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/robot.cpp.obj
+                0x08011de4       0x14 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/robot.cpp.obj
  .rodata._ZL20WHEEL_VEL_PID_PARAMS
-                0x08011dd0       0x60 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/robot.cpp.obj
+                0x08011df8       0x60 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/robot.cpp.obj
  .rodata._ZL18DRIBBLER_TD_PARAMS
-                0x08011e30       0x18 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/robot.cpp.obj
+                0x08011e58       0x18 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/robot.cpp.obj
  .rodata._ZL15WHEEL_TD_PARAMS
-                0x08011e48       0x60 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/robot.cpp.obj
+                0x08011e70       0x60 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/robot.cpp.obj
  .rodata.motor_info_DMH3510
-                0x08011ea8       0x10 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
-                0x08011ea8                motor_info_DMH3510
+                0x08011ed0       0x10 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
+                0x08011ed0                motor_info_DMH3510
  .rodata._ZTV12MotorDMH3510
-                0x08011eb8       0x54 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
-                0x08011eb8                vtable for MotorDMH3510
+                0x08011ee0       0x54 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
+                0x08011ee0                vtable for MotorDMH3510
  .rodata._ZTV14WheelMotorBase
-                0x08011f0c       0x54 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
-                0x08011f0c                vtable for WheelMotorBase
+                0x08011f34       0x54 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
+                0x08011f34                vtable for WheelMotorBase
  .rodata._ZTV4ZCAN
-                0x08011f60       0x14 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
-                0x08011f60                vtable for ZCAN
+                0x08011f88       0x14 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+                0x08011f88                vtable for ZCAN
  .rodata.str1.4
-                0x08011f74       0x39 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-nano-svfprintf.o)
+                0x08011f9c       0x39 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-nano-svfprintf.o)
                                  0x13 (size before relaxing)
  .rodata.str1.4
-                0x08011fad       0x25 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-nano-vfprintf_i.o)
-                0x08011fd4                        . = ALIGN (0x4)
- *fill*         0x08011fad        0x3 
+                0x08011fd5       0x25 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-nano-vfprintf_i.o)
+                0x08011ffc                        . = ALIGN (0x4)
+ *fill*         0x08011fd5        0x3 
 
-.ARM.extab      0x08011fb0        0x0
-                0x08011fb0                        . = ALIGN (0x4)
+.ARM.extab      0x08011fd8        0x0
+                0x08011fd8                        . = ALIGN (0x4)
  *(.ARM.extab* .gnu.linkonce.armextab.*)
-                0x08011fb0                        . = ALIGN (0x4)
+                0x08011fd8                        . = ALIGN (0x4)
 
-.ARM            0x08011fb0        0x8
-                0x08011fb0                        . = ALIGN (0x4)
-                0x08011fb0                        __exidx_start = .
+.ARM            0x08011fd8        0x8
+                0x08011fd8                        . = ALIGN (0x4)
+                0x08011fd8                        __exidx_start = .
  *(.ARM.exidx*)
- .ARM.exidx     0x08011fb0        0x8 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_udivmoddi4.o)
- .ARM.exidx     0x08011fb8        0x0 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-memcpy.o)
+ .ARM.exidx     0x08011fd8        0x8 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_udivmoddi4.o)
+ .ARM.exidx     0x08011fe0        0x0 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-memcpy.o)
                                   0x8 (size before relaxing)
- .ARM.exidx     0x08011fb8        0x0 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-memchr.o)
+ .ARM.exidx     0x08011fe0        0x0 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-memchr.o)
                                   0x8 (size before relaxing)
-                0x08011fb8                        __exidx_end = .
-                0x08011fb8                        . = ALIGN (0x4)
+                0x08011fe0                        __exidx_end = .
+                0x08011fe0                        . = ALIGN (0x4)
 
-.preinit_array  0x08011fb8        0x0
-                0x08011fb8                        . = ALIGN (0x4)
-                0x08011fb8                        PROVIDE (__preinit_array_start = .)
+.preinit_array  0x08011fe0        0x0
+                0x08011fe0                        . = ALIGN (0x4)
+                0x08011fe0                        PROVIDE (__preinit_array_start = .)
  *(.preinit_array*)
-                0x08011fb8                        PROVIDE (__preinit_array_end = .)
-                0x08011fb8                        . = ALIGN (0x4)
+                0x08011fe0                        PROVIDE (__preinit_array_end = .)
+                0x08011fe0                        . = ALIGN (0x4)
 
-.init_array     0x08011fb8        0xc
-                0x08011fb8                        . = ALIGN (0x4)
-                0x08011fb8                        PROVIDE (__init_array_start = .)
+.init_array     0x08011fe0        0xc
+                0x08011fe0                        . = ALIGN (0x4)
+                0x08011fe0                        PROVIDE (__init_array_start = .)
  *(SORT_BY_NAME(.init_array.*))
  *(.init_array*)
- .init_array    0x08011fb8        0x4 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/crtbegin.o
- .init_array    0x08011fbc        0x4 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Task/main.cpp.obj
- .init_array    0x08011fc0        0x4 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/robot.cpp.obj
-                0x08011fc4                        PROVIDE (__init_array_end = .)
-                0x08011fc4                        . = ALIGN (0x4)
+ .init_array    0x08011fe0        0x4 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/crtbegin.o
+ .init_array    0x08011fe4        0x4 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Task/main.cpp.obj
+ .init_array    0x08011fe8        0x4 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/robot.cpp.obj
+                0x08011fec                        PROVIDE (__init_array_end = .)
+                0x08011fec                        . = ALIGN (0x4)
 
-.fini_array     0x08011fc4        0x4
-                0x08011fc4                        . = ALIGN (0x4)
-                0x08011fc4                        PROVIDE (__fini_array_start = .)
+.fini_array     0x08011fec        0x4
+                0x08011fec                        . = ALIGN (0x4)
+                0x08011fec                        PROVIDE (__fini_array_start = .)
  *(SORT_BY_NAME(.fini_array.*))
  *(.fini_array*)
- .fini_array    0x08011fc4        0x4 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/crtbegin.o
-                0x08011fc8                        PROVIDE (__fini_array_end = .)
-                0x08011fc8                        . = ALIGN (0x4)
-                0x08011fc8                        _siccmram = LOADADDR (.ccmram)
+ .fini_array    0x08011fec        0x4 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/crtbegin.o
+                0x08011ff0                        PROVIDE (__fini_array_end = .)
+                0x08011ff0                        . = ALIGN (0x4)
+                0x08011ff0                        _siccmram = LOADADDR (.ccmram)
 
-.rel.dyn        0x08011fc8        0x0
- .rel.iplt      0x08011fc8        0x0 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/crtbegin.o
+.rel.dyn        0x08011ff0        0x0
+ .rel.iplt      0x08011ff0        0x0 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/crtbegin.o
 
-.ccmram         0x10000000    0x10000 load address 0x08011fc8
+.ccmram         0x10000000    0x10000 load address 0x08011ff0
                 0x10000000                        . = ALIGN (0x4)
                 0x10000000                        _sccmram = .
  *(.ccmram)
@@ -13271,9 +13257,9 @@ LOAD /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/crtn.o
  *(.ccmram*)
                 0x10010000                        . = ALIGN (0x4)
                 0x10010000                        _eccmram = .
-                0x08021fc8                        _sidata = LOADADDR (.data)
+                0x08021ff0                        _sidata = LOADADDR (.data)
 
-.data           0x20000000       0x7c load address 0x08021fc8
+.data           0x20000000       0x7c load address 0x08021ff0
                 0x20000000                        . = ALIGN (0x4)
                 0x20000000                        _sdata = .
  *(.data)
@@ -13302,16 +13288,16 @@ LOAD /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/crtn.o
                 0x2000007c                        . = ALIGN (0x4)
 
 .tm_clone_table
-                0x2000007c        0x0 load address 0x08022044
+                0x2000007c        0x0 load address 0x0802206c
  .tm_clone_table
                 0x2000007c        0x0 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/crtbegin.o
  .tm_clone_table
                 0x2000007c        0x0 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/crtend.o
 
-.igot.plt       0x2000007c        0x0 load address 0x08022044
+.igot.plt       0x2000007c        0x0 load address 0x0802206c
  .igot.plt      0x2000007c        0x0 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/crtbegin.o
 
-.tdata          0x2000007c        0x0 load address 0x08022044
+.tdata          0x2000007c        0x0 load address 0x0802206c
  *(.tdata .tdata.* .gnu.linkonce.td.*)
                 0x2000007c                        . = ALIGN (0x4)
                 0x2000007c                        _edata = .
@@ -13328,7 +13314,7 @@ LOAD /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/crtn.o
                 [!provide]                        PROVIDE (__data_source_end = __tdata_source_end)
                 [!provide]                        PROVIDE (__data_source_size = (__data_source_end - __data_source))
 
-.tbss           0x2000007c        0x0 load address 0x08022044
+.tbss           0x2000007c        0x0 load address 0x0802206c
                 0x2000007c                        _sbss = .
                 0x2000007c                        __bss_start__ = _sbss
  *(.tbss .tbss.*)
@@ -13345,7 +13331,7 @@ LOAD /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/crtn.o
                 [!provide]                        PROVIDE (__arm32_tls_tcb_offset = MAX (0x8, __tls_align))
                 [!provide]                        PROVIDE (__arm64_tls_tcb_offset = MAX (0x10, __tls_align))
 
-.bss            0x2000007c     0x1f44 load address 0x08022044
+.bss            0x2000007c     0x1f44 load address 0x0802206c
  *(.bss)
  .bss           0x2000007c       0x1c /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/crtbegin.o
  .bss           0x20000098      0x108 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-on_exit_args.o)
@@ -13695,7 +13681,7 @@ LOAD /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/crtn.o
                 [!provide]                        PROVIDE (__bss_size = (__bss_end - __bss_start))
 
 ._user_heap_stack
-                0x20001fc0     0x4000 load address 0x08022044
+                0x20001fc0     0x4000 load address 0x0802206c
                 0x20001fc0                        . = ALIGN (0x8)
                 [!provide]                        PROVIDE (end = .)
                 0x20001fc0                        PROVIDE (_end = .)
@@ -14045,7 +14031,7 @@ LOAD linker stubs
  .comment       0x00000026       0x27 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-reent.o)
  .comment       0x00000026       0x27 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/crtend.o
 
-.debug_info     0x00000000    0x6254c
+.debug_info     0x00000000    0x624c1
  .debug_info    0x00000000      0x4f8 Board/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Core/Src/system_stm32f4xx.c.obj
  .debug_info    0x000004f8     0x2985 Board/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim.c.obj
  .debug_info    0x00002e7d     0x14c3 Board/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim_ex.c.obj
@@ -14097,64 +14083,64 @@ LOAD linker stubs
  .debug_info    0x00044028     0x2806 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/dribble_motor.cpp.obj
  .debug_info    0x0004682e      0xf43 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/imu.cpp.obj
  .debug_info    0x00047771      0xa2a Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/opt_flow.cpp.obj
- .debug_info    0x0004819b     0x404b Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/robot.cpp.obj
- .debug_info    0x0004c1e6     0x3553 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
- .debug_info    0x0004f739     0x4e02 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
- .debug_info    0x0005453b      0x147 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libstdc++_nano.a(atexit_arm.o)
- .debug_info    0x00054682       0xaf /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libstdc++_nano.a(del_ops.o)
- .debug_info    0x00054731      0x669 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libstdc++_nano.a(new_op.o)
- .debug_info    0x00054d9a      0x5b3 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libstdc++_nano.a(del_op.o)
- .debug_info    0x0005534d      0x142 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libstdc++_nano.a(new_handler.o)
- .debug_info    0x0005548f      0x215 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-sf_cos.o)
- .debug_info    0x000556a4      0x10c /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-wf_sqrt.o)
- .debug_info    0x000557b0      0x14b /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-w_sqrt.o)
- .debug_info    0x000558fb       0xfa /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-wf_atan2.o)
- .debug_info    0x000559f5      0x2e8 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-e_sqrt.o)
- .debug_info    0x00055cdd      0x20e /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-kf_cos.o)
- .debug_info    0x00055eeb      0x228 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-sf_sin.o)
- .debug_info    0x00056113      0x2d3 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-ef_atan2.o)
- .debug_info    0x000563e6      0x252 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-sf_atan.o)
- .debug_info    0x00056638      0x1e0 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-kf_sin.o)
- .debug_info    0x00056818      0x3fd /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-ef_rem_pio2.o)
- .debug_info    0x00056c15      0x13e /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-sf_fabs.o)
- .debug_info    0x00056d53      0x3e7 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-kf_rem_pio2.o)
- .debug_info    0x0005713a       0xc6 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-ef_sqrt.o)
- .debug_info    0x00057200      0x20b /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-sf_scalbn.o)
- .debug_info    0x0005740b      0x18a /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-sf_floor.o)
- .debug_info    0x00057595       0xd3 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_arm_addsubdf3.o)
- .debug_info    0x00057668       0x57 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_arm_muldivdf3.o)
- .debug_info    0x000576bf       0xdf /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_arm_cmpdf2.o)
- .debug_info    0x0005779e       0x3c /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_arm_unorddf2.o)
- .debug_info    0x000577da       0x3f /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_arm_truncdfsf2.o)
- .debug_info    0x00057819       0x24 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_aeabi_uldivmod.o)
- .debug_info    0x0005783d      0x6f5 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_udivmoddi4.o)
- .debug_info    0x00057f32       0x3c /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_dvmd_tls.o)
- .debug_info    0x00057f6e      0x10b /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-init.o)
- .debug_info    0x00058079       0xd8 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-abort.o)
- .debug_info    0x00058151      0x135 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-memset.o)
- .debug_info    0x00058286      0x6f1 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-errno.o)
- .debug_info    0x00058977      0x211 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-cxa_atexit.o)
- .debug_info    0x00058b88       0x33 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-memcpy.o)
- .debug_info    0x00058bbb       0xff /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-on_exit_args.o)
- .debug_info    0x00058cba      0x796 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-malloc.o)
- .debug_info    0x00059450      0x8ff /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-snprintf.o)
- .debug_info    0x00059d4f      0x70b /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-impure.o)
- .debug_info    0x0005a45a     0x1092 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-nano-svfprintf.o)
- .debug_info    0x0005b4ec      0xc39 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-signal.o)
- .debug_info    0x0005c125      0xe8c /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-findfp.o)
- .debug_info    0x0005cfb1      0x9b6 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-mallocr.o)
- .debug_info    0x0005d967      0x87f /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-freer.o)
- .debug_info    0x0005e1e6      0x148 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-memmove.o)
- .debug_info    0x0005e32e       0x25 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-memchr.o)
- .debug_info    0x0005e353      0x284 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-__atexit.o)
- .debug_info    0x0005e5d7      0x8cd /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-reallocr.o)
- .debug_info    0x0005eea4      0xdd7 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-nano-vfprintf_i.o)
- .debug_info    0x0005fc7b      0x71c /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-mlock.o)
- .debug_info    0x00060397      0x778 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-sbrkr.o)
- .debug_info    0x00060b0f      0x78a /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-msizer.o)
- .debug_info    0x00061299      0x7df /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-signalr.o)
- .debug_info    0x00061a78      0x235 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-__call_atexit.o)
- .debug_info    0x00061cad      0x89f /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-reent.o)
+ .debug_info    0x0004819b     0x4020 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/robot.cpp.obj
+ .debug_info    0x0004c1bb     0x34f3 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
+ .debug_info    0x0004f6ae     0x4e02 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+ .debug_info    0x000544b0      0x147 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libstdc++_nano.a(atexit_arm.o)
+ .debug_info    0x000545f7       0xaf /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libstdc++_nano.a(del_ops.o)
+ .debug_info    0x000546a6      0x669 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libstdc++_nano.a(new_op.o)
+ .debug_info    0x00054d0f      0x5b3 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libstdc++_nano.a(del_op.o)
+ .debug_info    0x000552c2      0x142 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libstdc++_nano.a(new_handler.o)
+ .debug_info    0x00055404      0x215 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-sf_cos.o)
+ .debug_info    0x00055619      0x10c /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-wf_sqrt.o)
+ .debug_info    0x00055725      0x14b /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-w_sqrt.o)
+ .debug_info    0x00055870       0xfa /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-wf_atan2.o)
+ .debug_info    0x0005596a      0x2e8 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-e_sqrt.o)
+ .debug_info    0x00055c52      0x20e /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-kf_cos.o)
+ .debug_info    0x00055e60      0x228 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-sf_sin.o)
+ .debug_info    0x00056088      0x2d3 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-ef_atan2.o)
+ .debug_info    0x0005635b      0x252 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-sf_atan.o)
+ .debug_info    0x000565ad      0x1e0 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-kf_sin.o)
+ .debug_info    0x0005678d      0x3fd /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-ef_rem_pio2.o)
+ .debug_info    0x00056b8a      0x13e /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-sf_fabs.o)
+ .debug_info    0x00056cc8      0x3e7 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-kf_rem_pio2.o)
+ .debug_info    0x000570af       0xc6 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-ef_sqrt.o)
+ .debug_info    0x00057175      0x20b /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-sf_scalbn.o)
+ .debug_info    0x00057380      0x18a /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-sf_floor.o)
+ .debug_info    0x0005750a       0xd3 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_arm_addsubdf3.o)
+ .debug_info    0x000575dd       0x57 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_arm_muldivdf3.o)
+ .debug_info    0x00057634       0xdf /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_arm_cmpdf2.o)
+ .debug_info    0x00057713       0x3c /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_arm_unorddf2.o)
+ .debug_info    0x0005774f       0x3f /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_arm_truncdfsf2.o)
+ .debug_info    0x0005778e       0x24 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_aeabi_uldivmod.o)
+ .debug_info    0x000577b2      0x6f5 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_udivmoddi4.o)
+ .debug_info    0x00057ea7       0x3c /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_dvmd_tls.o)
+ .debug_info    0x00057ee3      0x10b /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-init.o)
+ .debug_info    0x00057fee       0xd8 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-abort.o)
+ .debug_info    0x000580c6      0x135 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-memset.o)
+ .debug_info    0x000581fb      0x6f1 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-errno.o)
+ .debug_info    0x000588ec      0x211 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-cxa_atexit.o)
+ .debug_info    0x00058afd       0x33 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-memcpy.o)
+ .debug_info    0x00058b30       0xff /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-on_exit_args.o)
+ .debug_info    0x00058c2f      0x796 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-malloc.o)
+ .debug_info    0x000593c5      0x8ff /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-snprintf.o)
+ .debug_info    0x00059cc4      0x70b /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-impure.o)
+ .debug_info    0x0005a3cf     0x1092 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-nano-svfprintf.o)
+ .debug_info    0x0005b461      0xc39 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-signal.o)
+ .debug_info    0x0005c09a      0xe8c /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-findfp.o)
+ .debug_info    0x0005cf26      0x9b6 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-mallocr.o)
+ .debug_info    0x0005d8dc      0x87f /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-freer.o)
+ .debug_info    0x0005e15b      0x148 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-memmove.o)
+ .debug_info    0x0005e2a3       0x25 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-memchr.o)
+ .debug_info    0x0005e2c8      0x284 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-__atexit.o)
+ .debug_info    0x0005e54c      0x8cd /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-reallocr.o)
+ .debug_info    0x0005ee19      0xdd7 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-nano-vfprintf_i.o)
+ .debug_info    0x0005fbf0      0x71c /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-mlock.o)
+ .debug_info    0x0006030c      0x778 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-sbrkr.o)
+ .debug_info    0x00060a84      0x78a /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-msizer.o)
+ .debug_info    0x0006120e      0x7df /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-signalr.o)
+ .debug_info    0x000619ed      0x235 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-__call_atexit.o)
+ .debug_info    0x00061c22      0x89f /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-reent.o)
 
 .debug_abbrev   0x00000000    0x10d18
  .debug_abbrev  0x00000000      0x11b Board/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Core/Src/system_stm32f4xx.c.obj
@@ -14879,7 +14865,7 @@ LOAD linker stubs
  .debug_macro   0x0003086f      0x6dd Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
  .debug_macro   0x00030f4c      0x92c Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
 
-.debug_line     0x00000000    0x3d504
+.debug_line     0x00000000    0x3d50c
  .debug_line    0x00000000      0x67d Board/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Core/Src/system_stm32f4xx.c.obj
  .debug_line    0x0000067d     0x366e Board/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim.c.obj
  .debug_line    0x00003ceb     0x1859 Board/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim_ex.c.obj
@@ -14932,175 +14918,175 @@ LOAD linker stubs
  .debug_line    0x0002fbc7      0x97c Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/imu.cpp.obj
  .debug_line    0x00030543      0xd81 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/opt_flow.cpp.obj
  .debug_line    0x000312c4     0x1aeb Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/robot.cpp.obj
- .debug_line    0x00032daf     0x107b Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
- .debug_line    0x00033e2a     0x1ca0 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
- .debug_line    0x00035aca       0xf9 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libstdc++_nano.a(atexit_arm.o)
- .debug_line    0x00035bc3       0xcb /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libstdc++_nano.a(del_ops.o)
- .debug_line    0x00035c8e      0x190 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libstdc++_nano.a(new_op.o)
- .debug_line    0x00035e1e      0x157 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libstdc++_nano.a(del_op.o)
- .debug_line    0x00035f75       0xfb /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libstdc++_nano.a(new_handler.o)
- .debug_line    0x00036070      0x1d8 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-sf_cos.o)
- .debug_line    0x00036248      0x160 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-wf_sqrt.o)
- .debug_line    0x000363a8      0x165 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-w_sqrt.o)
- .debug_line    0x0003650d       0xdf /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-wf_atan2.o)
- .debug_line    0x000365ec      0x452 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-e_sqrt.o)
- .debug_line    0x00036a3e      0x1d1 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-kf_cos.o)
- .debug_line    0x00036c0f      0x1d8 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-sf_sin.o)
- .debug_line    0x00036de7      0x2b7 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-ef_atan2.o)
- .debug_line    0x0003709e      0x2ba /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-sf_atan.o)
- .debug_line    0x00037358      0x16d /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-kf_sin.o)
- .debug_line    0x000374c5      0x4a8 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-ef_rem_pio2.o)
- .debug_line    0x0003796d      0x154 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-sf_fabs.o)
- .debug_line    0x00037ac1      0xa55 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-kf_rem_pio2.o)
- .debug_line    0x00038516       0x6e /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-ef_sqrt.o)
- .debug_line    0x00038584      0x24a /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-sf_scalbn.o)
- .debug_line    0x000387ce      0x23a /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-sf_floor.o)
- .debug_line    0x00038a08      0x16f /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_arm_addsubdf3.o)
- .debug_line    0x00038b77      0x184 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_arm_muldivdf3.o)
- .debug_line    0x00038cfb       0xa6 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_arm_cmpdf2.o)
- .debug_line    0x00038da1       0x57 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_arm_unorddf2.o)
- .debug_line    0x00038df8       0x76 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_arm_truncdfsf2.o)
- .debug_line    0x00038e6e       0x4e /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_aeabi_uldivmod.o)
- .debug_line    0x00038ebc      0x574 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_udivmoddi4.o)
- .debug_line    0x00039430       0x4a /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_dvmd_tls.o)
- .debug_line    0x0003947a      0x11e /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-init.o)
- .debug_line    0x00039598      0x115 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-abort.o)
- .debug_line    0x000396ad      0x1b6 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-memset.o)
- .debug_line    0x00039863      0x10c /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-errno.o)
- .debug_line    0x0003996f       0xf0 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-cxa_atexit.o)
- .debug_line    0x00039a5f       0xb9 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-memcpy.o)
- .debug_line    0x00039b18       0xa2 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-on_exit_args.o)
- .debug_line    0x00039bba      0x16b /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-malloc.o)
- .debug_line    0x00039d25      0x354 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-snprintf.o)
- .debug_line    0x0003a079       0xe7 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-impure.o)
- .debug_line    0x0003a160      0x854 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-nano-svfprintf.o)
- .debug_line    0x0003a9b4      0x66f /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-signal.o)
- .debug_line    0x0003b023      0x4fc /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-findfp.o)
- .debug_line    0x0003b51f      0x446 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-mallocr.o)
- .debug_line    0x0003b965      0x2c3 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-freer.o)
- .debug_line    0x0003bc28      0x1f1 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-memmove.o)
- .debug_line    0x0003be19       0x84 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-memchr.o)
- .debug_line    0x0003be9d      0x230 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-__atexit.o)
- .debug_line    0x0003c0cd      0x1f8 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-reallocr.o)
- .debug_line    0x0003c2c5      0x75d /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-nano-vfprintf_i.o)
- .debug_line    0x0003ca22      0x153 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-mlock.o)
- .debug_line    0x0003cb75      0x193 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-sbrkr.o)
- .debug_line    0x0003cd08      0x176 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-msizer.o)
- .debug_line    0x0003ce7e      0x1c5 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-signalr.o)
- .debug_line    0x0003d043      0x246 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-__call_atexit.o)
- .debug_line    0x0003d289      0x27b /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-reent.o)
+ .debug_line    0x00032daf     0x1083 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
+ .debug_line    0x00033e32     0x1ca0 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+ .debug_line    0x00035ad2       0xf9 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libstdc++_nano.a(atexit_arm.o)
+ .debug_line    0x00035bcb       0xcb /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libstdc++_nano.a(del_ops.o)
+ .debug_line    0x00035c96      0x190 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libstdc++_nano.a(new_op.o)
+ .debug_line    0x00035e26      0x157 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libstdc++_nano.a(del_op.o)
+ .debug_line    0x00035f7d       0xfb /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libstdc++_nano.a(new_handler.o)
+ .debug_line    0x00036078      0x1d8 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-sf_cos.o)
+ .debug_line    0x00036250      0x160 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-wf_sqrt.o)
+ .debug_line    0x000363b0      0x165 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-w_sqrt.o)
+ .debug_line    0x00036515       0xdf /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-wf_atan2.o)
+ .debug_line    0x000365f4      0x452 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-e_sqrt.o)
+ .debug_line    0x00036a46      0x1d1 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-kf_cos.o)
+ .debug_line    0x00036c17      0x1d8 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-sf_sin.o)
+ .debug_line    0x00036def      0x2b7 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-ef_atan2.o)
+ .debug_line    0x000370a6      0x2ba /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-sf_atan.o)
+ .debug_line    0x00037360      0x16d /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-kf_sin.o)
+ .debug_line    0x000374cd      0x4a8 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-ef_rem_pio2.o)
+ .debug_line    0x00037975      0x154 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-sf_fabs.o)
+ .debug_line    0x00037ac9      0xa55 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-kf_rem_pio2.o)
+ .debug_line    0x0003851e       0x6e /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-ef_sqrt.o)
+ .debug_line    0x0003858c      0x24a /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-sf_scalbn.o)
+ .debug_line    0x000387d6      0x23a /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-sf_floor.o)
+ .debug_line    0x00038a10      0x16f /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_arm_addsubdf3.o)
+ .debug_line    0x00038b7f      0x184 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_arm_muldivdf3.o)
+ .debug_line    0x00038d03       0xa6 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_arm_cmpdf2.o)
+ .debug_line    0x00038da9       0x57 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_arm_unorddf2.o)
+ .debug_line    0x00038e00       0x76 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_arm_truncdfsf2.o)
+ .debug_line    0x00038e76       0x4e /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_aeabi_uldivmod.o)
+ .debug_line    0x00038ec4      0x574 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_udivmoddi4.o)
+ .debug_line    0x00039438       0x4a /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_dvmd_tls.o)
+ .debug_line    0x00039482      0x11e /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-init.o)
+ .debug_line    0x000395a0      0x115 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-abort.o)
+ .debug_line    0x000396b5      0x1b6 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-memset.o)
+ .debug_line    0x0003986b      0x10c /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-errno.o)
+ .debug_line    0x00039977       0xf0 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-cxa_atexit.o)
+ .debug_line    0x00039a67       0xb9 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-memcpy.o)
+ .debug_line    0x00039b20       0xa2 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-on_exit_args.o)
+ .debug_line    0x00039bc2      0x16b /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-malloc.o)
+ .debug_line    0x00039d2d      0x354 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-snprintf.o)
+ .debug_line    0x0003a081       0xe7 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-impure.o)
+ .debug_line    0x0003a168      0x854 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-nano-svfprintf.o)
+ .debug_line    0x0003a9bc      0x66f /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-signal.o)
+ .debug_line    0x0003b02b      0x4fc /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-findfp.o)
+ .debug_line    0x0003b527      0x446 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-mallocr.o)
+ .debug_line    0x0003b96d      0x2c3 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-freer.o)
+ .debug_line    0x0003bc30      0x1f1 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-memmove.o)
+ .debug_line    0x0003be21       0x84 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-memchr.o)
+ .debug_line    0x0003bea5      0x230 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-__atexit.o)
+ .debug_line    0x0003c0d5      0x1f8 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-reallocr.o)
+ .debug_line    0x0003c2cd      0x75d /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-nano-vfprintf_i.o)
+ .debug_line    0x0003ca2a      0x153 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-mlock.o)
+ .debug_line    0x0003cb7d      0x193 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-sbrkr.o)
+ .debug_line    0x0003cd10      0x176 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-msizer.o)
+ .debug_line    0x0003ce86      0x1c5 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-signalr.o)
+ .debug_line    0x0003d04b      0x246 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-__call_atexit.o)
+ .debug_line    0x0003d291      0x27b /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-reent.o)
 
-.debug_str      0x00000000    0xf1886
- .debug_str     0x00000000    0xf1886 Board/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Core/Src/system_stm32f4xx.c.obj
+.debug_str      0x00000000    0xf182e
+ .debug_str     0x00000000    0xf182e Board/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Core/Src/system_stm32f4xx.c.obj
                               0xca83b (size before relaxing)
- .debug_str     0x000f1886    0xcbbc4 Board/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim.c.obj
- .debug_str     0x000f1886    0xcb3d0 Board/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim_ex.c.obj
- .debug_str     0x000f1886    0xcae1d Board/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_adc.c.obj
- .debug_str     0x000f1886    0xcac59 Board/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc.c.obj
- .debug_str     0x000f1886    0xca9ab Board/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_gpio.c.obj
- .debug_str     0x000f1886    0xcac55 Board/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma.c.obj
- .debug_str     0x000f1886    0xcb110 Board/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.c.obj
- .debug_str     0x000f1886    0xcb3a8 Board/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.c.obj
- .debug_str     0x000f1886    0xcaf35 Board/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_can.c.obj
- .debug_str     0x000f1886    0xcb84e Board/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2c.c.obj
- .debug_str     0x000f1886    0xca7fc Board/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_iwdg.c.obj
- .debug_str     0x000f1886    0xcb0ee Board/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_spi.c.obj
- .debug_str     0x000f1886    0xcb23a Board/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.c.obj
- .debug_str     0x000f1886     0xa308 Board/cmake/stm32cubemx/CMakeFiles/FreeRTOS.dir/__/__/Middlewares/Third_Party/FreeRTOS/Source/list.c.obj
- .debug_str     0x000f1886     0xbde5 Board/cmake/stm32cubemx/CMakeFiles/FreeRTOS.dir/__/__/Middlewares/Third_Party/FreeRTOS/Source/queue.c.obj
- .debug_str     0x000f1886     0xc8a0 Board/cmake/stm32cubemx/CMakeFiles/FreeRTOS.dir/__/__/Middlewares/Third_Party/FreeRTOS/Source/tasks.c.obj
- .debug_str     0x000f1886     0xc370 Board/cmake/stm32cubemx/CMakeFiles/FreeRTOS.dir/__/__/Middlewares/Third_Party/FreeRTOS/Source/timers.c.obj
- .debug_str     0x000f1886    0xd4fe7 Board/cmake/stm32cubemx/CMakeFiles/FreeRTOS.dir/__/__/Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.c.obj
- .debug_str     0x000f1886     0xac40 Board/cmake/stm32cubemx/CMakeFiles/FreeRTOS.dir/__/__/Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.c.obj
- .debug_str     0x000f1886     0x8336 Board/cmake/stm32cubemx/CMakeFiles/FreeRTOS.dir/__/__/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/port.c.obj
- .debug_str     0x000f1886    0xcf34f Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/main.c.obj
- .debug_str     0x000f1886    0xcadc0 Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/gpio.c.obj
- .debug_str     0x000f1886    0xcf88f Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/freertos.c.obj
- .debug_str     0x000f1886    0xcad59 Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/adc.c.obj
- .debug_str     0x000f1886    0xcb0a4 Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/can.c.obj
- .debug_str     0x000f1886    0xcacfd Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/dma.c.obj
- .debug_str     0x000f1886    0xcade6 Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/i2c.c.obj
- .debug_str     0x000f1886    0xca7a8 Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/iwdg.c.obj
- .debug_str     0x000f1886    0xcb2b9 Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/spi.c.obj
- .debug_str     0x000f1886    0xcb3dd Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/tim.c.obj
- .debug_str     0x000f1886    0xcb34a Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/usart.c.obj
- .debug_str     0x000f1886    0xcb4e2 Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/stm32f4xx_it.c.obj
- .debug_str     0x000f1886    0xcaced Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/stm32f4xx_hal_msp.c.obj
- .debug_str     0x000f1886    0xcb31c Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/stm32f4xx_hal_timebase_tim.c.obj
- .debug_str     0x000f1886     0x6e6a Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/sysmem.c.obj
- .debug_str     0x000f1886     0x92d1 Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/syscalls.c.obj
- .debug_str     0x000f1886       0x98 Board/CMakeFiles/CM4_stm32_RTOS.dir/startup_stm32f405xx.s.obj
- .debug_str     0x000f1886    0xdeec1 Board/CMakeFiles/CM4_stm32_RTOS.dir/board.cpp.obj
- .debug_str     0x000f1886    0x1492d Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Task/can_callbacks.cpp.obj
- .debug_str     0x000f1886    0xdbead Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Task/ctrl_task.cpp.obj
- .debug_str     0x000f1886    0xdbec1 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Task/health_task.cpp.obj
- .debug_str     0x000f1886    0xdc1c4 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Task/imu_task.cpp.obj
- .debug_str     0x000f1886    0xddb3d Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Task/main.cpp.obj
- .debug_str     0x000f1886    0xdbb26 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Task/motor_task.cpp.obj
- .debug_str     0x000f1886    0xdbe4d Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Task/optflow_task.cpp.obj
- .debug_str     0x000f1886    0xdbf94 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Task/spi_task.cpp.obj
- .debug_str     0x000f1886    0xdb51f Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Task/telemetry_task.cpp.obj
- .debug_str     0x000f1886     0xfd20 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/dribble_motor.cpp.obj
- .debug_str     0x000f1886    0xcde35 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/imu.cpp.obj
- .debug_str     0x000f1886    0xd3c5e Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/opt_flow.cpp.obj
- .debug_str     0x000f1886    0xdc86d Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/robot.cpp.obj
- .debug_str     0x000f1886    0x10808 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
- .debug_str     0x000f1886    0xdbabf Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
- .debug_str     0x000f1886      0x1de /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libstdc++_nano.a(atexit_arm.o)
- .debug_str     0x000f1886      0x17a /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libstdc++_nano.a(del_ops.o)
- .debug_str     0x000f1886      0x35d /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libstdc++_nano.a(new_op.o)
- .debug_str     0x000f1886      0x304 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libstdc++_nano.a(del_op.o)
- .debug_str     0x000f1886      0x1f9 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libstdc++_nano.a(new_handler.o)
- .debug_str     0x000f1886      0x201 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-sf_cos.o)
- .debug_str     0x000f1886      0x1b0 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-wf_sqrt.o)
- .debug_str     0x000f1886      0x1d8 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-w_sqrt.o)
- .debug_str     0x000f1886      0x1ab /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-wf_atan2.o)
- .debug_str     0x000f1886      0x245 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-e_sqrt.o)
- .debug_str     0x000f1886      0x1df /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-kf_cos.o)
- .debug_str     0x000f1886      0x201 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-sf_sin.o)
- .debug_str     0x000f1886      0x20e /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-ef_atan2.o)
- .debug_str     0x000f1886      0x1ec /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-sf_atan.o)
- .debug_str     0x000f1886      0x1df /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-kf_sin.o)
- .debug_str     0x000f1886      0x261 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-ef_rem_pio2.o)
- .debug_str     0x000f1886      0x1ce /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-sf_fabs.o)
- .debug_str     0x000f1886      0x1fa /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-kf_rem_pio2.o)
- .debug_str     0x000f1886      0x1b0 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-ef_sqrt.o)
- .debug_str     0x000f1886      0x20c /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-sf_scalbn.o)
- .debug_str     0x000f1886      0x1e6 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-sf_floor.o)
- .debug_str     0x000f1886      0x154 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_arm_addsubdf3.o)
- .debug_str     0x000f1886       0xd4 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_arm_muldivdf3.o)
- .debug_str     0x000f1886      0x15d /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_arm_cmpdf2.o)
- .debug_str     0x000f1886       0xc2 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_arm_unorddf2.o)
- .debug_str     0x000f1886       0xc1 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_arm_truncdfsf2.o)
- .debug_str     0x000f1886       0xa3 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_aeabi_uldivmod.o)
- .debug_str     0x000f1886      0x685 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_udivmoddi4.o)
- .debug_str     0x000f1886       0xc3 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_dvmd_tls.o)
- .debug_str     0x000f1886      0x1fa /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-init.o)
- .debug_str     0x000f1886      0x19c /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-abort.o)
- .debug_str     0x000f1886      0x1ad /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-memset.o)
- .debug_str     0x000f1886      0x4b6 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-errno.o)
- .debug_str     0x000f1886      0x23d /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-cxa_atexit.o)
- .debug_str     0x000f1886       0xac /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-memcpy.o)
- .debug_str     0x000f1886      0x1f2 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-on_exit_args.o)
- .debug_str     0x000f1886      0x4e1 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-malloc.o)
- .debug_str     0x000f1886      0x50a /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-snprintf.o)
- .debug_str     0x000f1886      0x4bc /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-impure.o)
- .debug_str     0x000f1886      0x805 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-nano-svfprintf.o)
- .debug_str     0x000f1886      0x543 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-signal.o)
- .debug_str     0x000f1886      0x6bf /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-findfp.o)
- .debug_str     0x000f1886      0x59d /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-mallocr.o)
- .debug_str     0x000f1886      0x53c /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-freer.o)
- .debug_str     0x000f1886      0x1cc /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-memmove.o)
- .debug_str     0x000f1886       0x9e /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-memchr.o)
- .debug_str     0x000f1886      0x290 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-__atexit.o)
- .debug_str     0x000f1886      0x532 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-reallocr.o)
- .debug_str     0x000f1886      0x79b /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-nano-vfprintf_i.o)
- .debug_str     0x000f1886      0x4da /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-mlock.o)
- .debug_str     0x000f1886      0x4c5 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-sbrkr.o)
- .debug_str     0x000f1886      0x505 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-msizer.o)
- .debug_str     0x000f1886      0x4d8 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-signalr.o)
- .debug_str     0x000f1886      0x242 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-__call_atexit.o)
- .debug_str     0x000f1886      0x4db /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-reent.o)
+ .debug_str     0x000f182e    0xcbbc4 Board/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim.c.obj
+ .debug_str     0x000f182e    0xcb3d0 Board/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim_ex.c.obj
+ .debug_str     0x000f182e    0xcae1d Board/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_adc.c.obj
+ .debug_str     0x000f182e    0xcac59 Board/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc.c.obj
+ .debug_str     0x000f182e    0xca9ab Board/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_gpio.c.obj
+ .debug_str     0x000f182e    0xcac55 Board/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma.c.obj
+ .debug_str     0x000f182e    0xcb110 Board/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.c.obj
+ .debug_str     0x000f182e    0xcb3a8 Board/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.c.obj
+ .debug_str     0x000f182e    0xcaf35 Board/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_can.c.obj
+ .debug_str     0x000f182e    0xcb84e Board/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2c.c.obj
+ .debug_str     0x000f182e    0xca7fc Board/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_iwdg.c.obj
+ .debug_str     0x000f182e    0xcb0ee Board/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_spi.c.obj
+ .debug_str     0x000f182e    0xcb23a Board/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.c.obj
+ .debug_str     0x000f182e     0xa308 Board/cmake/stm32cubemx/CMakeFiles/FreeRTOS.dir/__/__/Middlewares/Third_Party/FreeRTOS/Source/list.c.obj
+ .debug_str     0x000f182e     0xbde5 Board/cmake/stm32cubemx/CMakeFiles/FreeRTOS.dir/__/__/Middlewares/Third_Party/FreeRTOS/Source/queue.c.obj
+ .debug_str     0x000f182e     0xc8a0 Board/cmake/stm32cubemx/CMakeFiles/FreeRTOS.dir/__/__/Middlewares/Third_Party/FreeRTOS/Source/tasks.c.obj
+ .debug_str     0x000f182e     0xc370 Board/cmake/stm32cubemx/CMakeFiles/FreeRTOS.dir/__/__/Middlewares/Third_Party/FreeRTOS/Source/timers.c.obj
+ .debug_str     0x000f182e    0xd4fe7 Board/cmake/stm32cubemx/CMakeFiles/FreeRTOS.dir/__/__/Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.c.obj
+ .debug_str     0x000f182e     0xac40 Board/cmake/stm32cubemx/CMakeFiles/FreeRTOS.dir/__/__/Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.c.obj
+ .debug_str     0x000f182e     0x8336 Board/cmake/stm32cubemx/CMakeFiles/FreeRTOS.dir/__/__/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/port.c.obj
+ .debug_str     0x000f182e    0xcf34f Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/main.c.obj
+ .debug_str     0x000f182e    0xcadc0 Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/gpio.c.obj
+ .debug_str     0x000f182e    0xcf88f Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/freertos.c.obj
+ .debug_str     0x000f182e    0xcad59 Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/adc.c.obj
+ .debug_str     0x000f182e    0xcb0a4 Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/can.c.obj
+ .debug_str     0x000f182e    0xcacfd Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/dma.c.obj
+ .debug_str     0x000f182e    0xcade6 Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/i2c.c.obj
+ .debug_str     0x000f182e    0xca7a8 Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/iwdg.c.obj
+ .debug_str     0x000f182e    0xcb2b9 Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/spi.c.obj
+ .debug_str     0x000f182e    0xcb3dd Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/tim.c.obj
+ .debug_str     0x000f182e    0xcb34a Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/usart.c.obj
+ .debug_str     0x000f182e    0xcb4e2 Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/stm32f4xx_it.c.obj
+ .debug_str     0x000f182e    0xcaced Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/stm32f4xx_hal_msp.c.obj
+ .debug_str     0x000f182e    0xcb31c Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/stm32f4xx_hal_timebase_tim.c.obj
+ .debug_str     0x000f182e     0x6e6a Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/sysmem.c.obj
+ .debug_str     0x000f182e     0x92d1 Board/CMakeFiles/CM4_stm32_RTOS.dir/Core/Src/syscalls.c.obj
+ .debug_str     0x000f182e       0x98 Board/CMakeFiles/CM4_stm32_RTOS.dir/startup_stm32f405xx.s.obj
+ .debug_str     0x000f182e    0xdeec1 Board/CMakeFiles/CM4_stm32_RTOS.dir/board.cpp.obj
+ .debug_str     0x000f182e    0x1492d Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Task/can_callbacks.cpp.obj
+ .debug_str     0x000f182e    0xdbead Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Task/ctrl_task.cpp.obj
+ .debug_str     0x000f182e    0xdbec1 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Task/health_task.cpp.obj
+ .debug_str     0x000f182e    0xdc1c4 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Task/imu_task.cpp.obj
+ .debug_str     0x000f182e    0xddb3d Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Task/main.cpp.obj
+ .debug_str     0x000f182e    0xdbb26 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Task/motor_task.cpp.obj
+ .debug_str     0x000f182e    0xdbe4d Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Task/optflow_task.cpp.obj
+ .debug_str     0x000f182e    0xdbf94 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Task/spi_task.cpp.obj
+ .debug_str     0x000f182e    0xdb51f Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Task/telemetry_task.cpp.obj
+ .debug_str     0x000f182e     0xfd20 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/dribble_motor.cpp.obj
+ .debug_str     0x000f182e    0xcde35 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/imu.cpp.obj
+ .debug_str     0x000f182e    0xd3c5e Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/opt_flow.cpp.obj
+ .debug_str     0x000f182e    0xdc85d Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/robot.cpp.obj
+ .debug_str     0x000f182e    0x107c0 Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Component/wheel_motor.cpp.obj
+ .debug_str     0x000f182e    0xdbabf Board/CMakeFiles/CM4_stm32_RTOS.dir/__/Communication/can/z_can.cpp.obj
+ .debug_str     0x000f182e      0x1de /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libstdc++_nano.a(atexit_arm.o)
+ .debug_str     0x000f182e      0x17a /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libstdc++_nano.a(del_ops.o)
+ .debug_str     0x000f182e      0x35d /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libstdc++_nano.a(new_op.o)
+ .debug_str     0x000f182e      0x304 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libstdc++_nano.a(del_op.o)
+ .debug_str     0x000f182e      0x1f9 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libstdc++_nano.a(new_handler.o)
+ .debug_str     0x000f182e      0x201 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-sf_cos.o)
+ .debug_str     0x000f182e      0x1b0 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-wf_sqrt.o)
+ .debug_str     0x000f182e      0x1d8 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-w_sqrt.o)
+ .debug_str     0x000f182e      0x1ab /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-wf_atan2.o)
+ .debug_str     0x000f182e      0x245 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-e_sqrt.o)
+ .debug_str     0x000f182e      0x1df /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-kf_cos.o)
+ .debug_str     0x000f182e      0x201 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-sf_sin.o)
+ .debug_str     0x000f182e      0x20e /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-ef_atan2.o)
+ .debug_str     0x000f182e      0x1ec /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-sf_atan.o)
+ .debug_str     0x000f182e      0x1df /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-kf_sin.o)
+ .debug_str     0x000f182e      0x261 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-ef_rem_pio2.o)
+ .debug_str     0x000f182e      0x1ce /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-sf_fabs.o)
+ .debug_str     0x000f182e      0x1fa /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-kf_rem_pio2.o)
+ .debug_str     0x000f182e      0x1b0 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-ef_sqrt.o)
+ .debug_str     0x000f182e      0x20c /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-sf_scalbn.o)
+ .debug_str     0x000f182e      0x1e6 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libm.a(libm_a-sf_floor.o)
+ .debug_str     0x000f182e      0x154 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_arm_addsubdf3.o)
+ .debug_str     0x000f182e       0xd4 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_arm_muldivdf3.o)
+ .debug_str     0x000f182e      0x15d /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_arm_cmpdf2.o)
+ .debug_str     0x000f182e       0xc2 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_arm_unorddf2.o)
+ .debug_str     0x000f182e       0xc1 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_arm_truncdfsf2.o)
+ .debug_str     0x000f182e       0xa3 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_aeabi_uldivmod.o)
+ .debug_str     0x000f182e      0x685 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_udivmoddi4.o)
+ .debug_str     0x000f182e       0xc3 /usr/lib/gcc/arm-none-eabi/13.2.1/thumb/v7e-m+fp/hard/libgcc.a(_dvmd_tls.o)
+ .debug_str     0x000f182e      0x1fa /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-init.o)
+ .debug_str     0x000f182e      0x19c /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-abort.o)
+ .debug_str     0x000f182e      0x1ad /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-memset.o)
+ .debug_str     0x000f182e      0x4b6 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-errno.o)
+ .debug_str     0x000f182e      0x23d /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-cxa_atexit.o)
+ .debug_str     0x000f182e       0xac /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-memcpy.o)
+ .debug_str     0x000f182e      0x1f2 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-on_exit_args.o)
+ .debug_str     0x000f182e      0x4e1 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-malloc.o)
+ .debug_str     0x000f182e      0x50a /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-snprintf.o)
+ .debug_str     0x000f182e      0x4bc /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-impure.o)
+ .debug_str     0x000f182e      0x805 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-nano-svfprintf.o)
+ .debug_str     0x000f182e      0x543 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-signal.o)
+ .debug_str     0x000f182e      0x6bf /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-findfp.o)
+ .debug_str     0x000f182e      0x59d /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-mallocr.o)
+ .debug_str     0x000f182e      0x53c /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-freer.o)
+ .debug_str     0x000f182e      0x1cc /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-memmove.o)
+ .debug_str     0x000f182e       0x9e /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-memchr.o)
+ .debug_str     0x000f182e      0x290 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-__atexit.o)
+ .debug_str     0x000f182e      0x532 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-reallocr.o)
+ .debug_str     0x000f182e      0x79b /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-nano-vfprintf_i.o)
+ .debug_str     0x000f182e      0x4da /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-mlock.o)
+ .debug_str     0x000f182e      0x4c5 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-sbrkr.o)
+ .debug_str     0x000f182e      0x505 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-msizer.o)
+ .debug_str     0x000f182e      0x4d8 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-signalr.o)
+ .debug_str     0x000f182e      0x242 /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-__call_atexit.o)
+ .debug_str     0x000f182e      0x4db /usr/lib/gcc/arm-none-eabi/13.2.1/../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard/libg_nano.a(libc_a-reent.o)
 
 .debug_frame    0x00000000     0xa5d0
  .debug_frame   0x00000000       0x58 Board/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir/__/__/Core/Src/system_stm32f4xx.c.obj
