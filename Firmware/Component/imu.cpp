@@ -55,6 +55,9 @@ void IMU::get_data(float out_data[9]) const
 }
 
 void IMU::publish_ports_from_cache() {
+    acc_x_port_ = data_[kAccX];
+    acc_y_port_ = data_[kAccY];
+    acc_z_port_ = data_[kAccZ];
     omega_x_port_ = data_[kOmegaX];
     omega_y_port_ = data_[kOmegaY];
     omega_z_port_ = data_[kOmegaZ];
@@ -62,6 +65,9 @@ void IMU::publish_ports_from_cache() {
 }
 
 void IMU::reset_ports() {
+    acc_x_port_.reset();
+    acc_y_port_.reset();
+    acc_z_port_.reset();
     omega_x_port_.reset();
     omega_y_port_.reset();
     omega_z_port_.reset();

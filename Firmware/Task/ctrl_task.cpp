@@ -152,6 +152,10 @@ void StartCrtlTask(void *argument) {
                 for (uint8_t i = 0; i < 4; i++) {
                     robot.wheel_motors[i]->reset_ports();
                 }
+                robot.velocity_estimator.reset_ports();
+
+                // Fuse wheel odometry and IMU to estimate chassis velocity.
+                robot.update_velocity_estimate(TIM2_PERIOD_CLOCKS);
                 
                 // Motion planning: compute acceleration from velocity setpoints
                 robot.motion_planner(TIM2_PERIOD_CLOCKS);  // microseconds

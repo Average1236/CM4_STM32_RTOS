@@ -1,6 +1,8 @@
 #ifndef __CONTROL_PARAMS_HPP
 #define __CONTROL_PARAMS_HPP
 
+#include <cstdint>
+
 namespace control_config {
 
 inline constexpr float kControlDtSec = 1.0f / 1000.0f;
@@ -42,6 +44,18 @@ inline constexpr float kMITRunTorqueFf = 0.0f;
 inline constexpr float kMITSafeKp = 2.0f;
 inline constexpr float kMITSafeKd = 0.1f;
 inline constexpr float kMITSafeTorqueFf = 0.0f;
+
+inline constexpr float kVelEstAccDeadbandMps2 = 0.10f;
+inline constexpr float kVelEstWheelTrustNormal = 0.92f;
+inline constexpr float kVelEstWheelTrustSlip = 0.35f;
+inline constexpr float kVelEstSlipLowMps = 0.15f;
+inline constexpr float kVelEstSlipHighMps = 0.40f;
+inline constexpr float kVelEstZeroWheelSpeedMps = 0.03f;
+inline constexpr float kVelEstZeroOmegaRadPerSec = 0.15f;
+inline constexpr float kVelEstZeroAccMps2 = 0.20f;
+inline constexpr float kVelEstZeroDamping = 0.85f;
+inline constexpr float kVelEstBiasLearnRate = 0.01f;
+inline constexpr uint16_t kVelEstStationaryCycles = 20;
 
 } // namespace control_config
 

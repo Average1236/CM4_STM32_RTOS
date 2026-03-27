@@ -10,6 +10,8 @@ volatile float target_vy_debug = 0;
 volatile float target_vw_debug = 0;
 volatile float wheel_vel_debug = 0;
 volatile float robot_real_vx_debug = 0;
+volatile float robot_fused_vx_debug = 0;
+volatile float robot_fused_vy_debug = 0;
 
 // Wheel geometry
 static constexpr float WHEEL_ANGLE_FORWARD = control_config::kWheelAlphaRad;
@@ -115,6 +117,7 @@ Robot::Robot() {
 
         wheel_motors[i]->velocity_cmd_input_port()->connect_to(&motor_vel[i]);
         chassis_controller.wheel_velocity_input_port(i)->connect_to(wheel_motors[i]->velocity_output_port());
+        velocity_estimator.wheel_velocity_input_port(i)->connect_to(wheel_motors[i]->velocity_output_port());
         wheel_motors[i]->torque_ff_cmd_input_port()->connect_to(chassis_controller.wheel_torque_ff_output_port(i));
     }
 
@@ -224,8 +227,34 @@ void Robot::motion_planner(const double _dt) {
 }
 
 void Robot::bind_imu_ports(IMU& imu_ref) {
+    velocity_estimator.imu_acc_x_input_port()->connect_to(imu_ref.acc_x_port());
+    velocity_estimator.imu_acc_y_input_port()->connect_to(imu_ref.acc_y_port());
+    velocity_estimator.imu_yaw_input_port()->connect_to(imu_ref.yaw_port());
+    velocity_estimator.imu_omega_z_input_port()->connect_to(imu_ref.omega_z_port());
+
     chassis_controller.imu_yaw_input_port()->connect_to(imu_ref.yaw_port());
     chassis_controller.imu_omega_z_input_port()->connect_to(imu_ref.omega_z_port());
+}
+
+void Robot::update_velocity_estimate(const double _dt) {
+    const float dt_s = static_cast<float>(_dt / 1000000.0);
+    if (dt_s <= 1e-9f) {
+        return;
+    }
+
+    velocity_estimator.step(dt_s);
+
+    const std::optional<float> vx = velocity_estimator.vx_output_port()->any();
+    const std::optional<float> vy = velocity_estimator.vy_output_port()->any();
+    const std::optional<float> omega = velocity_estimator.omega_z_output_port()->any();
+    const std::optional<float> speed = velocity_estimator.speed_output_port()->any();
+
+    robot_fused_vel[0] = vx.has_value() ? *vx : robot_fused_vel[0];
+    robot_fused_vel[1] = vy.has_value() ? *vy : robot_fused_vel[1];
+    robot_fused_vel[2] = omega.has_value() ? *omega : robot_fused_vel[2];
+    robot_fused_speed = speed.has_value() ? *speed : robot_fused_speed;
+    robot_fused_vx_debug = robot_fused_vel[0];
+    robot_fused_vy_debug = robot_fused_vel[1];
 }
 
 void Robot::update_torque_feedforward(const double _dt) {

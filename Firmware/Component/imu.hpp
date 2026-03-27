@@ -88,6 +88,9 @@ public:
     void publish_ports_from_cache();
     void reset_ports();
 
+    OutputPort<float>* acc_x_port() { return &acc_x_port_; }
+    OutputPort<float>* acc_y_port() { return &acc_y_port_; }
+    OutputPort<float>* acc_z_port() { return &acc_z_port_; }
     OutputPort<float>* omega_x_port() { return &omega_x_port_; }
     OutputPort<float>* omega_y_port() { return &omega_y_port_; }
     OutputPort<float>* omega_z_port() { return &omega_z_port_; }
@@ -102,6 +105,9 @@ public:
 
 private:
     float data_[12] = {0};
+    OutputPort<float> acc_x_port_{0.0f};
+    OutputPort<float> acc_y_port_{0.0f};
+    OutputPort<float> acc_z_port_{0.0f};
     OutputPort<float> omega_x_port_{0.0f};
     OutputPort<float> omega_y_port_{0.0f};
     OutputPort<float> omega_z_port_{0.0f};
