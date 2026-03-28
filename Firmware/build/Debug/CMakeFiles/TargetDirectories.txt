@@ -1,9 +1,0 @@
-/home/lxl/zjunlict/cm4_stm32_RTOS/Firmware/build/Debug/CMakeFiles/edit_cache.dir
-/home/lxl/zjunlict/cm4_stm32_RTOS/Firmware/build/Debug/CMakeFiles/rebuild_cache.dir
-/home/lxl/zjunlict/cm4_stm32_RTOS/Firmware/build/Debug/Board/CMakeFiles/CM4_stm32_RTOS.dir
-/home/lxl/zjunlict/cm4_stm32_RTOS/Firmware/build/Debug/Board/CMakeFiles/edit_cache.dir
-/home/lxl/zjunlict/cm4_stm32_RTOS/Firmware/build/Debug/Board/CMakeFiles/rebuild_cache.dir
-/home/lxl/zjunlict/cm4_stm32_RTOS/Firmware/build/Debug/Board/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir
-/home/lxl/zjunlict/cm4_stm32_RTOS/Firmware/build/Debug/Board/cmake/stm32cubemx/CMakeFiles/FreeRTOS.dir
-/home/lxl/zjunlict/cm4_stm32_RTOS/Firmware/build/Debug/Board/cmake/stm32cubemx/CMakeFiles/edit_cache.dir
-/home/lxl/zjunlict/cm4_stm32_RTOS/Firmware/build/Debug/Board/cmake/stm32cubemx/CMakeFiles/rebuild_cache.dir

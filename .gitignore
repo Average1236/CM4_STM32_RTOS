@@ -1,0 +1,51 @@
+# OS and editor files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# VS Code / IDE local settings
+# .vscode/
+.idea/
+
+# Python cache (Docs scripts)
+__pycache__/
+*.py[cod]
+
+# CMake and build system artifacts
+**/build/
+**/Build/
+**/Debug/
+**/Release/
+CMakeCache.txt
+cmake_install.cmake
+CMakeFiles/
+CTestTestfile.cmake
+build.ninja
+rules.ninja
+.ninja_deps
+.ninja_log
+compile_commands.json
+
+# Compiler and linker artifacts
+*.o
+*.obj
+*.d
+*.a
+*.so
+*.elf
+*.axf
+*.out
+*.bin
+*.hex
+*.map
+*.lst
+
+# Debugger / probe generated files
+*.jdebug.user
+JLinkLog.txt
+
+# Logs and temporary outputs
+*.log
+Docs/logs/*.csv
