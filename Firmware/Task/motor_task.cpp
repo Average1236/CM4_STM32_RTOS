@@ -34,17 +34,6 @@ void StartMotorRxTask(void *argument) {
             if (matched_wheel_idx >= 0) {
                 if (!robot.wheel_motors[matched_wheel_idx]->is_writing_register()) {
                     robot.wheel_motors[matched_wheel_idx]->parse_feedback_data(fb_msg.buf);
-                    if (!robot.wheel_motors[matched_wheel_idx]->is_enabled()) {
-                        can_Message_t msg;
-                        robot.wheel_motors[matched_wheel_idx]->build_clear_error_msg(msg);
-                        osSemaphoreAcquire(sem_can_txHandle, osWaitForever);
-                        can2_bus.send_message(msg);
-                        osSemaphoreRelease(sem_can_txHandle);
-                        robot.wheel_motors[matched_wheel_idx]->build_enable_msg(msg);
-                        osSemaphoreAcquire(sem_can_txHandle, osWaitForever);
-                        can2_bus.send_message(msg);
-                        osSemaphoreRelease(sem_can_txHandle);
-                    }
                 }
             } else if (robot.dribbler != nullptr && fb_msg.id == robot.dribbler->feedback_can_id()) {
                 robot.dribbler->parse_feedback_data(fb_msg.buf);

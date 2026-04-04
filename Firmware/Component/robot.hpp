@@ -63,8 +63,6 @@ public:
     uint8_t pi_uart_tx_data[PI_UART_TX_DATA_LENGTH] = {0};
     uint8_t spi_rx_data[SPI_LENGTH] = {0};
     uint8_t spi_tx_data[SPI_LENGTH] = {0};
-    uint8_t imu_rx_data[IMU_RX_DATA_LENGTH] = {0};
-    uint8_t imu_tx_data[IMU_TX_DATA_LENGTH] = {0};
 
     CM4_to_stm32_spi SpiRx;
     stm32_to_CM4_spi SpiTx;
@@ -79,6 +77,7 @@ public:
     float robot_real_vel[3] = {0};
     float last_robot_real_vel[3] = {0};
     float robot_acc[3] = {0};
+    float yaw_ref_rel_rad_ = 0.0f;
     float ik_solve_basis[3] = {0, 1, 2};
     float ik_solve_inv_b[3][3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
 

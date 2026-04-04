@@ -172,6 +172,12 @@ void motor_init() {
     }
 }
 
+enum MotorRecoverState : uint8_t {
+    kMotorNormal = 0,
+    kMotorDisabledWait,
+    kMotorClearErrorWait
+};
+
 extern "C" {
     
 void StartCrtlTask(void *argument) {
@@ -186,6 +192,9 @@ void StartCrtlTask(void *argument) {
     uint32_t ctrl_start_tick = 0;
     uint32_t ctrl_end_tick = 0;
     uint8_t tx_rr_start = 0;
+
+    MotorRecoverState motor_recover_state[4] = {kMotorNormal, kMotorNormal, kMotorNormal, kMotorNormal};
+    uint32_t motor_recover_tick[4] = {0};
     
     for(;;) {
         if (osSemaphoreAcquire(sem_ctrl_triggerHandle, osWaitForever) == osOK) {
@@ -198,6 +207,20 @@ void StartCrtlTask(void *argument) {
                     robot.wheel_motors[i]->reset_ports();
                 }
                 
+                bool any_disabled = false;
+                for (uint8_t i = 0; i < 4; i++) {
+                    if (!robot.wheel_motors[i]->is_enabled()) {
+                        any_disabled = true;
+                        break;
+                    }
+                }
+                
+                if (any_disabled) {
+                    robot.robot_vel[0] = 0.0f;
+                    robot.robot_vel[1] = 0.0f;
+                    robot.robot_vel[2] = 0.0f;
+                }
+                
                 // Motion planning: compute acceleration from velocity setpoints
                 robot.motion_planner(TIM2_PERIOD_CLOCKS);  // microseconds
 
@@ -208,40 +231,68 @@ void StartCrtlTask(void *argument) {
                 robot.update_torque_feedforward(TIM2_PERIOD_CLOCKS);
                 
                 can_Message_t wheel_msgs[4];
+                can_Message_t extra_can_msgs[4];
+                uint8_t extra_msg_count = 0;
+                uint32_t current_tick = HAL_GetTick();
 
                 for (uint8_t i = 0; i < 4; i++) {
                     const bool safe_output = !robot.wheel_motors[i]->is_enabled() || !robot.watchdog_check();
                     build_wheel_command(robot, i, safe_output, wheel_msgs[i]);
 
-                    
+                    if (!robot.wheel_motors[i]->is_enabled()) {
+                        if (motor_recover_state[i] == kMotorNormal) {
+                            motor_recover_state[i] = kMotorDisabledWait;
+                            motor_recover_tick[i] = current_tick;
+                        } else if (motor_recover_state[i] == kMotorDisabledWait) {
+                            if (current_tick - motor_recover_tick[i] >= control_config::kMotorRecoverDelayMs) {
+                                robot.wheel_motors[i]->build_clear_error_msg(extra_can_msgs[extra_msg_count++]);
+                                motor_recover_state[i] = kMotorClearErrorWait;
+                                motor_recover_tick[i] = current_tick;
+                            }
+                        } else if (motor_recover_state[i] == kMotorClearErrorWait) {
+                            if (current_tick - motor_recover_tick[i] >= control_config::kMotorClearErrorToEnableDelayMs) {
+                                robot.wheel_motors[i]->build_enable_msg(extra_can_msgs[extra_msg_count++]);
+                                motor_recover_state[i] = kMotorNormal;
+                            }
+                        }
+                    } else {
+                        motor_recover_state[i] = kMotorNormal;
+                    }
                 }
             
                 if (osSemaphoreAcquire(sem_can_txHandle, 10) == osOK) {
                     bool sent[4] = {false, false, false, false};
                     uint8_t sent_count = 0;
+                    uint8_t extra_sent_count = 0;
                     const uint32_t tx_start_tick = TIM2->CNT;
 
-                    while (sent_count < 4) {
+                    while (sent_count < 4 || extra_sent_count < extra_msg_count) {
                         for (uint8_t k = 0; k < 4; ++k) {
                             const uint8_t idx = (tx_rr_start + k) & 0x03;
-                            if (sent[idx]) {
-                                continue;
-                            }
+                            if (sent[idx]) continue;
                             if (can2_bus.send_message(wheel_msgs[idx])) {
                                 sent[idx] = true;
                                 sent_count++;
                                 tx_cmd_sent_count++;
                             }
                         }
+                        
+                        while (extra_sent_count < extra_msg_count) {
+                            if (can2_bus.send_message(extra_can_msgs[extra_sent_count])) {
+                                extra_sent_count++;
+                            } else {
+                                break;
+                            }
+                        }
 
                         uint32_t wait_us = TIM2->CNT - tx_start_tick;
                         wait_us_debug = wait_us;
-                        if (sent_count == 4 || wait_us >= kCanTxBudgetUs) {
+                        if ((sent_count == 4 && extra_sent_count == extra_msg_count) || wait_us >= kCanTxBudgetUs) {
                             break;
                         }
                     }
 
-                    tx_cmd_drop_count += (4 - sent_count);
+                    tx_cmd_drop_count += (4 - sent_count) + (extra_msg_count - extra_sent_count);
                     tx_rr_start = (tx_rr_start + 1) & 0x03;
                     osSemaphoreRelease(sem_can_txHandle);
                 }

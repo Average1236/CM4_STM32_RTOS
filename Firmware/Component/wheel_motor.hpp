@@ -166,6 +166,7 @@ public:
 
 private:
     State state_ = kStateMotorDisable;
+    State last_error_ = kStateMotorDisable;
     bool writing_register_ = false;
     PID wheel_speed_pid_;
     float wheel_speed_pid_kp_alpha_ = 0.0f;
@@ -181,6 +182,7 @@ private:
     float pll_ki_ = 0.0f;
     float pll_pos_est_rad_ = 0.0f;
     float pll_vel_est_rad_s_ = 0.0f;
+    float pll_vel_ramp_alpha_ = 0.0f;
     bool pll_initialized_ = false;
     bool pll_prev_enabled_ = false;
     bool pll_gain_unstable_ = false;

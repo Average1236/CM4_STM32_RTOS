@@ -210,7 +210,6 @@ Robot::Robot() {
     chassis_controller.chassis_vx_input_port()->connect_to(chassis_estimator.chassis_vx_output_port());
     chassis_controller.chassis_vy_input_port()->connect_to(chassis_estimator.chassis_vy_output_port());
     chassis_controller.chassis_yaw_input_port()->connect_to(chassis_estimator.chassis_yaw_output_port());
-    chassis_controller.chassis_omega_z_input_port()->connect_to(chassis_estimator.chassis_omega_z_output_port());
 
     // Initialize dribbler
     dribbler = new MotorM2006(DRIBBLER_MOTOR_PARAMS);
@@ -325,6 +324,8 @@ void Robot::motion_planner(const double _dt) {
 
         last_robot_real_vel[i] = robot_real_vel[i];
     }
+
+    yaw_ref_rel_rad_ += robot_real_vel[2] * dt_s;
     robot_real_vx_debug = robot_real_vel[0];
 }
 
@@ -339,7 +340,7 @@ void Robot::update_torque_feedforward(const double _dt) {
         return;
     }
 
-    chassis_controller.set_reference(robot_real_vel, robot_acc);
+    chassis_controller.set_reference(robot_real_vel, robot_acc, yaw_ref_rel_rad_);
     chassis_estimator.step(dt_s);
     chassis_controller.step(dt_s);
 

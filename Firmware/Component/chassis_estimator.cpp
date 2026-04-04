@@ -28,6 +28,12 @@ float wrap_to_pi(float angle_rad) {
 } // namespace
 
 ChassisEstimator::ChassisEstimator() {
+    yaw_pll_kp_ = 2.0f * control_config::kImuYawPllBandwidth;
+    yaw_pll_ki_ = 0.25f * yaw_pll_kp_ * yaw_pll_kp_;
+    if (control_config::kControlDtSec * yaw_pll_kp_ >= 1.0f && control_config::kControlDtSec > 0.0f) {
+        yaw_pll_kp_ = 0.95f / control_config::kControlDtSec;
+        yaw_pll_ki_ = 0.25f * yaw_pll_kp_ * yaw_pll_kp_;
+    }
     precompute_mappings();
 }
 
@@ -53,9 +59,9 @@ void ChassisEstimator::step(float dt_s) {
     }
 
     const std::optional<float> yaw_deg = imu_yaw_input_port_.any();
-    const std::optional<float> omega_z_deg_s = imu_omega_z_input_port_.any();
 
     float yaw_rad = last_yaw_rad_;
+    bool yaw_updated = false;
     if (yaw_deg.has_value()) {
         const float current_raw_yaw_rad = *yaw_deg * kDegToRad;
         if (!has_last_raw_yaw_rad_) {
@@ -68,9 +74,56 @@ void ChassisEstimator::step(float dt_s) {
             last_raw_yaw_rad_ = current_raw_yaw_rad;
         }
         yaw_rad = accumulated_yaw_rad_;
+        yaw_updated = true;
     }
 
-    const float omega_z_rad_s = omega_z_deg_s.has_value() ? (*omega_z_deg_s * kDegToRad) : last_omega_z_rad_s_;
+    if (!yaw_pll_initialized_) {
+        if (yaw_updated) {
+            // Align PLL state to the first valid yaw sample to avoid startup spikes.
+            yaw_pll_pos_est_rad_ = yaw_rad;
+            yaw_pll_vel_est_rad_s_ = 0.0f;
+            yaw_omega_ramp_alpha_ = 0.0f;
+            yaw_pll_initialized_ = true;
+        }
+    }
+
+    if (yaw_pll_initialized_) {
+        // Predict stage keeps velocity continuity when yaw updates are sparse.
+        yaw_pll_pos_est_rad_ += dt_s * yaw_pll_vel_est_rad_s_;
+        if (yaw_updated) {
+            const float yaw_err = wrap_to_pi(yaw_rad - yaw_pll_pos_est_rad_);
+            yaw_pll_pos_est_rad_ += dt_s * yaw_pll_kp_ * yaw_err;
+            yaw_pll_vel_est_rad_s_ += dt_s * yaw_pll_ki_ * yaw_err;
+        }
+
+        if (std::fabs(yaw_pll_vel_est_rad_s_) < control_config::kImuYawPllZeroSnapEpsRadS) {
+            yaw_pll_vel_est_rad_s_ = 0.0f;
+        }
+    } else {
+        yaw_pll_vel_est_rad_s_ = 0.0f;
+        yaw_omega_ramp_alpha_ = 0.0f;
+    }
+
+    if (yaw_pll_initialized_) {
+        const float ramp_time_s = control_config::kImuYawPllOmegaRampTimeSec;
+        if (ramp_time_s <= 1e-6f) {
+            yaw_omega_ramp_alpha_ = 1.0f;
+        } else {
+            yaw_omega_ramp_alpha_ += dt_s / ramp_time_s;
+            if (yaw_omega_ramp_alpha_ > 1.0f) {
+                yaw_omega_ramp_alpha_ = 1.0f;
+            }
+        }
+    }
+
+    float omega_z_rad_s = yaw_pll_vel_est_rad_s_ * yaw_omega_ramp_alpha_;
+    if (control_config::kChassisOmegaZSource == control_config::ChassisOmegaZSource::kImuOmegaDirect) {
+        const std::optional<float> imu_omega_z_deg_s = imu_omega_z_input_port_.any();
+        if (imu_omega_z_deg_s.has_value()) {
+            omega_z_rad_s = *imu_omega_z_deg_s * kDegToRad;
+        }
+    }
+
     last_yaw_rad_ = yaw_rad;
     last_omega_z_rad_s_ = omega_z_rad_s;
 
@@ -95,6 +148,10 @@ void ChassisEstimator::reset() {
     accumulated_yaw_rad_ = 0.0f;
     last_yaw_rad_ = 0.0f;
     last_omega_z_rad_s_ = 0.0f;
+    yaw_pll_pos_est_rad_ = 0.0f;
+    yaw_pll_vel_est_rad_s_ = 0.0f;
+    yaw_omega_ramp_alpha_ = 0.0f;
+    yaw_pll_initialized_ = false;
 
     chassis_vx_output_port_ = 0.0f;
     chassis_vy_output_port_ = 0.0f;

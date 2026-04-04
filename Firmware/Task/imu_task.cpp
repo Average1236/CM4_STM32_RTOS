@@ -18,18 +18,17 @@ void StartImuRxTask(void *argument) {
     osDelay(100);  // Wait for initialization
     
     for(;;) {
-        // IMU data arrives via UART DMA - processed in UART callback
-        // This task monitors IMU health and processes decoded data
-        
-        if (osSemaphoreAcquire(sem_imu_readyHandle, osWaitForever) == osOK) {
-            float current_time = TIM11->CNT / 1000000.0f;  // Current time in seconds
-            imu_dt = (current_time > imu_last_time) ? (current_time - imu_last_time) : (current_time + (0.01f - imu_last_time));
+        // Wake source is model-dependent:
+        // - JY931: UART RX callback releases sem_imu_readyHandle.
+        // - ICM42688: TIM7 ISR releases sem_imu_readyHandle at 800Hz.
+        const osStatus_t imu_wait_status = osSemaphoreAcquire(sem_imu_readyHandle, osWaitForever);
+        if (imu_wait_status == osOK) {
+            float current_time = TIM13->CNT / 1000000.0f;  // Current time in seconds
+            imu_dt = (current_time > imu_last_time) ? (current_time - imu_last_time) : (current_time + (0.065536f - imu_last_time));
             imu_last_time = current_time;
             // Acquire robot state mutex
             if (osMutexAcquire(mtx_robot_stateHandle, 10) == osOK) {
-                
-                // Decode IMU data from UART buffer
-                imu.decode(robot.imu_rx_data);
+                imu.process_once();
                 
                 // // Signal IMU data ready
                 // osSemaphoreRelease(sem_imu_readyHandle);

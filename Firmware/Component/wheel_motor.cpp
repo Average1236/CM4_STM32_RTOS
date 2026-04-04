@@ -37,6 +37,9 @@ static const PID::Parameter_t kWheelSpeedPidParam = {
 static constexpr float kWheelSpeedPidKpRampTimeSec = control_config::kWheelSpeedPidKpRampTimeSec;
 static constexpr float kWheelSpeedPidKpRampStep =
     (kWheelSpeedPidKpRampTimeSec > 1e-6f) ? (control_config::kControlDtSec / kWheelSpeedPidKpRampTimeSec) : 1.0f;
+static constexpr float kWheelSpeedPllOmegaRampTimeSec = control_config::kWheelSpeedPllOmegaRampTimeSec;
+static constexpr float kWheelSpeedPllOmegaRampStep =
+    (kWheelSpeedPllOmegaRampTimeSec > 1e-6f) ? (control_config::kControlDtSec / kWheelSpeedPllOmegaRampTimeSec) : 1.0f;
 
 static constexpr float kPi = 3.1415926535f;
 
@@ -175,6 +178,7 @@ void MotorDMH3510::update_wheel_speed_pll_gains() {
 void MotorDMH3510::reset_wheel_speed_pll(float measured_pos_rad, bool mark_prev_enabled) {
     pll_pos_est_rad_ = measured_pos_rad;
     pll_vel_est_rad_s_ = 0.0f;
+    pll_vel_ramp_alpha_ = 0.0f;
     pll_initialized_ = false;
     pll_prev_enabled_ = mark_prev_enabled;
 }
@@ -194,6 +198,7 @@ void MotorDMH3510::update_wheel_speed_pll_from_pos(float measured_pos_rad, bool 
     if (!pll_initialized_ || !pll_prev_enabled_) {
         pll_pos_est_rad_ = measured_pos_rad;
         pll_vel_est_rad_s_ = 0.0f;
+        pll_vel_ramp_alpha_ = 0.0f;
         pll_initialized_ = true;
     }
 
@@ -206,6 +211,11 @@ void MotorDMH3510::update_wheel_speed_pll_from_pos(float measured_pos_rad, bool 
     const float zero_snap_eps_rad_s = control_config::kWheelSpeedPllZeroSnapEpsRpm * kPi / 30.0f;
     if (std::fabs(pll_vel_est_rad_s_) < zero_snap_eps_rad_s) {
         pll_vel_est_rad_s_ = 0.0f;
+    }
+
+    pll_vel_ramp_alpha_ += kWheelSpeedPllOmegaRampStep;
+    if (pll_vel_ramp_alpha_ > 1.0f) {
+        pll_vel_ramp_alpha_ = 1.0f;
     }
 
     pll_prev_enabled_ = true;
@@ -230,8 +240,12 @@ void MotorDMH3510::parse_feedback_data(const uint8_t rx_data[8]) {
     }
 
     enabled_ = (state_ == kStateMotorEnable);
+    // last_error_ = (state_ != kStateMotorEnable) ? state_ : last_error_;
+    if (!enabled_) {
+        last_error_ = state_;
+    }
     update_wheel_speed_pll_from_pos(measured_pos_rad, enabled_);
-    vel_ = enabled_ ? (pll_vel_est_rad_s_ * 30.0f / kPi) : 0.0f;
+    vel_ = enabled_ ? (pll_vel_est_rad_s_ * 30.0f / kPi * pll_vel_ramp_alpha_) : 0.0f;
     publish_feedback_ports();
 }
 

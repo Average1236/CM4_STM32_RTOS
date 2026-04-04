@@ -77,6 +77,7 @@ bool board_init() {
     MX_IWDG_Init();
     MX_TIM1_Init();
     MX_TIM13_Init();
+    MX_TIM7_Init();
 
     HAL_IWDG_Refresh(&hiwdg);
 
@@ -102,9 +103,14 @@ bool board_init() {
     motor_filter.fifo = CAN_RX_FIFO1;
     can2_bus.subscribe(motor_filter, on_motor_fb_rx, nullptr, nullptr);
 
-    HAL_UARTEx_ReceiveToIdle_DMA(&huart4, robot.imu_rx_data, IMU_RX_DATA_LENGTH);
+    imu.init();
+    imu.start_acquisition();
 
     HAL_TIM_Base_Start_IT(&htim2);
+
+    if (imu.model() == IMU::Model::kIcm42688) {
+        HAL_TIM_Base_Start_IT(&htim7);
+    }
 
     // Start TIM13 for optical flow sensor timing
     HAL_TIM_Base_Start(&htim13);
@@ -125,6 +131,12 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
     if (htim->Instance == TIM2) {
         osSemaphoreRelease(sem_ctrl_triggerHandle);
     }
+
+    if (htim->Instance == TIM7) {
+        if (imu.model() == IMU::Model::kIcm42688) {
+            osSemaphoreRelease(sem_imu_readyHandle);
+        }
+    }
 }
 
 // CAN RX FIFO0 callback for CAN1 (optical flow)
@@ -143,9 +155,11 @@ void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan) {
 
 void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 {
-    if (hspi == imu.hspi_) {
-        // Handle IMU SPI transfer complete
-        osSemaphoreRelease(sem_imu_readyHandle);
+    if (hspi == imu.spi_handle()) {
+        // For ICM42688 path we use TIM7-triggered polling, not SPI IRQ wakeups.
+        if (imu.model() != IMU::Model::kIcm42688) {
+            osSemaphoreRelease(sem_imu_readyHandle);
+        }
     }
     if (hspi->Instance == SPI1) {
         // Trigger SPI exchange task, similar to ctrl task trigger flow
@@ -172,16 +186,29 @@ extern DMA_HandleTypeDef *hdma_uart4_rx;
 // Due to high priority of DMA interrupts, FreeRTOS functions are not allowed here.
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 {
+    (void)Size;
+
     if (huart->Instance == USART1) {
         
     }
 
     if (huart->Instance == UART4) {
+        if (imu.model() != IMU::Model::kJy931) {
+            return;
+        }
+
         /* read DR to clear RXNE; don't create an unused variable */
         (void)huart->Instance->DR;
 
         if(huart->RxEventType == HAL_UART_RXEVENT_TC) {
-            HAL_UARTEx_ReceiveToIdle_DMA(&huart4, robot.imu_rx_data, IMU_RX_DATA_LENGTH);
+            imu.notify_data_ready();
+            HAL_UARTEx_ReceiveToIdle_DMA(&huart4, imu.rx_buffer_ptr(), imu.rx_buffer_len());
+            osSemaphoreRelease(sem_imu_readyHandle);
+        }
+
+        if (huart->RxEventType == HAL_UART_RXEVENT_IDLE) {
+            imu.notify_data_ready();
+            HAL_UARTEx_ReceiveToIdle_DMA(&huart4, imu.rx_buffer_ptr(), imu.rx_buffer_len());
             osSemaphoreRelease(sem_imu_readyHandle);
         }
 

@@ -4,16 +4,20 @@
 #include <cstdint>
 #include <cstddef>
 #include "spi.h"
+#include "usart.h"
 #include "component.hpp"
 
-#define IMU_RX_DATA_LENGTH (11*3*2)
-#define IMU_TX_DATA_LENGTH (5)
-
-#define LSM6DS3_DATA_READY_PIN GPIO_PIN_1 // PC1
-#define LSM6DS3_DATA_LENGTH 6 // gyro x/y/z
+constexpr size_t IMU_JY931_RX_DATA_LENGTH = (11U * 3U * 2U);
+constexpr size_t IMU_ICM42688_BURST_DATA_LENGTH = 12U;
+constexpr size_t IMU_TX_DATA_LENGTH = 5U;
 
 class IMU {
 public:
+    enum class Model : uint8_t {
+        kJy931 = 0,
+        kIcm42688 = 1,
+    };
+    
     enum DataType {
         kAccX = 0,
         kAccY,
@@ -36,55 +40,33 @@ public:
         kAuto
     };
 
-    struct LSM6DS3_Registers_t {
-        uint8_t INT1_CTRL = 0x0D;
-        uint8_t INT2_CTRL = 0x0E;
-        uint8_t WHO_AM_I = 0x0F;
-        uint8_t CTRL1_XL = 0x10;
-        uint8_t CTRL2_G = 0x11;
-        uint8_t CTRL3_C = 0x12;
-        uint8_t CTRL4_C = 0x13;
-        uint8_t CTRL5_C = 0x14;
-        uint8_t CTRL6_C = 0x15;
-        uint8_t CTRL7_G = 0x16;
-        uint8_t CTRL8_XL = 0x17;
-        uint8_t CTRL9_XL = 0x18;
-        uint8_t CTRL10_C = 0x19;
-
-        uint8_t OUT_TEMP_L = 0x20;
-        uint8_t OUT_TEMP_H = 0x21;
-        uint8_t OUTX_L_G = 0x22;
-        uint8_t OUTX_H_G = 0x23;
-        uint8_t OUTY_L_G = 0x24;
-        uint8_t OUTY_H_G = 0x25;
-        uint8_t OUTZ_L_G = 0x26;
-        uint8_t OUTZ_H_G = 0x27;
-        uint8_t OUTX_L_XL = 0x28;
-        uint8_t OUTX_H_XL = 0x29;
-        uint8_t OUTY_L_XL = 0x2A;
-        uint8_t OUTY_H_XL = 0x2B;
-        uint8_t OUTZ_L_XL = 0x2C;
-        uint8_t OUTZ_H_XL = 0x2D;
-    };
-
-    LSM6DS3_Registers_t lsm6ds3_regs_;
-
     const uint8_t get_acc_header[5] = {0xFF, 0xAA, 0x27, 0x34, 0x00};
     const uint8_t get_omega_header[5] = {0xFF, 0xAA, 0x27, 0x37, 0x00};
     const uint8_t get_angle_header[5] = {0xFF, 0xAA, 0x27, 0x3D, 0x00};
 
-    IMU(SPI_HandleTypeDef* hspi) : hspi_(hspi) {
-        // Initialize TX buffer first word: (Address | Read) << 8
-        lsm6ds3_tx_data[0] = (static_cast<uint16_t>(0x80u | lsm6ds3_regs_.OUTX_L_G) << 8);
-        // remaining bytes default to 0
-    };
+    IMU(
+        Model model,
+        SPI_HandleTypeDef* hspi,
+        UART_HandleTypeDef* huart,
+        GPIO_TypeDef* cs_port = nullptr,
+        uint16_t cs_pin = 0U
+    );
     ~IMU() = default;
 
-    void decode(uint8_t raw_data[IMU_RX_DATA_LENGTH]);
+    bool init();
+    bool start_acquisition();
+    void process_once();
+    uint32_t wait_timeout_ms() const;
+
+    uint8_t* rx_buffer_ptr() { return uart_rx_buffer_; }
+    uint16_t rx_buffer_len() const { return static_cast<uint16_t>(IMU_JY931_RX_DATA_LENGTH); }
+    void notify_data_ready() { data_ready_ = true; }
+
+    Model model() const { return model_; }
+    SPI_HandleTypeDef* spi_handle() const { return hspi_; }
+
     float get_data(const DataType type) const { return data_[type]; }
     void get_data(float out_data[9]) const;
-    void lsm6ds3_init();
-    void process_spi_data();
     void publish_ports_from_cache();
     void reset_ports();
 
@@ -92,23 +74,60 @@ public:
     OutputPort<float>* omega_y_port() { return &omega_y_port_; }
     OutputPort<float>* omega_z_port() { return &omega_z_port_; }
     OutputPort<float>* yaw_port() { return &yaw_port_; }
-    // void update(uint8_t imu_tx_date[5]);
-    // void set_update_mode(const Mode mode) { mode_ = mode; }
-
-    uint32_t data_ready_pin_ = LSM6DS3_DATA_READY_PIN; // PC1
-    uint16_t lsm6ds3_tx_data[4] = {0}; // gyro x/y/z
-    uint16_t lsm6ds3_rx_data[4] = {0}; // gyro x/y/z
-    SPI_HandleTypeDef* hspi_ = &hspi1;
 
 private:
+    static constexpr uint8_t kIcm42688WhoAmI = 0x75;
+    static constexpr uint8_t kIcm42688WhoAmIValue = 0x47;
+    static constexpr uint8_t kIcm42688RegBankSel = 0x76;
+    static constexpr uint8_t kIcm42688DeviceConfig = 0x11;
+    static constexpr uint8_t kIcm42688PwrMgmt0 = 0x4E;
+    static constexpr uint8_t kIcm42688GyroConfig0 = 0x4F;
+    static constexpr uint8_t kIcm42688AccelConfig0 = 0x50;
+    static constexpr uint8_t kIcm42688AccelDataX1 = 0x1F;
+
+    static constexpr uint8_t kIcm42688Afs4G = 0x02;
+    static constexpr uint8_t kIcm42688Aodr1000Hz = 0x06;
+    static constexpr uint8_t kIcm42688Aodr200Hz = 0x07;
+    static constexpr uint8_t kIcm42688Aodr100Hz = 0x08;
+    static constexpr uint8_t kIcm42688Gfs2000Dps = 0x00;
+    static constexpr uint8_t kIcm42688Gfs1000Dps = 0x01;
+    static constexpr uint8_t kIcm42688Godr2000Hz = 0x05;
+    static constexpr uint8_t kIcm42688Godr1000Hz = 0x06;
+    static constexpr uint8_t kIcm42688Godr200Hz = 0x07;
+    static constexpr uint8_t kIcm42688Godr100Hz = 0x08;
+
+    bool decode_jy931(const uint8_t* raw_data, size_t len);
+    bool decode_icm42688(const uint8_t* raw_data, size_t len);
+    bool sumcrc(const uint8_t raw_data[11]);
+
+    bool icm42688_init();
+    uint8_t icm42688_read_reg(uint8_t reg);
+    void icm42688_read_regs(uint8_t reg, uint8_t* data, uint16_t len);
+    void icm42688_write_reg(uint8_t reg, uint8_t value);
+    bool icm42688_read_burst(uint8_t* data, uint16_t len);
+
+    void icm42688_cs_low();
+    void icm42688_cs_high();
+
+private:
+    Model model_;
+    SPI_HandleTypeDef* hspi_;
+    UART_HandleTypeDef* huart_;
+    GPIO_TypeDef* cs_port_;
+    uint16_t cs_pin_;
+
+    bool data_ready_ = false;
+    float acc_sensitivity_ = 16.0f * 9.8f / 32768.0f;
+    float gyro_sensitivity_ = 2000.0f / 32768.0f;
+
+    uint8_t uart_rx_buffer_[IMU_JY931_RX_DATA_LENGTH] = {0};
+    uint8_t icm_rx_buffer_[IMU_ICM42688_BURST_DATA_LENGTH] = {0};
+
     float data_[12] = {0};
     OutputPort<float> omega_x_port_{0.0f};
     OutputPort<float> omega_y_port_{0.0f};
     OutputPort<float> omega_z_port_{0.0f};
     OutputPort<float> yaw_port_{0.0f};
-    bool sumcrc(const uint8_t raw_data[11]);
-    // Mode mode_ = kAuto;
-    
 };
 
 #endif // __IMU_HPP
