@@ -22,7 +22,7 @@ inline constexpr float kJerkLimitY = 50.0f;
 inline constexpr float kJerkLimitYaw = 600.0f;
 
 inline constexpr float kRobotMassKg = 2.19692f;
-inline constexpr float kRobotInertiaKgM2 = 2e-2f;
+inline constexpr float kRobotInertiaKgM2 = 5e-3f;
 inline constexpr float kWheelRadiusM = 0.033f;
 inline constexpr float kWheelCenterDistanceM = 0.07956f;
 inline constexpr float kCenterToComDistanceM = 0.0f;
@@ -30,16 +30,15 @@ inline constexpr float kWheelAlphaRad = 30.0f / 180.0f * kPi;
 inline constexpr float kWheelBetaRad = 45.0f / 180.0f * kPi;
 
 inline constexpr float kLesoVelObserverBandwidth = 50.0f;
-inline constexpr float kLesoYawObserverBandwidth = 30.0f;
+inline constexpr float kLesoOmegaObserverBandwidth = 0.0f;
 inline constexpr float kImuYawPllBandwidth = 30.0f;
 inline constexpr float kImuYawPllZeroSnapEpsRadS = 0.1f;
 inline constexpr float kImuYawPllOmegaRampTimeSec = 0.8f;
-inline constexpr ChassisOmegaZSource kChassisOmegaZSource = ChassisOmegaZSource::kYawPll;
+inline constexpr ChassisOmegaZSource kChassisOmegaZSource = ChassisOmegaZSource::kImuOmegaDirect;
 
 inline constexpr float kVelFeedbackGainX = 10.0f;
 inline constexpr float kVelFeedbackGainY = 10.0f;
 inline constexpr float kVelFeedbackGainYaw = 100.0f;
-inline constexpr float kVelFeedbackDGainYaw = 10.0f;
 
 inline constexpr float kWheelTorqueFfLimitNm = 0.60f;
 

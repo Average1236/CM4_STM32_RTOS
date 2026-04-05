@@ -8,7 +8,6 @@ volatile float vx_obs_z1_debug = 0;
 volatile float vx_obs_z2_debug = 0;
 volatile float yaw_obs_z1_debug = 0;
 volatile float yaw_obs_z2_debug = 0;
-volatile float yaw_obs_z3_debug = 0;
 volatile float f_task_0_debug = 0;
 volatile float f_task_1_debug = 0;
 volatile float f_task_2_debug = 0;
@@ -24,7 +23,7 @@ void MixedLesoChassisController::set_reference(const float vel_ref[3], const flo
         vel_ref_[i] = vel_ref[i];
         acc_ref_[i] = acc_ref[i];
     }
-    yaw_ref_rel_rad_ = yaw_ref_rel_rad;
+    (void)yaw_ref_rel_rad;
 }
 
 void MixedLesoChassisController::step(float dt_s) {
@@ -34,53 +33,28 @@ void MixedLesoChassisController::step(float dt_s) {
 
     const std::optional<float> chassis_vx_meas = chassis_vx_input_port_.any();
     const std::optional<float> chassis_vy_meas = chassis_vy_input_port_.any();
-    const std::optional<float> yaw_meas = chassis_yaw_input_port_.any();
+    const std::optional<float> omega_z_meas = chassis_omega_z_input_port_.any();
 
     const float vx_m_s = chassis_vx_meas.has_value() ? *chassis_vx_meas : last_chassis_vx_m_s_;
     const float vy_m_s = chassis_vy_meas.has_value() ? *chassis_vy_meas : last_chassis_vy_m_s_;
-    const float yaw_rad = yaw_meas.has_value() ? *yaw_meas : last_yaw_rad_;
+    const float omega_z_rad_s = omega_z_meas.has_value() ? *omega_z_meas : last_chassis_omega_z_rad_s_;
 
     last_chassis_vx_m_s_ = vx_m_s;
     last_chassis_vy_m_s_ = vy_m_s;
-    last_yaw_rad_ = yaw_rad;
-
-    if (!yaw_ref_offset_initialized_ && yaw_meas.has_value()) {
-        yaw_ref_offset_rad_ = yaw_rad - yaw_ref_rel_rad_;
-        yaw_ref_offset_initialized_ = true;
-    }
-
-    if (!yaw_obs_initialized_ && yaw_meas.has_value()) {
-        // Align yaw LESO state to the first valid yaw to avoid startup torque spikes.
-        yaw_obs_[0] = yaw_rad;
-        yaw_obs_[1] = 0.0f;
-        yaw_obs_[2] = 0.0f;
-        yaw_obs_initialized_ = true;
-    }
-
-    const float yaw_ref_rad = yaw_ref_offset_rad_ + yaw_ref_rel_rad_;
+    last_chassis_omega_z_rad_s_ = omega_z_rad_s;
 
     const float vx_ref_input = control_config::kVelFeedbackGainX * (vel_ref_[0] - vel_obs_[0][0]);
     const float vy_ref_input = control_config::kVelFeedbackGainY * (vel_ref_[1] - vel_obs_[1][0]);
-
-    // Yaw LESO states are [position, velocity, disturbance].
-    const float yaw_pos_est_rad = yaw_obs_[0];
-    const float yaw_vel_est_rad_s = yaw_obs_[1];
-    const float yaw_pos_error_rad = yaw_ref_rad - yaw_pos_est_rad;
-    const float yaw_vel_damping_rad_s = -yaw_vel_est_rad_s;
-    const float yaw_ref_input =
-        control_config::kVelFeedbackGainYaw * yaw_pos_error_rad +
-        control_config::kVelFeedbackDGainYaw * yaw_vel_damping_rad_s;
-
+    const float yaw_ref_input = control_config::kVelFeedbackGainYaw * (vel_ref_[2] - vel_obs_[2][0]);
     yaw_ref_input_debug = yaw_ref_input;
 
     const float w_vel = control_config::kLesoVelObserverBandwidth;
     const float l1 = 2.0f * w_vel;
     const float l2 = w_vel * w_vel;
 
-    const float w_yaw = control_config::kLesoYawObserverBandwidth;
-    const float b1 = 3.0f * w_yaw;
-    const float b2 = 3.0f * w_yaw * w_yaw;
-    const float b3 = w_yaw * w_yaw * w_yaw;
+    const float w_omega = control_config::kLesoOmegaObserverBandwidth;
+    const float l1_omega = 2.0f * w_omega;
+    const float l2_omega = w_omega * w_omega;
 
     const float e_vx = vx_m_s - vel_obs_[0][0];
     const float z1_dot_vx = vel_obs_[0][1] + l1 * e_vx + vx_ref_input;
@@ -97,17 +71,14 @@ void MixedLesoChassisController::step(float dt_s) {
     vel_obs_[1][0] += dt_s * z1_dot_vy;
     vel_obs_[1][1] += dt_s * z2_dot_vy;
 
-    const float ey = yaw_rad - yaw_obs_[0];
-    const float z1_dot = yaw_obs_[1] + b1 * ey;
-    const float z2_dot = yaw_obs_[2] + b2 * ey + yaw_ref_input;
-    const float z3_dot = b3 * ey;
-    yaw_obs_[0] += dt_s * z1_dot;
-    yaw_obs_[1] += dt_s * z2_dot;
-    yaw_obs_[2] += dt_s * z3_dot;
+    const float e_wz = omega_z_rad_s - vel_obs_[2][0];
+    const float z1_dot_wz = vel_obs_[2][1] + l1_omega * e_wz + yaw_ref_input;
+    const float z2_dot_wz = l2_omega * e_wz;
+    vel_obs_[2][0] += dt_s * z1_dot_wz;
+    vel_obs_[2][1] += dt_s * z2_dot_wz;
 
-    yaw_obs_z1_debug = yaw_obs_[0];
-    yaw_obs_z2_debug = yaw_obs_[1];
-    yaw_obs_z3_debug = yaw_obs_[2];
+    yaw_obs_z1_debug = vel_obs_[2][0];
+    yaw_obs_z2_debug = vel_obs_[2][1];
 
     const float f_task[3] = {
         control_config::kRobotMassKg *
@@ -115,7 +86,7 @@ void MixedLesoChassisController::step(float dt_s) {
         control_config::kRobotMassKg *
             (acc_ref_[1] + vy_ref_input - vel_obs_[1][1]),
         control_config::kRobotInertiaKgM2 *
-            (acc_ref_[2] + yaw_ref_input - yaw_obs_[2]),
+            (acc_ref_[2] + yaw_ref_input - vel_obs_[2][1]),
     };
 
     f_task_0_debug = f_task[0];
@@ -135,23 +106,17 @@ void MixedLesoChassisController::step(float dt_s) {
 }
 
 void MixedLesoChassisController::reset() {
-    for (int axis = 0; axis < 2; ++axis) {
+    for (int axis = 0; axis < 3; ++axis) {
         vel_obs_[axis][0] = 0.0f;
         vel_obs_[axis][1] = 0.0f;
     }
-    yaw_obs_[0] = 0.0f;
-    yaw_obs_[1] = 0.0f;
-    yaw_obs_[2] = 0.0f;
 
     for (int i = 0; i < 4; ++i) {
         wheel_torque_ff_output_ports_[i] = 0.0f;
     }
     last_chassis_vx_m_s_ = 0.0f;
     last_chassis_vy_m_s_ = 0.0f;
-    last_yaw_rad_ = 0.0f;
-    yaw_obs_initialized_ = false;
-    yaw_ref_offset_initialized_ = false;
-    yaw_ref_offset_rad_ = 0.0f;
+    last_chassis_omega_z_rad_s_ = 0.0f;
 }
 
 bool MixedLesoChassisController::inverse3x3(const float in[3][3], float out[3][3]) const {

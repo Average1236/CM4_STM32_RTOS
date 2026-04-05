@@ -209,7 +209,7 @@ Robot::Robot() {
 
     chassis_controller.chassis_vx_input_port()->connect_to(chassis_estimator.chassis_vx_output_port());
     chassis_controller.chassis_vy_input_port()->connect_to(chassis_estimator.chassis_vy_output_port());
-    chassis_controller.chassis_yaw_input_port()->connect_to(chassis_estimator.chassis_yaw_output_port());
+    chassis_controller.chassis_omega_z_input_port()->connect_to(chassis_estimator.chassis_omega_z_output_port());
 
     // Initialize dribbler
     dribbler = new MotorM2006(DRIBBLER_MOTOR_PARAMS);
