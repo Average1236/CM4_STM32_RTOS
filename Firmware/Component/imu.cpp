@@ -117,6 +117,7 @@ bool IMU::decode_icm42688(const uint8_t* raw_data, size_t len)
 
     data_[kOmegaX] = static_cast<float>(gx) * gyro_sensitivity_;
     data_[kOmegaY] = static_cast<float>(gy) * gyro_sensitivity_;
+    // data_[kOmegaZ] = static_cast<float>(gz) * gyro_sensitivity_ - 0.078f; // empirically determined gyro bias for Z axis
     data_[kOmegaZ] = static_cast<float>(gz) * gyro_sensitivity_;
 
     data_[kAngleX] = 0.0f;

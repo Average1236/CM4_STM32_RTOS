@@ -194,9 +194,6 @@ static const TD::Parameter_t DRIBBLER_TD_PARAMS = {
     .is_cycle = false, .cycle_low = -180.0f, .cycle_high = 180.0f
 };
 
-// IMU data buffer for transmission
-static float imu_data_buffer[9] = {0};
-
 Robot::Robot() {
     // Initialize wheel motors
     for (int i = 0; i < 4; i++) {
@@ -242,6 +239,9 @@ void Robot::pi_decode_spi() {
 }
 
 void Robot::pi_encode_spi() {
+    float imu_data[9] = {0.0f};
+    imu.get_data(imu_data);
+
     SpiTx.infrare_flag = (infra_ADC1_val > 0.5f) ? 1 : 0;
     SpiTx.getBall = false;
     SpiTx.imu_online = true;
@@ -256,7 +256,7 @@ void Robot::pi_encode_spi() {
 
     // Encode IMU data
     for (uint8_t i = 0; i < 9; i++) {
-        SpiTx.imu_data[i] = static_cast<int16_t>(imu_data_buffer[i] * 100);
+        SpiTx.imu_data[i] = static_cast<int16_t>(imu_data[i] * 100);
     }
 
     memcpy(spi_tx_data, &SpiTx, sizeof(SpiTx));

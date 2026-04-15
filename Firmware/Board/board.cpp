@@ -98,7 +98,7 @@ bool board_init() {
     
     // Subscribe to motor feedback (CAN2, IDs 0x01-0x205)
     MsgIdFilterSpecs motor_filter;
-    motor_filter.id = (uint16_t)0x01;
+    motor_filter.id = (uint16_t)0x000;  // Base ID for filtering
     motor_filter.mask = 0x000;  // Match IDs 0x01-0x205
     motor_filter.fifo = CAN_RX_FIFO1;
     can2_bus.subscribe(motor_filter, on_motor_fb_rx, nullptr, nullptr);

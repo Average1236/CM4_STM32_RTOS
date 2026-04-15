@@ -189,20 +189,20 @@ $$
 
 期望轮速 $\bm{\dot{\theta}}_{ref} = \bm{J}_2 \bm{v}_{ref}$
 
-## 混合阶数 LESO 设计
+## 二阶 LESO 设计（x, y, yaw 三轴统一）
 
-考虑到底盘在平动方向（$x, y$）的位置难以高精度获取，而角度 $\psi$ 可由 IMU 稳定测量，因此采用 **混合阶数 LESO 结构**：
+当前控制方案中，$x, y, yaw$ 三轴均采用 **基于速度的二阶 LESO**，统一为同一结构：
 
-- 平动方向 $v_x, v_y$：采用 **基于速度的二阶 LESO**
-- 转动方向 $\omega$：采用 **基于位置的三阶 LESO**
+- 平动方向：$v_x, v_y$
+- 转动方向：$\omega$
 
-该结构在保证扰动估计能力的同时，降低了对位置测量精度的依赖。
+该结构在三轴上使用一致的状态与参数形式，便于实现与调参。
 
 ---
 
-### 1. 平动方向（二阶 LESO，基于速度）
+### 1. 三轴统一二阶 LESO（基于速度）
 
-对 $i \in \{x, y\}$，建立如下模型：
+对 $i \in \{x, y, \psi\}$，其中 $i=\psi$ 时对应角速度通道 $\omega$，建立如下模型：
 
 $$
 \dot{v}_i = b_{0,i} u_i + f_{total,i}
@@ -260,41 +260,7 @@ z_2(k+1) = z_2(k) + dt \cdot [l_2 e(k)]
 \end{cases}
 $$
 
----
-
-### 2. 转动方向（三阶 LESO，基于位置）
-
-对 $\psi$ 轴，采用标准三阶 LESO：
-
-$$
-\begin{cases}
-\dot{z}_1 = z_2 + \beta_1 (\psi - z_1) \\
-\dot{z}_2 = z_3 + \beta_2 (\psi - z_1) + b_{0,\psi} u_\psi \\
-\dot{z}_3 = \beta_3 (\psi - z_1)
-\end{cases}
-$$
-
-极点配置：
-
-$$
-\beta_1 = 3\omega_o, \quad \beta_2 = 3\omega_o^2, \quad \beta_3 = \omega_o^3
-$$
-
-离散化形式：
-
-$$
-e(k) = \psi(k) - z_1(k)
-$$
-
-$$
-\begin{cases}
-z_1(k+1) = z_1(k) + dt \cdot [z_2(k) + \beta_1 e(k)] \\
-z_2(k+1) = z_2(k) + dt \cdot [z_3(k) + \beta_2 e(k) + b_0 u(k)] \\
-z_3(k+1) = z_3(k) + dt \cdot [\beta_3 e(k)]
-\end{cases}
-$$
-
-该混合 LESO 结构在保证系统鲁棒性的同时，有效降低了对高精度位置测量的依赖，适用于大范围移动场景。
+该二阶 LESO 结构在三轴统一使用，在保证系统鲁棒性的同时降低了实现复杂度。
 
 ## 扰动补偿控制律设计
 基于 LESO 的总扰动估计，设计如下控制律：
@@ -302,7 +268,7 @@ $$
 \bm{F}_{task} = \begin{bmatrix} 
     m_1(\dot{v}_{ref,x} + K_{v,x}(v_{ref,x} - z_{1,x}) - z_{2,x}) \\
     m_1(\dot{v}_{ref,y} + K_{v,y}(v_{ref,y} - z_{1,y}) - z_{2,y}) \\
-    J_{1E}(\dot{\omega}_{ref} + K_{v,\psi}(\omega_{ref} - z_{2,\psi}) - z_{3,\psi})
+    J_{1E}(\dot{\omega}_{ref} + K_{v,\psi}(\omega_{ref} - z_{1,\psi}) - z_{2,\psi})
 \end{bmatrix} 
 $$
 
