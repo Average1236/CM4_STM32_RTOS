@@ -12,7 +12,8 @@ struct __attribute__((packed)) CM4_to_stm32_spi
     int16_t angle_pid[3];
     int16_t wheel_pid[3];
     bool use_imu;
-    // uint8_t flag;
+    bool kick_mode; // chip:1  shoot:0
+    uint16_t kick_discharge_time;
 };
 
 struct __attribute__((packed)) stm32_to_CM4_spi
@@ -33,6 +34,8 @@ public:
 
     void pi_encode_spi();
     void pi_decode_spi();
+    void request_kick_from_spi();
+    void on_kick_timeout_irq();
 
     void ik_solve();
     void motion_planner(const double _dt);
@@ -67,6 +70,9 @@ public:
     CM4_to_stm32_spi SpiRx;
     stm32_to_CM4_spi SpiTx;
 
+    bool kick_mode = false; // chip:1  shoot:0
+    uint16_t kick_discharge_time = 0;
+
     float wheel_PID[3] = {0.000, 0.005, 0};
     float wheel_vel_PID[3] = {0.5, 0.1, 0};
     float wheel_vel_limit = 2000; // rpm
@@ -89,6 +95,13 @@ public:
     // Watchdog
     uint32_t watchdog_current_value_ = 0;
     uint32_t watchdog_timeout_ = 200 * 4;
+
+private:
+    void start_kick_pulse(bool chip_mode, uint16_t pulse_us);
+
+    bool kick_active_ = false;
+    bool last_kick_cmd_nonzero_ = false;
+    uint16_t kick_pulse_us_ = 0;
 };
 
 #endif // __ROBOT_HPP

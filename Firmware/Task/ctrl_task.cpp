@@ -220,6 +220,8 @@ void StartCrtlTask(void *argument) {
                     robot.robot_vel[1] = 0.0f;
                     robot.robot_vel[2] = 0.0f;
                 }
+
+                robot.request_kick_from_spi();
                 
                 // Motion planning: compute acceleration from velocity setpoints
                 robot.motion_planner(TIM2_PERIOD_CLOCKS);  // microseconds

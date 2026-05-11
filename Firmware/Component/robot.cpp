@@ -1,5 +1,6 @@
 #include "robot.hpp"
 #include "control_params.hpp"
+#include "tim.h"
 #include <cstring>
 #include <cmath>
 #include <algorithm>
@@ -10,6 +11,7 @@ volatile float target_vy_debug = 0;
 volatile float target_vw_debug = 0;
 volatile float wheel_vel_debug = 0;
 volatile float robot_real_vx_debug = 0;
+volatile uint16_t kick_pulse_debug = 0;
 
 // Wheel geometry
 static constexpr float WHEEL_ANGLE_FORWARD = control_config::kWheelAlphaRad;
@@ -54,6 +56,7 @@ AxisMotionPlan g_axis_plans[3];
 
 constexpr float kPlannerVelEps = 1e-5f;
 constexpr float kPlannerReplanEps = 1e-4f;
+constexpr uint16_t kKickPulseMaxUs = 15000;
 
 inline float signf_nonzero(const float x) {
     return (x >= 0.0f) ? 1.0f : -1.0f;
@@ -232,10 +235,74 @@ void Robot::pi_decode_spi() {
     }
     robot_vel[2] = SpiRx.vel[2] / 100.0f;
 
+    kick_mode = SpiRx.kick_mode;
+    kick_discharge_time = SpiRx.kick_discharge_time;
+
     // Debug
     target_vx_debug = robot_vel[0];
     target_vy_debug = robot_vel[1];
     target_vw_debug = robot_vel[2];
+}
+
+void Robot::request_kick_from_spi() {
+    // Debug
+    kick_pulse_debug = kick_pulse_us_;
+
+    const bool cmd_nonzero = (kick_discharge_time > 0);
+    if (!cmd_nonzero) {
+        last_kick_cmd_nonzero_ = false;
+        return;
+    }
+
+    // Rising-edge trigger: only fire when command changes 0 -> non-zero.
+    if (last_kick_cmd_nonzero_) {
+        return;
+    }
+    last_kick_cmd_nonzero_ = true;
+
+    // Busy policy: ignore new kick request while pulse is active.
+    if (kick_active_) {
+        return;
+    }
+
+    const uint16_t pulse_us = static_cast<uint16_t>(std::min<uint32_t>(kick_discharge_time, kKickPulseMaxUs));
+    start_kick_pulse(kick_mode, pulse_us);
+}
+
+void Robot::start_kick_pulse(const bool chip_mode, const uint16_t pulse_us) {
+    if (pulse_us == 0) {
+        return;
+    }
+
+    // Ensure exclusive output: clear both lines before selecting one.
+    HAL_GPIO_WritePin(CHIP_GPIO_Port, CHIP_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(SHOOT_GPIO_Port, SHOOT_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(chip_mode ? CHIP_GPIO_Port : SHOOT_GPIO_Port,
+                      chip_mode ? CHIP_Pin : SHOOT_Pin,
+                      GPIO_PIN_SET);
+
+    kick_active_ = true;
+    kick_pulse_us_ = pulse_us;
+
+    HAL_TIM_Base_Stop_IT(&htim6);
+    __HAL_TIM_SET_COUNTER(&htim6, 0);
+    __HAL_TIM_SET_AUTORELOAD(&htim6, pulse_us - 1u);
+    __HAL_TIM_CLEAR_FLAG(&htim6, TIM_FLAG_UPDATE);
+
+    if (HAL_TIM_Base_Start_IT(&htim6) != HAL_OK) {
+        HAL_GPIO_WritePin(CHIP_GPIO_Port, CHIP_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(SHOOT_GPIO_Port, SHOOT_Pin, GPIO_PIN_RESET);
+        kick_active_ = false;
+        kick_pulse_us_ = 0;
+    }
+}
+
+void Robot::on_kick_timeout_irq() {
+    HAL_TIM_Base_Stop_IT(&htim6);
+    HAL_GPIO_WritePin(CHIP_GPIO_Port, CHIP_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(SHOOT_GPIO_Port, SHOOT_Pin, GPIO_PIN_RESET);
+    kick_active_ = false;
+    kick_pulse_us_ = 0;
 }
 
 void Robot::pi_encode_spi() {

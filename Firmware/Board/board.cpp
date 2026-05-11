@@ -73,6 +73,7 @@ bool board_init() {
     MX_USART3_UART_Init();
     MX_USART6_UART_Init();
     MX_TIM2_Init();
+    MX_TIM6_Init();
     MX_UART4_Init();
     MX_IWDG_Init();
     MX_TIM1_Init();
@@ -136,6 +137,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
         if (imu.model() == IMU::Model::kIcm42688) {
             osSemaphoreRelease(sem_imu_readyHandle);
         }
+    }
+
+    if (htim->Instance == TIM6) {
+        robot.on_kick_timeout_irq();
     }
 }
 
