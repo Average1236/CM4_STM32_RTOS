@@ -7,6 +7,9 @@
 volatile float torque_cmd_debug = 0;
 volatile float wheel_vel_raw_debug = 0;
 volatile float wheel_integ_debug = 0;
+volatile float torque_fb_debug = 0;
+volatile float pos_fb_debug = 0;
+volatile float pll_vel_est_debug = 0;
 
 namespace {
 
@@ -213,6 +216,10 @@ void MotorDMH3510::update_wheel_speed_pll_from_pos(float measured_pos_rad, bool 
         pll_vel_est_rad_s_ = 0.0f;
     }
 
+    if (config_.feedback_id == 1) {
+        pll_vel_est_debug = pll_vel_est_rad_s_;
+    }
+
     pll_vel_ramp_alpha_ += kWheelSpeedPllOmegaRampStep;
     if (pll_vel_ramp_alpha_ > 1.0f) {
         pll_vel_ramp_alpha_ = 1.0f;
@@ -237,6 +244,8 @@ void MotorDMH3510::parse_feedback_data(const uint8_t rx_data[8]) {
     angle_ = measured_pos_rad * 180.0f / kPi;
     if (config_.feedback_id == 1) {
         wheel_vel_raw_debug = config_.direction * vel;
+        torque_fb_debug = torque_;
+        pos_fb_debug = measured_pos_rad;
     }
 
     enabled_ = (state_ == kStateMotorEnable);
