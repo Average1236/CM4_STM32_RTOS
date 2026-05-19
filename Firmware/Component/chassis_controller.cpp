@@ -43,10 +43,23 @@ void MixedLesoChassisController::step(float dt_s) {
     last_chassis_vy_m_s_ = vy_m_s;
     last_chassis_omega_z_rad_s_ = omega_z_rad_s;
 
-    const float vx_ref_input = control_config::kVelFeedbackGainX * (vel_ref_[0] - vel_obs_[0][0]);
-    const float vy_ref_input = control_config::kVelFeedbackGainY * (vel_ref_[1] - vel_obs_[1][0]);
-    const float yaw_ref_input = control_config::kVelFeedbackGainYaw * (vel_ref_[2] - vel_obs_[2][0]);
-    yaw_ref_input_debug = yaw_ref_input;
+    // Read actual sent wheel torques from previous control cycle
+    float tau_sent[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+    for (int i = 0; i < 4; ++i) {
+        const std::optional<float> tau = wheel_sent_torque_input_ports_[i].any();
+        tau_sent[i] = tau.has_value() ? *tau : 0.0f;
+    }
+
+    // Map wheel torques → body wrench via forward Jacobian
+    float u_body[3] = {0.0f, 0.0f, 0.0f};
+    for (int row = 0; row < 3; ++row) {
+        for (int col = 0; col < 4; ++col) {
+            u_body[row] += j1_[row][col] * tau_sent[col];
+        }
+    }
+    const float u_vx_actual = u_body[0] / control_config::kRobotMassKg;
+    const float u_vy_actual = u_body[1] / control_config::kRobotMassKg;
+    const float u_wz_actual = u_body[2] / control_config::kRobotInertiaKgM2;
 
     const float w_vel = control_config::kLesoVelObserverBandwidth;
     const float l1 = 2.0f * w_vel;
@@ -57,7 +70,7 @@ void MixedLesoChassisController::step(float dt_s) {
     const float l2_omega = w_omega * w_omega;
 
     const float e_vx = vx_m_s - vel_obs_[0][0];
-    const float z1_dot_vx = vel_obs_[0][1] + l1 * e_vx + vx_ref_input;
+    const float z1_dot_vx = vel_obs_[0][1] + l1 * e_vx + u_vx_actual;
     const float z2_dot_vx = l2 * e_vx;
     vel_obs_[0][0] += dt_s * z1_dot_vx;
     vel_obs_[0][1] += dt_s * z2_dot_vx;
@@ -66,13 +79,13 @@ void MixedLesoChassisController::step(float dt_s) {
     vx_obs_z2_debug = vel_obs_[0][1];
 
     const float e_vy = vy_m_s - vel_obs_[1][0];
-    const float z1_dot_vy = vel_obs_[1][1] + l1 * e_vy + vy_ref_input;
+    const float z1_dot_vy = vel_obs_[1][1] + l1 * e_vy + u_vy_actual;
     const float z2_dot_vy = l2 * e_vy;
     vel_obs_[1][0] += dt_s * z1_dot_vy;
     vel_obs_[1][1] += dt_s * z2_dot_vy;
 
     const float e_wz = omega_z_rad_s - vel_obs_[2][0];
-    const float z1_dot_wz = vel_obs_[2][1] + l1_omega * e_wz + yaw_ref_input;
+    const float z1_dot_wz = vel_obs_[2][1] + l1_omega * e_wz + u_wz_actual;
     const float z2_dot_wz = l2_omega * e_wz;
     vel_obs_[2][0] += dt_s * z1_dot_wz;
     vel_obs_[2][1] += dt_s * z2_dot_wz;
@@ -80,13 +93,18 @@ void MixedLesoChassisController::step(float dt_s) {
     yaw_obs_z1_debug = vel_obs_[2][0];
     yaw_obs_z2_debug = vel_obs_[2][1];
 
+    const float vx_feedback = control_config::kVelFeedbackGainX * (vel_ref_[0] - vel_obs_[0][0]);
+    const float vy_feedback = control_config::kVelFeedbackGainY * (vel_ref_[1] - vel_obs_[1][0]);
+    const float yaw_feedback = control_config::kVelFeedbackGainYaw * (vel_ref_[2] - vel_obs_[2][0]);
+    yaw_ref_input_debug = yaw_feedback;
+
     const float f_task[3] = {
         control_config::kRobotMassKg *
-            (acc_ref_[0] + vx_ref_input - vel_obs_[0][1]),
+            (acc_ref_[0] + vx_feedback - vel_obs_[0][1]),
         control_config::kRobotMassKg *
-            (acc_ref_[1] + vy_ref_input - vel_obs_[1][1]),
+            (acc_ref_[1] + vy_feedback - vel_obs_[1][1]),
         control_config::kRobotInertiaKgM2 *
-            (acc_ref_[2] + yaw_ref_input - vel_obs_[2][1]),
+            (acc_ref_[2] + yaw_feedback - vel_obs_[2][1]),
     };
 
     f_task_0_debug = f_task[0];
@@ -170,6 +188,12 @@ void MixedLesoChassisController::precompute_mappings() {
         {inv_r * (-sa), inv_r * (-sa), inv_r * sb, inv_r * sb},
         {inv_r * (-l - d * sa), inv_r * (-l - d * sa), inv_r * (-l + d * sb), inv_r * (-l + d * sb)},
     };
+
+    for (int row = 0; row < 3; ++row) {
+        for (int col = 0; col < 4; ++col) {
+            j1_[row][col] = j1[row][col];
+        }
+    }
 
     float j1_j1t[3][3] = {{0.0f}};
     for (int row = 0; row < 3; ++row) {

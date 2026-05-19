@@ -29,8 +29,8 @@ inline constexpr float kCenterToComDistanceM = 0.0f;
 inline constexpr float kWheelAlphaRad = 30.0f / 180.0f * kPi;
 inline constexpr float kWheelBetaRad = 45.0f / 180.0f * kPi;
 
-inline constexpr float kLesoVelObserverBandwidth = 100.0f;
-inline constexpr float kLesoOmegaObserverBandwidth = 300.0f;
+inline constexpr float kLesoVelObserverBandwidth = 60.0f;
+inline constexpr float kLesoOmegaObserverBandwidth = 150.0f;
 inline constexpr ChassisOmegaZSource kChassisOmegaZSource = ChassisOmegaZSource::kImuOmegaDirect;
 inline constexpr float kImuYawPllBandwidth = 200.0f;
 inline constexpr float kImuYawPllZeroSnapEpsRadS = 0.1f;
@@ -39,21 +39,38 @@ inline constexpr float kImuOmegaButterworthCutoffHz = 400.0f;
 
 inline constexpr float kVelFeedbackGainX = 20.0f;
 inline constexpr float kVelFeedbackGainY = 20.0f;
-inline constexpr float kVelFeedbackGainYaw = 450.0f;
+inline constexpr float kVelFeedbackGainYaw = 300.0f;
 
-inline constexpr float kWheelTorqueFfLimitNm = 0.0f;
+inline constexpr float kWheelTorqueFfLimitNm = 0.2f;
 
 inline constexpr float kWheelSpeedPidKp = 0.025f;
 inline constexpr float kWheelSpeedPidKi = 0.0f;
-inline constexpr float kWheelSpeedPidKd = 0.01f;
+inline constexpr float kWheelSpeedPidKd = 0.0f;
 inline constexpr float kWheelSpeedPidBackCalcGain = 0.2f;
 inline constexpr float kWheelSpeedPidDiffCutoffHz = 200.0f;
-inline constexpr float kWheelSpeedPidOutputLimitNm = 0.2f;
+inline constexpr float kWheelSpeedPidOutputLimitNm = 0.0f;
 inline constexpr float kWheelSpeedPidIntegLimitNm = 0.0f;
 inline constexpr float kWheelSpeedPidKpRampTimeSec = 1.5f;
-inline constexpr float kWheelSpeedPllBandwidth = 200.0f;
+inline constexpr float kWheelSpeedPllBandwidth = 20.0f;
 inline constexpr float kWheelSpeedPllZeroSnapEpsRpm = 0.0f;
 inline constexpr float kWheelSpeedPllOmegaRampTimeSec = 0.2f;
+
+// Wheels mechanical model
+inline constexpr float kWheelInertiaKgM2 = 5e-5f;
+inline constexpr float kWheelViscousDampingNmPerRadPS = 6.5e-5f;
+
+// 3-state Luenberger observer bandwidth (rad/s, triple pole).
+// L1 = 3·ω_o·dt, must be < 1.0 for stable Euler discretization.
+// dt=0.002s (500Hz): ω_o=100 → L1=0.6 (safe).
+inline constexpr float kWheelObsVelocityBandwidth = 100.0f;
+
+// Virtual damping gain (Nm per rad/s).
+inline constexpr float kWheelVirtualDampingNmPerRadPS = 0.02f;
+
+// Butterworth on observer velocity for damping (Hz).
+// Heavy filtering emulates dmiao driver's sluggish velocity loop,
+// decoupling the fast inner damping from the slower chassis control.
+inline constexpr float kWheelObsVelocityButterworthCutoffHz = 75.0f;
 
 inline constexpr float kMITRunKp = 0.0f;
 // inline constexpr float kMITRunKd = 0.07f;

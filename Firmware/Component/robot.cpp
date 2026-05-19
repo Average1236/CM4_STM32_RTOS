@@ -205,6 +205,7 @@ Robot::Robot() {
         wheel_motors[i]->velocity_cmd_input_port()->connect_to(&motor_vel[i]);
         chassis_estimator.wheel_velocity_input_port(i)->connect_to(wheel_motors[i]->velocity_output_port());
         wheel_motors[i]->torque_ff_cmd_input_port()->connect_to(chassis_controller.wheel_torque_ff_output_port(i));
+        chassis_controller.wheel_sent_torque_input_port(i)->connect_to(wheel_motors[i]->torque_cmd_output_port());
     }
 
     chassis_controller.chassis_vx_input_port()->connect_to(chassis_estimator.chassis_vx_output_port());

@@ -11,6 +11,9 @@ volatile float wheel_diff_debug = 0;
 volatile float torque_fb_debug = 0;
 volatile float pos_fb_debug = 0;
 volatile float pll_vel_est_debug = 0;
+volatile float wheel_obs_vel_debug = 0;
+volatile float wheel_obs_vel_filt_debug = 0;
+volatile float wheel_obs_t_dist_debug = 0;
 
 namespace {
 
@@ -46,6 +49,20 @@ static constexpr float kWheelSpeedPllOmegaRampTimeSec = control_config::kWheelSp
 static constexpr float kWheelSpeedPllOmegaRampStep =
     (kWheelSpeedPllOmegaRampTimeSec > 1e-6f) ? (control_config::kControlDtSec / kWheelSpeedPllOmegaRampTimeSec) : 1.0f;
 
+// Luenberger observer gains — compile-time computation, zero runtime cost.
+static constexpr float kObsDt = control_config::kControlDtSec;
+static constexpr float kObsWo = control_config::kWheelObsVelocityBandwidth;
+static constexpr float kObsL1 = 3.0f * kObsWo * kObsDt;
+static constexpr float kObsL2 = 3.0f * kObsWo * kObsWo * kObsDt;
+static constexpr float kObsL3 = control_config::kWheelInertiaKgM2 * kObsWo * kObsWo * kObsWo * kObsDt;
+static constexpr float kObsInvJ = 1.0f / control_config::kWheelInertiaKgM2;
+static constexpr float kObsBOverJ = control_config::kWheelViscousDampingNmPerRadPS / control_config::kWheelInertiaKgM2;
+
+static const ButterworthLowPass2::Parameter_t kObsVelFilterParam = {
+    .cutoff_hz = control_config::kWheelObsVelocityButterworthCutoffHz,
+    .dt = control_config::kControlDtSec,
+};
+
 static constexpr float kPi = 3.1415926535f;
 
 const WheelMotorBase::Info_t motor_info_DMH3510{
@@ -70,11 +87,13 @@ void WheelMotorBase::reset_ports() {
     velocity_output_port_.reset();
     torque_output_port_.reset();
     current_output_port_.reset();
+    torque_cmd_output_port_.reset();
 }
 
 MotorDMH3510::MotorDMH3510(const Config_t& config)
         : WheelMotorBase(kTypeDMH3510, config, motor_info_DMH3510),
-            wheel_speed_pid_(kWheelSpeedPidParam) {
+            wheel_speed_pid_(kWheelSpeedPidParam),
+            obs_vel_filter_(kObsVelFilterParam, 0.0f) {
     update_wheel_speed_pll_gains();
 }
 
@@ -99,13 +118,65 @@ void MotorDMH3510::pack_mit_data(float position, float velocity, float kp, float
         wheel_integ_debug = wheel_speed_pid_.get_integ();
         wheel_diff_debug = wheel_speed_pid_.get_diff();
     }
-    
-    float torque_cmd = torque_ff + torque_pid;
+
+    // --- 3-state Luenberger observer ---
+    const float dt = control_config::kControlDtSec;
+    const float theta_meas_rad = angle_ * kPi / 180.0f;  // angle_ single-turn deg → rad
+
+    if (!enabled_) {
+        obs_initialized_ = false;
+        obs_theta_rad_ = theta_meas_rad;
+        obs_omega_rad_s_ = 0.0f;
+        obs_t_dist_nm_ = 0.0f;
+    } else {
+        if (!obs_initialized_) {
+            obs_theta_rad_ = theta_meas_rad;
+            obs_omega_rad_s_ = 0.0f;
+            obs_t_dist_nm_ = 0.0f;
+            obs_initialized_ = true;
+        }
+
+        // Predict: torque feedforward + friction, semi-implicit Euler
+        const float omega_pred = obs_omega_rad_s_
+            + (last_torque_cmd_nm_ + obs_t_dist_nm_) * kObsInvJ * dt
+            - kObsBOverJ * obs_omega_rad_s_ * dt;
+        const float theta_pred = obs_theta_rad_ + omega_pred * dt;
+
+        // Correct from single-turn position; wrap is correct because
+        // per-step θ increment << π at 1kHz control rate.
+        const float theta_err = wrap_pm_pi(theta_meas_rad - theta_pred);
+        obs_theta_rad_ = theta_pred + kObsL1 * theta_err;
+        obs_omega_rad_s_ = omega_pred + kObsL2 * theta_err;
+        obs_t_dist_nm_ += kObsL3 * theta_err;
+
+        if (obs_t_dist_nm_ > parameter_.tmax) {
+            obs_t_dist_nm_ = parameter_.tmax;
+        } else if (obs_t_dist_nm_ < -parameter_.tmax) {
+            obs_t_dist_nm_ = -parameter_.tmax;
+        }
+    }
+
+    // --- Virtual velocity damping (filter velocity, not output) ---
+    const float obs_vel_filtered = obs_vel_filter_.filter(obs_omega_rad_s_);
+    const float torque_damp = enabled_
+        ? (control_config::kWheelVirtualDampingNmPerRadPS * (velocity - obs_vel_filtered))
+        : 0.0f;
+
+    if (config_.feedback_id == 1) {
+        wheel_obs_vel_debug = obs_omega_rad_s_;
+        wheel_obs_vel_filt_debug = obs_vel_filtered;
+        wheel_obs_t_dist_debug = obs_t_dist_nm_;
+    }
+
+    float torque_cmd = torque_ff + torque_pid + torque_damp;
     if (torque_cmd > parameter_.tmax) {
         torque_cmd = parameter_.tmax;
     } else if (torque_cmd < -parameter_.tmax) {
         torque_cmd = -parameter_.tmax;
     }
+
+    last_torque_cmd_nm_ = torque_cmd;
+    torque_cmd_output_port_ = torque_cmd;
 
     if (config_.feedback_id == 1) {
         torque_cmd_debug = torque_cmd;
@@ -313,6 +384,12 @@ void MotorDMH3510::reset_wheel_speed_pid() {
     wheel_speed_pid_.reset();
     wheel_speed_pid_kp_alpha_ = 0.0f;
     wheel_speed_pid_prev_enabled_ = false;
+    obs_initialized_ = false;
+    obs_theta_rad_ = 0.0f;
+    obs_omega_rad_s_ = 0.0f;
+    obs_t_dist_nm_ = 0.0f;
+    last_torque_cmd_nm_ = 0.0f;
+    obs_vel_filter_.reset(0.0f);
 }
 
 void MotorDMH3510::build_clear_error_msg(can_Message_t& msg) {

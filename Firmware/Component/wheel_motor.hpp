@@ -71,6 +71,7 @@ public:
     OutputPort<float>* velocity_output_port() { return &velocity_output_port_; }
     OutputPort<float>* torque_output_port() { return &torque_output_port_; }
     OutputPort<float>* current_output_port() { return &current_output_port_; }
+    OutputPort<float>* torque_cmd_output_port() { return &torque_cmd_output_port_; }
 
     InputPort<float>* velocity_cmd_input_port() { return &velocity_cmd_input_port_; }
     InputPort<float>* torque_ff_cmd_input_port() { return &torque_ff_cmd_input_port_; }
@@ -96,6 +97,7 @@ protected:
     OutputPort<float> velocity_output_port_{0.0f};
     OutputPort<float> torque_output_port_{0.0f};
     OutputPort<float> current_output_port_{0.0f};
+    OutputPort<float> torque_cmd_output_port_{0.0f};
 
     InputPort<float> velocity_cmd_input_port_;
     InputPort<float> torque_ff_cmd_input_port_;
@@ -186,6 +188,16 @@ private:
     bool pll_initialized_ = false;
     bool pll_prev_enabled_ = false;
     bool pll_gain_unstable_ = false;
+
+    // 3-state Luenberger observer [θ, ω, T_dist]
+    float obs_theta_rad_ = 0.0f;
+    float obs_omega_rad_s_ = 0.0f;
+    float obs_t_dist_nm_ = 0.0f;
+    bool obs_initialized_ = false;
+    float last_torque_cmd_nm_ = 0.0f;
+
+    // Velocity filter for damping path
+    ButterworthLowPass2 obs_vel_filter_{{0.0f, 0.0f}};
 
     static float uint_to_float(int x_int, float x_min, float x_max, int bits);
 };
