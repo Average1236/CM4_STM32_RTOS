@@ -13,6 +13,7 @@ namespace {
 
 constexpr float kPi = 3.1415926535f;
 constexpr float kDegToRad = kPi / 180.0f;
+constexpr float kRadToDeg = 180.0f / kPi;
 constexpr float kRpmToRadPerSec = 2.0f * kPi / 60.0f;
 
 float wrap_to_pi(float angle_rad) {
@@ -27,7 +28,8 @@ float wrap_to_pi(float angle_rad) {
 
 } // namespace
 
-ChassisEstimator::ChassisEstimator() {
+ChassisEstimator::ChassisEstimator()
+    : imu_omega_filter_({control_config::kImuOmegaButterworthCutoffHz, control_config::kControlDtSec}) {
     yaw_pll_kp_ = 2.0f * control_config::kImuYawPllBandwidth;
     yaw_pll_ki_ = 0.25f * yaw_pll_kp_ * yaw_pll_kp_;
     if (control_config::kControlDtSec * yaw_pll_kp_ >= 1.0f && control_config::kControlDtSec > 0.0f) {
@@ -61,7 +63,6 @@ void ChassisEstimator::step(float dt_s) {
     const std::optional<float> yaw_deg = imu_yaw_input_port_.any();
 
     float yaw_rad = last_yaw_rad_;
-    bool yaw_updated = false;
     if (yaw_deg.has_value()) {
         const float current_raw_yaw_rad = *yaw_deg * kDegToRad;
         if (!has_last_raw_yaw_rad_) {
@@ -74,54 +75,55 @@ void ChassisEstimator::step(float dt_s) {
             last_raw_yaw_rad_ = current_raw_yaw_rad;
         }
         yaw_rad = accumulated_yaw_rad_;
-        yaw_updated = true;
     }
 
-    if (!yaw_pll_initialized_) {
-        if (yaw_updated) {
-            // Align PLL state to the first valid yaw sample to avoid startup spikes.
-            yaw_pll_pos_est_rad_ = yaw_rad;
-            yaw_pll_vel_est_rad_s_ = 0.0f;
-            yaw_omega_ramp_alpha_ = 0.0f;
-            yaw_pll_initialized_ = true;
-        }
-    }
-
-    if (yaw_pll_initialized_) {
-        // Predict stage keeps velocity continuity when yaw updates are sparse.
-        yaw_pll_pos_est_rad_ += dt_s * yaw_pll_vel_est_rad_s_;
-        if (yaw_updated) {
-            const float yaw_err = wrap_to_pi(yaw_rad - yaw_pll_pos_est_rad_);
-            yaw_pll_pos_est_rad_ += dt_s * yaw_pll_kp_ * yaw_err;
-            yaw_pll_vel_est_rad_s_ += dt_s * yaw_pll_ki_ * yaw_err;
-        }
-
-        if (std::fabs(yaw_pll_vel_est_rad_s_) < control_config::kImuYawPllZeroSnapEpsRadS) {
-            yaw_pll_vel_est_rad_s_ = 0.0f;
-        }
-    } else {
-        yaw_pll_vel_est_rad_s_ = 0.0f;
-        yaw_omega_ramp_alpha_ = 0.0f;
-    }
-
-    if (yaw_pll_initialized_) {
-        const float ramp_time_s = control_config::kImuYawPllOmegaRampTimeSec;
-        if (ramp_time_s <= 1e-6f) {
-            yaw_omega_ramp_alpha_ = 1.0f;
-        } else {
-            yaw_omega_ramp_alpha_ += dt_s / ramp_time_s;
-            if (yaw_omega_ramp_alpha_ > 1.0f) {
-                yaw_omega_ramp_alpha_ = 1.0f;
-            }
-        }
-    }
-
-    float omega_z_rad_s = yaw_pll_vel_est_rad_s_ * yaw_omega_ramp_alpha_;
+    float omega_z_rad_s;
     if (control_config::kChassisOmegaZSource == control_config::ChassisOmegaZSource::kImuOmegaDirect) {
         const std::optional<float> imu_omega_z_deg_s = imu_omega_z_input_port_.any();
         if (imu_omega_z_deg_s.has_value()) {
-            omega_z_rad_s = *imu_omega_z_deg_s * kDegToRad;
+            omega_z_rad_s = imu_omega_filter_.filter(*imu_omega_z_deg_s) * kDegToRad;
+        } else {
+            omega_z_rad_s = last_omega_z_rad_s_;
         }
+    } else {
+        const bool yaw_updated = yaw_deg.has_value();
+
+        if (!yaw_pll_initialized_) {
+            if (yaw_updated) {
+                yaw_pll_pos_est_rad_ = yaw_rad;
+                yaw_pll_vel_est_rad_s_ = 0.0f;
+                yaw_omega_ramp_alpha_ = 0.0f;
+                yaw_pll_initialized_ = true;
+            }
+        }
+
+        if (yaw_pll_initialized_) {
+            yaw_pll_pos_est_rad_ += dt_s * yaw_pll_vel_est_rad_s_;
+            if (yaw_updated) {
+                const float yaw_err = wrap_to_pi(yaw_rad - yaw_pll_pos_est_rad_);
+                yaw_pll_pos_est_rad_ += dt_s * yaw_pll_kp_ * yaw_err;
+                yaw_pll_vel_est_rad_s_ += dt_s * yaw_pll_ki_ * yaw_err;
+            }
+
+            if (std::fabs(yaw_pll_vel_est_rad_s_) < control_config::kImuYawPllZeroSnapEpsRadS) {
+                yaw_pll_vel_est_rad_s_ = 0.0f;
+            }
+
+            const float ramp_time_s = control_config::kImuYawPllOmegaRampTimeSec;
+            if (ramp_time_s <= 1e-6f) {
+                yaw_omega_ramp_alpha_ = 1.0f;
+            } else {
+                yaw_omega_ramp_alpha_ += dt_s / ramp_time_s;
+                if (yaw_omega_ramp_alpha_ > 1.0f) {
+                    yaw_omega_ramp_alpha_ = 1.0f;
+                }
+            }
+        } else {
+            yaw_pll_vel_est_rad_s_ = 0.0f;
+            yaw_omega_ramp_alpha_ = 0.0f;
+        }
+
+        omega_z_rad_s = yaw_pll_vel_est_rad_s_ * yaw_omega_ramp_alpha_;
     }
 
     last_yaw_rad_ = yaw_rad;
@@ -130,8 +132,8 @@ void ChassisEstimator::step(float dt_s) {
     // Debug outputs
     chassis_vx_debug = chassis_vel_meas[0];
     chassis_vy_debug = chassis_vel_meas[1];
-    chassis_yaw_debug = yaw_rad;
-    chassis_omega_z_debug = omega_z_rad_s;
+    chassis_yaw_debug = yaw_rad * kRadToDeg;
+    chassis_omega_z_debug = omega_z_rad_s * kRadToDeg;
 
     chassis_vx_output_port_ = chassis_vel_meas[0];
     chassis_vy_output_port_ = chassis_vel_meas[1];
@@ -152,6 +154,7 @@ void ChassisEstimator::reset() {
     yaw_pll_vel_est_rad_s_ = 0.0f;
     yaw_omega_ramp_alpha_ = 0.0f;
     yaw_pll_initialized_ = false;
+    imu_omega_filter_.reset();
 
     chassis_vx_output_port_ = 0.0f;
     chassis_vy_output_port_ = 0.0f;

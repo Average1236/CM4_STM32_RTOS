@@ -2,6 +2,7 @@
 #define __CHASSIS_ESTIMATOR_HPP
 
 #include "component.hpp"
+#include "Task/utils.hpp"
 #include <array>
 #include <cstddef>
 
@@ -52,6 +53,8 @@ private:
     float yaw_pll_vel_est_rad_s_ = 0.0f;
     float yaw_omega_ramp_alpha_ = 0.0f;
     bool yaw_pll_initialized_ = false;
+
+    ButterworthLowPass2 imu_omega_filter_{{0.0f, 0.0f}};
 };
 
 #endif // __CHASSIS_ESTIMATOR_HPP

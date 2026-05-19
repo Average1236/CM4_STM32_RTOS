@@ -64,6 +64,7 @@ public:
         float integ_limit;
         float dt;
         float back_calc_gain = 0.0f;
+        float diff_cutoff_hz = 0.0f;  // 0 disables the derivative low-pass
     };
 
     PID(const Parameter_t parameter) : parameter_(parameter) {};
@@ -76,7 +77,16 @@ public:
         err = ref - fdb;
 
         const float dt = (parameter_.dt > kEps) ? parameter_.dt : kEps;
-        diff = (err - last_err) / dt;
+        const float raw_diff = (err - last_err) / dt;
+
+        if (parameter_.diff_cutoff_hz > kEps) {
+            constexpr float kTwoPi = 6.283185307f;
+            const float tf = 1.0f / (kTwoPi * parameter_.diff_cutoff_hz);
+            diff_filt_ = diff_filt_ + (raw_diff - diff_filt_) * dt / (dt + tf);
+        } else {
+            diff_filt_ = raw_diff;
+        }
+        diff = diff_filt_;
 
         if (std::fabs(parameter_.ki) > kEps) {
             const float integ_pre = integ + err * dt;
@@ -100,6 +110,7 @@ public:
     void reset() {
         integ = 0.0f;
         diff = 0.0f;
+        diff_filt_ = 0.0f;
         last_err = 0.0f;
         output = 0.0f;
     }
@@ -108,12 +119,17 @@ public:
         return integ;
     }
 
+    float get_diff() const {
+        return diff;
+    }
+
 private:
     Parameter_t parameter_;
     float err = 0.0f;
     float last_err = 0.0f;
     float integ = 0.0f;
     float diff = 0.0f;
+    float diff_filt_ = 0.0f;
     float output = 0.0f;    
 };
 

@@ -7,6 +7,7 @@
 volatile float torque_cmd_debug = 0;
 volatile float wheel_vel_raw_debug = 0;
 volatile float wheel_integ_debug = 0;
+volatile float wheel_diff_debug = 0;
 volatile float torque_fb_debug = 0;
 volatile float pos_fb_debug = 0;
 volatile float pll_vel_est_debug = 0;
@@ -35,6 +36,7 @@ static const PID::Parameter_t kWheelSpeedPidParam = {
     .integ_limit = control_config::kWheelSpeedPidIntegLimitNm,
     .dt = control_config::kControlDtSec,
     .back_calc_gain = control_config::kWheelSpeedPidBackCalcGain,
+    .diff_cutoff_hz = control_config::kWheelSpeedPidDiffCutoffHz,
 };
 
 static constexpr float kWheelSpeedPidKpRampTimeSec = control_config::kWheelSpeedPidKpRampTimeSec;
@@ -95,6 +97,7 @@ void MotorDMH3510::pack_mit_data(float position, float velocity, float kp, float
     const float torque_pid = wheel_speed_pid_.calc(velocity, velocity_feedback);
     if (config_.feedback_id == 1) {
         wheel_integ_debug = wheel_speed_pid_.get_integ();
+        wheel_diff_debug = wheel_speed_pid_.get_diff();
     }
     
     float torque_cmd = torque_ff + torque_pid;
