@@ -120,8 +120,6 @@ bool build_wheel_command(Robot& robot, uint8_t index, bool safe_output, can_Mess
 } // namespace
 
 // Debug variables
-float dribblerInput;
-uint8_t dribbler_mode;
 float debug_pose, debug_vel;
 float debug_K, debug_D, debug_M, debug_angle_ref;
 bool debug_enable;
@@ -298,20 +296,6 @@ void StartCrtlTask(void *argument) {
                     tx_rr_start = (tx_rr_start + 1) & 0x03;
                     osSemaphoreRelease(sem_can_txHandle);
                 }
-
-                
-                // robot.dribbler_filter->calc(robot.dribbler->get_velocity());
-                // debug_pose = robot.dribbler_filter->get_data();
-                // debug_vel = robot.dribbler_filter->get_diff();
-                
-                // if (debug_enable) {
-                //     dribblerInput = debug_K * (debug_angle_ref - robot.dribbler->get_angle()) + debug_D * debug_pose + debug_M * debug_vel;
-                // } else {
-                //     dribblerInput = 0;
-                // }
-                // robot.dribbler->set_torque_input(dribblerInput);
-                // robot.dribbler->encode(can2_tx_data);
-                // can2_tx_data[2] = dribbler_mode;
                 
                 // Release mutex
                 osMutexRelease(mtx_robot_stateHandle);

@@ -16,16 +16,8 @@ void StartHealthTask(void *argument) {
         // Feed watchdog
         HAL_IWDG_Refresh(&hiwdg);
 
-        float infra_ADC1_val = 0.0f;
         float bat_ADC2_val = 0.0f;
         float cap_ADC3_val = 0.0f;
-        
-        // Read ADC values
-        HAL_ADC_Start(&hadc1);
-        HAL_ADC_PollForConversion(&hadc1, 1);
-        if (HAL_IS_BIT_SET(HAL_ADC_GetState(&hadc1), HAL_ADC_STATE_REG_EOC)) {
-            infra_ADC1_val = (float)HAL_ADC_GetValue(&hadc1) / 4096.0f * 3.3f;
-        }
         
         HAL_ADC_Start(&hadc2);
         HAL_ADC_PollForConversion(&hadc2, 1);
@@ -41,7 +33,6 @@ void StartHealthTask(void *argument) {
 
         // Update robot state with mutex protection
         if (osMutexAcquire(mtx_robot_stateHandle, 10) == osOK) {
-            robot.infra_ADC1_val = infra_ADC1_val;
             robot.bat_ADC2_val = bat_ADC2_val;
             robot.cap_ADC3_val = cap_ADC3_val;
             

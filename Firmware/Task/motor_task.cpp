@@ -35,8 +35,6 @@ void StartMotorRxTask(void *argument) {
                 if (!robot.wheel_motors[matched_wheel_idx]->is_writing_register()) {
                     robot.wheel_motors[matched_wheel_idx]->parse_feedback_data(fb_msg.buf);
                 }
-            } else if (robot.dribbler != nullptr && fb_msg.id == robot.dribbler->feedback_can_id()) {
-                robot.dribbler->parse_feedback_data(fb_msg.buf);
             }
 
         }

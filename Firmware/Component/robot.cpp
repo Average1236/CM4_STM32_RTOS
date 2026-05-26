@@ -179,24 +179,6 @@ static const WheelMotorBase::Config_t WHEEL_MOTOR_PARAMS[4] = {
      .remove_built_in_reducer = false, .limit_vel_curr_proportion = 0.8f}
 };
 
-static const DibbleMotorBase::Config_t DRIBBLER_MOTOR_PARAMS = {
-    .control_id = 5, .feedback_id = 5, .direction = -1.0f, .ex_reduce_rate = 20, 
-    .remove_built_in_reducer = false
-};
-
-// PID parameters for dribbler
-static const PID::Parameter_t DRIBBLER_PID_PARAMS = {
-    .kp = 0.001f, .ki = 0.005f, .kd = 0,
-    .output_limit = motor_info_M2006.broad_current_limit,
-    .integ_limit = motor_info_M2006.broad_current_limit, .dt = control_config::kControlDtSec
-};
-
-// TD (tracking differentiator) parameters for dribbler
-static const TD::Parameter_t DRIBBLER_TD_PARAMS = {
-    .r = 2000, .h = 0.01f, .dt = control_config::kControlDtSec,
-    .is_cycle = false, .cycle_low = -180.0f, .cycle_high = 180.0f
-};
-
 Robot::Robot() {
     // Initialize wheel motors
     for (int i = 0; i < 4; i++) {
@@ -211,20 +193,12 @@ Robot::Robot() {
     chassis_controller.chassis_vx_input_port()->connect_to(chassis_estimator.chassis_vx_output_port());
     chassis_controller.chassis_vy_input_port()->connect_to(chassis_estimator.chassis_vy_output_port());
     chassis_controller.chassis_omega_z_input_port()->connect_to(chassis_estimator.chassis_omega_z_output_port());
-
-    // Initialize dribbler
-    dribbler = new MotorM2006(DRIBBLER_MOTOR_PARAMS);
-    dribbler_PID_controller = new PID(DRIBBLER_PID_PARAMS);
-    dribbler_filter = new TD(DRIBBLER_TD_PARAMS, 0);
 }
 
 Robot::~Robot() {
     for (int i = 0; i < 4; i++) {
         delete wheel_motors[i];
     }
-    delete dribbler;
-    delete dribbler_PID_controller;
-    delete dribbler_filter;
 }
 
 void Robot::pi_decode_spi() {
@@ -236,7 +210,8 @@ void Robot::pi_decode_spi() {
     }
     robot_vel[2] = SpiRx.vel[2] / 100.0f;
 
-    //
+    dribble_power = SpiRx.drib_power / 255.0f;
+
     kick_mode = SpiRx.kick_mode ? false : true;
     kick_discharge_time = SpiRx.kick_discharge_time;
 
@@ -311,7 +286,7 @@ void Robot::pi_encode_spi() {
     float imu_data[9] = {0.0f};
     imu.get_data(imu_data);
 
-    SpiTx.infrare_flag = (infra_ADC1_val > 0.5f) ? 1 : 0;
+    // SpiTx.infrare_flag = (infra_ADC1_val > 0.5f) ? 1 : 0;
     SpiTx.getBall = false;
     SpiTx.imu_online = true;
     SpiTx.battery_vol = static_cast<int16_t>(bat_ADC2_val * 5);

@@ -90,17 +90,17 @@ bool board_init() {
         return false;
     }
     
-    // Subscribe to optical flow sensor (CAN1, ID 0x300)
+    // Subscribe to optical flow sensor (CAN1, ID 0x300-0x301)
     MsgIdFilterSpecs optflow_filter;
     optflow_filter.id = (uint16_t)0x300;
     optflow_filter.mask = 0x7FF;  // Match exact ID
     optflow_filter.fifo = CAN_RX_FIFO0;
     can1_bus.subscribe(optflow_filter, on_optflow_rx, nullptr, nullptr);
     
-    // Subscribe to motor feedback (CAN2, IDs 0x01-0x205)
+    // Subscribe to motor feedback (CAN2, IDs 0x01-0x04)
     MsgIdFilterSpecs motor_filter;
     motor_filter.id = (uint16_t)0x000;  // Base ID for filtering
-    motor_filter.mask = 0x000;  // Match IDs 0x01-0x205
+    motor_filter.mask = 0x000;  // Match IDs 0x01-0x04
     motor_filter.fifo = CAN_RX_FIFO1;
     can2_bus.subscribe(motor_filter, on_motor_fb_rx, nullptr, nullptr);
 

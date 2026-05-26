@@ -45,14 +45,13 @@ public:
     void watchdog_feed();
     bool watchdog_check();
 
-    float infra_ADC1_val = 0;
+    float infra_voltage = 0;
+    float dribble_power = 0;
+
     float bat_ADC2_val = 0;
     float cap_ADC3_val = 0;
 
     MotorDMH3510* wheel_motors[4];
-    DibbleMotorBase* dribbler;
-    PID* dribbler_PID_controller;
-    TD* dribbler_filter;
 
     float motor_vel[4] = {0};
     float last_motor_vel[4] = {0};
