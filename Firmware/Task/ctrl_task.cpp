@@ -219,8 +219,20 @@ void StartCrtlTask(void *argument) {
                     robot.robot_vel[2] = 0.0f;
                 }
 
-                robot.request_kick_from_spi();
-                
+                // Dribbler: sync raw voltage from heartbeat
+                robot.infra_voltage = robot.dribbler.infra_voltage_raw;
+                // Dribbler: filter infra voltage (asymmetric LPF)
+                robot.dribbler.filter_voltage();
+                // Dribbler: state machine (calibration -> closed-loop control)
+                robot.dribbler.process_state_machine();
+                // Dribbler: send torque command
+                robot.dribbler.send_torque(robot.dribble_power);
+
+                // Only allow kick when ball is detected (infrared voltage above threshold)
+                if (robot.dribbler.infra_voltage_filt > INFRARED_THRESHOLD) {
+                    robot.request_kick_from_spi();
+                }
+
                 // Motion planning: compute acceleration from velocity setpoints
                 robot.motion_planner(TIM2_PERIOD_CLOCKS);  // microseconds
 

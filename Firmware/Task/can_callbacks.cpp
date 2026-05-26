@@ -4,6 +4,7 @@
 #include "Component/opt_flow.hpp"
 #include "Component/wheel_motor.hpp"
 #include "Component/dribble_motor.hpp"
+#include "Component/dribbler_zfoc.hpp"
 #include "freertos_vars.h"
 #include <cstring>
 
@@ -18,6 +19,14 @@ void on_optflow_rx(void* ctx, const can_Message_t& msg) {
     
     // Send to queue (non-blocking from ISR context)
     osMessageQueuePut(q_optflow_dataHandle, &data, 0, 0);
+}
+
+// Callback for dribbler ZFOC heartbeat messages (CAN ID 0x0A1)
+void on_dribbler_heartbeat_rx(void* ctx, const can_Message_t& msg) {
+    DribblerZfoc* dribbler = static_cast<DribblerZfoc*>(ctx);
+    if (dribbler) {
+        dribbler->parse_heartbeat(msg);
+    }
 }
 
 // Callback for motor feedback messages (CAN IDs 0x201-0x205)

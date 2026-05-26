@@ -41,7 +41,7 @@ inline constexpr float kVelFeedbackGainX = 20.0f;
 inline constexpr float kVelFeedbackGainY = 20.0f;
 inline constexpr float kVelFeedbackGainYaw = 300.0f;
 
-inline constexpr float kWheelTorqueFfLimitNm = 0.2f;
+inline constexpr float kWheelTorqueFfLimitNm = 0.5f;
 
 inline constexpr float kWheelSpeedPidKp = 0.025f;
 inline constexpr float kWheelSpeedPidKi = 0.0f;

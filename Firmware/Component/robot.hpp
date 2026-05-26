@@ -4,6 +4,7 @@
 #include "Task/z_main.h"
 #include "chassis_controller.hpp"
 #include "chassis_estimator.hpp"
+#include "dribbler_zfoc.hpp"
 
 struct __attribute__((packed)) CM4_to_stm32_spi
 {
@@ -47,6 +48,8 @@ public:
 
     float infra_voltage = 0;
     float dribble_power = 0;
+
+    DribblerZfoc dribbler;
 
     float bat_ADC2_val = 0;
     float cap_ADC3_val = 0;

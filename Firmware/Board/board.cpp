@@ -93,10 +93,17 @@ bool board_init() {
     // Subscribe to optical flow sensor (CAN1, ID 0x300-0x301)
     MsgIdFilterSpecs optflow_filter;
     optflow_filter.id = (uint16_t)0x300;
-    optflow_filter.mask = 0x7FF;  // Match exact ID
+    optflow_filter.mask = 0x7FE;  // Match IDs 0x300-0x301
     optflow_filter.fifo = CAN_RX_FIFO0;
     can1_bus.subscribe(optflow_filter, on_optflow_rx, nullptr, nullptr);
     
+    // Subscribe to dribbler ZFOC heartbeat (CAN1, node_id=5, cmd=0x001 -> ID 0x0A1)
+    MsgIdFilterSpecs dribbler_filter;
+    dribbler_filter.id = (uint16_t)((5 << 5) | 0x001);
+    dribbler_filter.mask = 0x7FF;  // Match exact ID
+    dribbler_filter.fifo = CAN_RX_FIFO0;
+    can1_bus.subscribe(dribbler_filter, on_dribbler_heartbeat_rx, &robot.dribbler, nullptr);
+
     // Subscribe to motor feedback (CAN2, IDs 0x01-0x04)
     MsgIdFilterSpecs motor_filter;
     motor_filter.id = (uint16_t)0x000;  // Base ID for filtering
