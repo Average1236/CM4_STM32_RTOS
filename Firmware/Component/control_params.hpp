@@ -65,12 +65,12 @@ inline constexpr float kWheelViscousDampingNmPerRadPS = 6.5e-5f;
 inline constexpr float kWheelObsVelocityBandwidth = 100.0f;
 
 // Virtual damping gain (Nm per rad/s).
-inline constexpr float kWheelVirtualDampingNmPerRadPS = 0.02f;
+inline constexpr float kWheelVirtualDampingNmPerRadPS = 0.025f;
 
 // Butterworth on observer velocity for damping (Hz).
 // Heavy filtering emulates dmiao driver's sluggish velocity loop,
 // decoupling the fast inner damping from the slower chassis control.
-inline constexpr float kWheelObsVelocityButterworthCutoffHz = 75.0f;
+inline constexpr float kWheelObsVelocityButterworthCutoffHz = 100.0f;
 
 inline constexpr float kMITRunKp = 0.0f;
 // inline constexpr float kMITRunKd = 0.07f;

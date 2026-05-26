@@ -236,7 +236,8 @@ void Robot::pi_decode_spi() {
     }
     robot_vel[2] = SpiRx.vel[2] / 100.0f;
 
-    kick_mode = SpiRx.kick_mode;
+    //
+    kick_mode = SpiRx.kick_mode ? false : true;
     kick_discharge_time = SpiRx.kick_discharge_time;
 
     // Debug
