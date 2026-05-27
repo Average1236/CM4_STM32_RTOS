@@ -44,23 +44,27 @@ public:
     // Called in ctrl_task: asymmetric low-pass filter on falling edge only
     void filter_voltage();
 
-    // Called in ctrl_task: monitor calibration and transition to closed-loop
+    // Called in ctrl_task: if no error and idle, queue state transition messages
     void process_state_machine();
 
-    // Send CAN commands
-    void send_requested_state(int32_t state);
-    void send_controller_mode(int32_t ctrl_mode, int32_t input_mode);
-    void send_torque(float torque);
+    // Build CAN messages (does NOT send — ctrl_task sends under semaphore)
+    void build_torque_msg(can_Message_t& msg, float torque) const;
+
+    // Pending messages populated by process_state_machine, sent by ctrl_task
+    uint8_t pending_count = 0;
+    can_Message_t pending_msgs[2];
 
     // State (ISR writes raw, ctrl_task reads/filters)
     float infra_voltage_raw = 0.0f;
     float infra_voltage_filt = 0.0f;
     uint8_t current_state = kAxisStateUndefined;
+    bool has_error = false;
+    uint8_t error_flags = 0;
+    uint32_t axis_error = 0;
 
 private:
-    uint8_t last_current_state_ = kAxisStateUndefined;
-    bool calibration_requested_ = false;
-    bool closed_loop_requested_ = false;
+    void build_set_requested_state_msg(can_Message_t& msg, int32_t state) const;
+    void build_set_controller_modes_msg(can_Message_t& msg, int32_t ctrl_mode, int32_t input_mode) const;
 };
 
 #endif // DRIBBLER_ZFOC_HPP

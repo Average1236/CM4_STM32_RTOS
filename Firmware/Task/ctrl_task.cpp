@@ -223,10 +223,11 @@ void StartCrtlTask(void *argument) {
                 robot.infra_voltage = robot.dribbler.infra_voltage_raw;
                 // Dribbler: filter infra voltage (asymmetric LPF)
                 robot.dribbler.filter_voltage();
-                // Dribbler: state machine (calibration -> closed-loop control)
+                // Dribbler: state machine (builds pending CAN messages)
                 robot.dribbler.process_state_machine();
-                // Dribbler: send torque command
-                robot.dribbler.send_torque(robot.dribble_power);
+                // Dribbler: build torque command (only when in closed-loop control)
+                can_Message_t dribbler_torque_msg;
+                robot.dribbler.build_torque_msg(dribbler_torque_msg, robot.dribble_power);
 
                 // Only allow kick when ball is detected (infrared voltage above threshold)
                 if (robot.dribbler.infra_voltage_filt > INFRARED_THRESHOLD) {
@@ -273,6 +274,15 @@ void StartCrtlTask(void *argument) {
                 }
             
                 if (osSemaphoreAcquire(sem_can_txHandle, 10) == osOK) {
+                    // Send dribbler pending messages (state transitions)
+                    for (uint8_t i = 0; i < robot.dribbler.pending_count; i++) {
+                        can1_bus.send_message(robot.dribbler.pending_msgs[i]);
+                    }
+                    // Send dribbler torque command (only when in closed-loop control)
+                    if (robot.dribbler.current_state == DribblerZfoc::kAxisStateClosedLoopControl) {
+                        can1_bus.send_message(dribbler_torque_msg);
+                    }
+
                     bool sent[4] = {false, false, false, false};
                     uint8_t sent_count = 0;
                     uint8_t extra_sent_count = 0;

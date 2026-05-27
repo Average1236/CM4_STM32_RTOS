@@ -12,6 +12,7 @@ volatile float target_vw_debug = 0;
 volatile float wheel_vel_debug = 0;
 volatile float robot_real_vx_debug = 0;
 volatile uint16_t kick_pulse_debug = 0;
+volatile float dribble_power_debug = 0;
 
 // Wheel geometry
 static constexpr float WHEEL_ANGLE_FORWARD = control_config::kWheelAlphaRad;
@@ -57,6 +58,7 @@ AxisMotionPlan g_axis_plans[3];
 constexpr float kPlannerVelEps = 1e-5f;
 constexpr float kPlannerReplanEps = 1e-4f;
 constexpr uint16_t kKickPulseMaxUs = 15000;
+constexpr uint32_t kKickIntervalMs = 300;
 
 inline float signf_nonzero(const float x) {
     return (x >= 0.0f) ? 1.0f : -1.0f;
@@ -210,7 +212,7 @@ void Robot::pi_decode_spi() {
     }
     robot_vel[2] = SpiRx.vel[2] / 100.0f;
 
-    dribble_power = SpiRx.drib_power / 255.0f;
+    dribble_power = SpiRx.drib_power / 50.0f * -1.0f;
 
     kick_mode = SpiRx.kick_mode ? false : true;
     kick_discharge_time = SpiRx.kick_discharge_time;
@@ -219,29 +221,28 @@ void Robot::pi_decode_spi() {
     target_vx_debug = robot_vel[0];
     target_vy_debug = robot_vel[1];
     target_vw_debug = robot_vel[2];
+    dribble_power_debug = dribble_power;
 }
 
 void Robot::request_kick_from_spi() {
     // Debug
     kick_pulse_debug = kick_pulse_us_;
 
-    const bool cmd_nonzero = (kick_discharge_time > 0);
-    if (!cmd_nonzero) {
-        last_kick_cmd_nonzero_ = false;
+    if (kick_discharge_time == 0) {
         return;
     }
-
-    // Rising-edge trigger: only fire when command changes 0 -> non-zero.
-    if (last_kick_cmd_nonzero_) {
-        return;
-    }
-    last_kick_cmd_nonzero_ = true;
 
     // Busy policy: ignore new kick request while pulse is active.
     if (kick_active_) {
         return;
     }
 
+    // Minimum interval between kicks: 300ms
+    if (HAL_GetTick() - last_kick_tick_ < kKickIntervalMs) {
+        return;
+    }
+
+    last_kick_tick_ = HAL_GetTick();
     const uint16_t pulse_us = static_cast<uint16_t>(std::min<uint32_t>(kick_discharge_time, kKickPulseMaxUs));
     start_kick_pulse(kick_mode, pulse_us);
 }

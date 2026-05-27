@@ -102,7 +102,7 @@ private:
     void start_kick_pulse(bool chip_mode, uint16_t pulse_us);
 
     bool kick_active_ = false;
-    bool last_kick_cmd_nonzero_ = false;
+    uint32_t last_kick_tick_ = 0;
     uint16_t kick_pulse_us_ = 0;
 };
 

@@ -48,6 +48,7 @@ Board/        — STM32CubeMX HAL, FreeRTOS middleware, linker script, startup c
 - Yaw estimation in `ChassisEstimator` uses a PLL on IMU yaw, with configurable source: IMU gyro direct or PLL output (`control_config::kChassisOmegaZSource`)
 - FreeRTOS heap is placed in CCMRAM for performance (`main.cpp`)
 - RTTI, exceptions, and thread-safe statics are disabled (`-fno-rtti -fno-exceptions -fno-threadsafe-statics`)
+- **CAN TX rule:** `ZCAN::send_message()` must only be called from `ctrl_task.cpp`, and must be preceded by acquiring `sem_can_txHandle`. Components (e.g. `DribblerZfoc`) build `can_Message_t` objects and expose them via output buffers; they must never call `send_message()` directly.
 
 **RTOS synchronization primitives** (declared in `Firmware/freertos_vars.h`):
 - Message queues: `q_can1_rxHandle`, `q_motor_fbHandle`, `q_imu_dataHandle`, `q_optflow_dataHandle`

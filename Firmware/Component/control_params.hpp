@@ -13,16 +13,16 @@ enum class ChassisOmegaZSource : uint8_t {
 inline constexpr float kControlDtSec = static_cast<float>(TIM2_PERIOD_CLOCKS) / 1000000.0f;
 inline constexpr float kPi = 3.1415926535f;
 
-inline constexpr float kAccThresholdX = 6.5f;
-inline constexpr float kAccThresholdY = 6.5f;
+inline constexpr float kAccThresholdX = 5.0f;
+inline constexpr float kAccThresholdY = 5.0f;
 inline constexpr float kAccThresholdYaw = 40.0f;
 
-inline constexpr float kJerkLimitX = 175.0f;
-inline constexpr float kJerkLimitY = 175.0f;
+inline constexpr float kJerkLimitX = 100.0f;
+inline constexpr float kJerkLimitY = 75.0f;
 inline constexpr float kJerkLimitYaw = 600.0f;
 
 inline constexpr float kRobotMassKg = 1.99692f;
-inline constexpr float kRobotInertiaKgM2 = 3e-3f;
+inline constexpr float kRobotInertiaKgM2 = 5e-3f;
 inline constexpr float kWheelRadiusM = 0.033f;
 inline constexpr float kWheelCenterDistanceM = 0.07956f;
 inline constexpr float kCenterToComDistanceM = 0.0f;
@@ -39,7 +39,7 @@ inline constexpr float kImuOmegaButterworthCutoffHz = 400.0f;
 
 inline constexpr float kVelFeedbackGainX = 20.0f;
 inline constexpr float kVelFeedbackGainY = 20.0f;
-inline constexpr float kVelFeedbackGainYaw = 300.0f;
+inline constexpr float kVelFeedbackGainYaw = 450.0f;
 
 inline constexpr float kWheelTorqueFfLimitNm = 0.5f;
 

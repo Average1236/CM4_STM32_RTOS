@@ -20,7 +20,7 @@ extern "C" {
 #define PI_UART_RX_DATA_LENGTH 7
 #define SPI_LENGTH 32
 
-#define INFRARED_THRESHOLD (3.3f)
+#define INFRARED_THRESHOLD (2.9f)
 
 const uint8_t piRxFrameHeader = 0xbb;
 const float bat_k = 106.04f / 6.04f;
