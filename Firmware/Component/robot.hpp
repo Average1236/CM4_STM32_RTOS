@@ -79,6 +79,8 @@ public:
     float wheel_vel_PID[3] = {0.5, 0.1, 0};
     float wheel_vel_limit = 2000; // rpm
 
+    bool use_imu = false;
+
     // m/s
     float robot_vel[3] = {0};
 

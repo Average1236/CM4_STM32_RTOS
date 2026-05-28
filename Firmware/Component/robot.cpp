@@ -195,6 +195,7 @@ Robot::Robot() {
     chassis_controller.chassis_vx_input_port()->connect_to(chassis_estimator.chassis_vx_output_port());
     chassis_controller.chassis_vy_input_port()->connect_to(chassis_estimator.chassis_vy_output_port());
     chassis_controller.chassis_omega_z_input_port()->connect_to(chassis_estimator.chassis_omega_z_output_port());
+    chassis_controller.chassis_yaw_input_port()->connect_to(chassis_estimator.chassis_integrated_yaw_output_port());
 }
 
 Robot::~Robot() {
@@ -216,6 +217,8 @@ void Robot::pi_decode_spi() {
 
     kick_mode = SpiRx.kick_mode ? false : true;
     kick_discharge_time = SpiRx.kick_discharge_time;
+
+    use_imu = SpiRx.use_imu;
 
     // Debug
     target_vx_debug = robot_vel[0];
@@ -386,6 +389,7 @@ void Robot::update_torque_feedforward(const double _dt) {
     }
 
     chassis_controller.set_reference(robot_real_vel, robot_acc, yaw_ref_rel_rad_);
+    chassis_controller.set_use_3rd_order_leso(use_imu);
     chassis_estimator.step(dt_s);
     chassis_controller.step(dt_s);
 

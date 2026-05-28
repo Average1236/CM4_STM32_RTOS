@@ -3,14 +3,31 @@
 #include <algorithm>
 #include <cmath>
 
+namespace {
+
+constexpr float kPi = 3.1415926535f;
+
+float wrap_to_pi(float angle_rad) {
+    while (angle_rad > kPi) {
+        angle_rad -= 2.0f * kPi;
+    }
+    while (angle_rad < -kPi) {
+        angle_rad += 2.0f * kPi;
+    }
+    return angle_rad;
+}
+
+} // namespace
+
 volatile float yaw_ref_input_debug = 0;
-volatile float vx_obs_z1_debug = 0;
-volatile float vx_obs_z2_debug = 0;
-volatile float yaw_obs_z1_debug = 0;
-volatile float yaw_obs_z2_debug = 0;
-volatile float f_task_0_debug = 0;
-volatile float f_task_1_debug = 0;
-volatile float f_task_2_debug = 0;
+volatile float vx_leso_z1_debug = 0;
+volatile float vx_leso_z2_debug = 0;
+volatile float yaw_leso_z1_debug = 0;
+volatile float yaw_leso_z2_debug = 0;
+volatile float yaw_leso3_z3_debug = 0;
+volatile float F_task_0_debug = 0;
+volatile float F_task_1_debug = 0;
+volatile float F_task_2_debug = 0;
 volatile float torque_ff_debug_0 = 0;
 volatile float torque_ff_debug_1 = 0;
 
@@ -26,6 +43,17 @@ void MixedLesoChassisController::set_reference(const float vel_ref[3], const flo
     (void)yaw_ref_rel_rad;
 }
 
+void MixedLesoChassisController::set_use_3rd_order_leso(bool enable) {
+    if (enable != use_3rd_order_leso_) {
+        leso2_[2][0] = 0.0f;
+        leso2_[2][1] = 0.0f;
+        leso3_psi_[0] = 0.0f;
+        leso3_psi_[1] = 0.0f;
+        leso3_psi_[2] = 0.0f;
+        use_3rd_order_leso_ = enable;
+    }
+}
+
 void MixedLesoChassisController::step(float dt_s) {
     if (dt_s <= 0.0f) {
         return;
@@ -34,14 +62,17 @@ void MixedLesoChassisController::step(float dt_s) {
     const std::optional<float> chassis_vx_meas = chassis_vx_input_port_.any();
     const std::optional<float> chassis_vy_meas = chassis_vy_input_port_.any();
     const std::optional<float> omega_z_meas = chassis_omega_z_input_port_.any();
+    const std::optional<float> yaw_meas = chassis_yaw_input_port_.any();
 
     const float vx_m_s = chassis_vx_meas.has_value() ? *chassis_vx_meas : last_chassis_vx_m_s_;
     const float vy_m_s = chassis_vy_meas.has_value() ? *chassis_vy_meas : last_chassis_vy_m_s_;
     const float omega_z_rad_s = omega_z_meas.has_value() ? *omega_z_meas : last_chassis_omega_z_rad_s_;
+    const float yaw_rad = yaw_meas.has_value() ? *yaw_meas : last_chassis_yaw_rad_;
 
     last_chassis_vx_m_s_ = vx_m_s;
     last_chassis_vy_m_s_ = vy_m_s;
     last_chassis_omega_z_rad_s_ = omega_z_rad_s;
+    last_chassis_yaw_rad_ = yaw_rad;
 
     // Read actual sent wheel torques from previous control cycle
     float tau_sent[4] = {0.0f, 0.0f, 0.0f, 0.0f};
@@ -57,64 +88,95 @@ void MixedLesoChassisController::step(float dt_s) {
             u_body[row] += j1_[row][col] * tau_sent[col];
         }
     }
-    const float u_vx_actual = u_body[0] / control_config::kRobotMassKg;
-    const float u_vy_actual = u_body[1] / control_config::kRobotMassKg;
-    const float u_wz_actual = u_body[2] / control_config::kRobotInertiaKgM2;
+    const float u_vx = u_body[0] / control_config::kRobotMassKg;
+    const float u_vy = u_body[1] / control_config::kRobotMassKg;
+    const float u_psi = u_body[2] / control_config::kRobotInertiaKgM2;
 
-    const float w_vel = control_config::kLesoVelObserverBandwidth;
-    const float l1 = 2.0f * w_vel;
-    const float l2 = w_vel * w_vel;
+    // ---- 2nd-order LESO: vx axis ----
+    const float wo_vel = control_config::kLesoVelObserverBandwidth;
+    const float L1_vel = 2.0f * wo_vel;
+    const float L2_vel = wo_vel * wo_vel;
 
-    const float w_omega = control_config::kLesoOmegaObserverBandwidth;
-    const float l1_omega = 2.0f * w_omega;
-    const float l2_omega = w_omega * w_omega;
+    const float err_vx = vx_m_s - leso2_[0][0];
+    const float dz1_vx = leso2_[0][1] + L1_vel * err_vx + u_vx;
+    const float dz2_vx = L2_vel * err_vx;
+    leso2_[0][0] += dt_s * dz1_vx;
+    leso2_[0][1] += dt_s * dz2_vx;
 
-    const float e_vx = vx_m_s - vel_obs_[0][0];
-    const float z1_dot_vx = vel_obs_[0][1] + l1 * e_vx + u_vx_actual;
-    const float z2_dot_vx = l2 * e_vx;
-    vel_obs_[0][0] += dt_s * z1_dot_vx;
-    vel_obs_[0][1] += dt_s * z2_dot_vx;
+    vx_leso_z1_debug = leso2_[0][0];
+    vx_leso_z2_debug = leso2_[0][1];
 
-    vx_obs_z1_debug = vel_obs_[0][0];
-    vx_obs_z2_debug = vel_obs_[0][1];
+    // ---- 2nd-order LESO: vy axis ----
+    const float err_vy = vy_m_s - leso2_[1][0];
+    const float dz1_vy = leso2_[1][1] + L1_vel * err_vy + u_vy;
+    const float dz2_vy = L2_vel * err_vy;
+    leso2_[1][0] += dt_s * dz1_vy;
+    leso2_[1][1] += dt_s * dz2_vy;
 
-    const float e_vy = vy_m_s - vel_obs_[1][0];
-    const float z1_dot_vy = vel_obs_[1][1] + l1 * e_vy + u_vy_actual;
-    const float z2_dot_vy = l2 * e_vy;
-    vel_obs_[1][0] += dt_s * z1_dot_vy;
-    vel_obs_[1][1] += dt_s * z2_dot_vy;
+    // ---- yaw axis: 2nd-order or 3rd-order LESO ----
+    float fb_psi;
+    float F_task_psi;
 
-    const float e_wz = omega_z_rad_s - vel_obs_[2][0];
-    const float z1_dot_wz = vel_obs_[2][1] + l1_omega * e_wz + u_wz_actual;
-    const float z2_dot_wz = l2_omega * e_wz;
-    vel_obs_[2][0] += dt_s * z1_dot_wz;
-    vel_obs_[2][1] += dt_s * z2_dot_wz;
+    if (use_3rd_order_leso_) {
+        const float wo_psi = control_config::kLeso3rdOrderBandwidth;
+        const float L1_psi = 3.0f * wo_psi;
+        const float L2_psi = 3.0f * wo_psi * wo_psi;
+        const float L3_psi = wo_psi * wo_psi * wo_psi;
+        const float b0_psi = 1.0f / control_config::kRobotInertiaKgM2;
 
-    yaw_obs_z1_debug = vel_obs_[2][0];
-    yaw_obs_z2_debug = vel_obs_[2][1];
+        const float err_psi = wrap_to_pi(yaw_rad - leso3_psi_[0]);
+        const float dz1_psi = leso3_psi_[1] + L1_psi * err_psi;
+        const float dz2_psi = leso3_psi_[2] + L2_psi * err_psi + b0_psi * u_psi;
+        const float dz3_psi = L3_psi * err_psi;
 
-    const float vx_feedback = control_config::kVelFeedbackGainX * (vel_ref_[0] - vel_obs_[0][0]);
-    const float vy_feedback = control_config::kVelFeedbackGainY * (vel_ref_[1] - vel_obs_[1][0]);
-    const float yaw_feedback = control_config::kVelFeedbackGainYaw * (vel_ref_[2] - vel_obs_[2][0]);
-    yaw_ref_input_debug = yaw_feedback;
+        leso3_psi_[0] += dt_s * dz1_psi;
+        leso3_psi_[1] += dt_s * dz2_psi;
+        leso3_psi_[2] += dt_s * dz3_psi;
 
-    const float f_task[3] = {
-        control_config::kRobotMassKg *
-            (acc_ref_[0] + vx_feedback - vel_obs_[0][1]),
-        control_config::kRobotMassKg *
-            (acc_ref_[1] + vy_feedback - vel_obs_[1][1]),
-        control_config::kRobotInertiaKgM2 *
-            (acc_ref_[2] + yaw_feedback - vel_obs_[2][1]),
+        yaw_leso_z1_debug = leso3_psi_[1];  // velocity estimate for debug
+        yaw_leso_z2_debug = leso3_psi_[2];  // disturbance estimate for debug
+        yaw_leso3_z3_debug = leso3_psi_[2];
+
+        fb_psi = control_config::kVelFeedbackGainYaw * (vel_ref_[2] - leso3_psi_[1]);
+        yaw_ref_input_debug = fb_psi;
+        F_task_psi = control_config::kRobotInertiaKgM2 * (acc_ref_[2] + fb_psi - leso3_psi_[2]);
+    } else {
+        const float wo_omega = control_config::kLesoOmegaObserverBandwidth;
+        const float L1_omega = 2.0f * wo_omega;
+        const float L2_omega = wo_omega * wo_omega;
+
+        const float err_wz = omega_z_rad_s - leso2_[2][0];
+        const float dz1_wz = leso2_[2][1] + L1_omega * err_wz + u_psi;
+        const float dz2_wz = L2_omega * err_wz;
+        leso2_[2][0] += dt_s * dz1_wz;
+        leso2_[2][1] += dt_s * dz2_wz;
+
+        yaw_leso_z1_debug = leso2_[2][0];
+        yaw_leso_z2_debug = leso2_[2][1];
+        yaw_leso3_z3_debug = 0.0f;
+
+        fb_psi = control_config::kVelFeedbackGainYaw * (vel_ref_[2] - leso2_[2][0]);
+        yaw_ref_input_debug = fb_psi;
+        F_task_psi = control_config::kRobotInertiaKgM2 * (acc_ref_[2] + fb_psi - leso2_[2][1]);
+    }
+
+    const float fb_vx = control_config::kVelFeedbackGainX * (vel_ref_[0] - leso2_[0][0]);
+    const float fb_vy = control_config::kVelFeedbackGainY * (vel_ref_[1] - leso2_[1][0]);
+
+    const float F_task[3] = {
+        control_config::kRobotMassKg * (acc_ref_[0] + fb_vx - leso2_[0][1]),
+        control_config::kRobotMassKg * (acc_ref_[1] + fb_vy - leso2_[1][1]),
+        F_task_psi,
     };
 
-    f_task_0_debug = f_task[0];
-    f_task_1_debug = f_task[1];
-    f_task_2_debug = f_task[2];
+    F_task_0_debug = F_task[0];
+    F_task_1_debug = F_task[1];
+    F_task_2_debug = F_task[2];
 
     for (int wheel = 0; wheel < 4; ++wheel) {
         float tau = 0.0f;
         for (int row = 0; row < 3; ++row) {
-            tau += j1_pinv_[wheel][row] * f_task[row];
+            tau += j1_pinv_[wheel][row] * F_task[row];
         }
         tau = std::clamp(tau, -control_config::kWheelTorqueFfLimitNm, control_config::kWheelTorqueFfLimitNm);
         wheel_torque_ff_output_ports_[wheel] = tau;
@@ -125,9 +187,12 @@ void MixedLesoChassisController::step(float dt_s) {
 
 void MixedLesoChassisController::reset() {
     for (int axis = 0; axis < 3; ++axis) {
-        vel_obs_[axis][0] = 0.0f;
-        vel_obs_[axis][1] = 0.0f;
+        leso2_[axis][0] = 0.0f;
+        leso2_[axis][1] = 0.0f;
     }
+    leso3_psi_[0] = 0.0f;
+    leso3_psi_[1] = 0.0f;
+    leso3_psi_[2] = 0.0f;
 
     for (int i = 0; i < 4; ++i) {
         wheel_torque_ff_output_ports_[i] = 0.0f;
@@ -135,6 +200,7 @@ void MixedLesoChassisController::reset() {
     last_chassis_vx_m_s_ = 0.0f;
     last_chassis_vy_m_s_ = 0.0f;
     last_chassis_omega_z_rad_s_ = 0.0f;
+    last_chassis_yaw_rad_ = 0.0f;
 }
 
 bool MixedLesoChassisController::inverse3x3(const float in[3][3], float out[3][3]) const {

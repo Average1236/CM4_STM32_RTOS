@@ -126,6 +126,9 @@ void ChassisEstimator::step(float dt_s) {
         omega_z_rad_s = yaw_pll_vel_est_rad_s_ * yaw_omega_ramp_alpha_;
     }
 
+    integrated_yaw_rad_ += dt_s * omega_z_rad_s;
+    integrated_yaw_rad_ = wrap_to_pi(integrated_yaw_rad_);
+
     last_yaw_rad_ = yaw_rad;
     last_omega_z_rad_s_ = omega_z_rad_s;
 
@@ -138,6 +141,7 @@ void ChassisEstimator::step(float dt_s) {
     chassis_vx_output_port_ = chassis_vel_meas[0];
     chassis_vy_output_port_ = chassis_vel_meas[1];
     chassis_yaw_output_port_ = yaw_rad;
+    chassis_integrated_yaw_output_port_ = integrated_yaw_rad_;
     chassis_omega_z_output_port_ = omega_z_rad_s;
 }
 
@@ -148,6 +152,7 @@ void ChassisEstimator::reset() {
     has_last_raw_yaw_rad_ = false;
     last_raw_yaw_rad_ = 0.0f;
     accumulated_yaw_rad_ = 0.0f;
+    integrated_yaw_rad_ = 0.0f;
     last_yaw_rad_ = 0.0f;
     last_omega_z_rad_s_ = 0.0f;
     yaw_pll_pos_est_rad_ = 0.0f;
@@ -159,6 +164,7 @@ void ChassisEstimator::reset() {
     chassis_vx_output_port_ = 0.0f;
     chassis_vy_output_port_ = 0.0f;
     chassis_yaw_output_port_ = 0.0f;
+    chassis_integrated_yaw_output_port_ = 0.0f;
     chassis_omega_z_output_port_ = 0.0f;
 }
 

@@ -31,6 +31,7 @@ inline constexpr float kWheelBetaRad = 45.0f / 180.0f * kPi;
 
 inline constexpr float kLesoVelObserverBandwidth = 60.0f;
 inline constexpr float kLesoOmegaObserverBandwidth = 150.0f;
+inline constexpr float kLeso3rdOrderBandwidth = 150.0f;
 inline constexpr ChassisOmegaZSource kChassisOmegaZSource = ChassisOmegaZSource::kImuOmegaDirect;
 inline constexpr float kImuYawPllBandwidth = 200.0f;
 inline constexpr float kImuYawPllZeroSnapEpsRadS = 0.1f;

@@ -12,6 +12,7 @@ public:
     InputPort<float>* chassis_vx_input_port() { return &chassis_vx_input_port_; }
     InputPort<float>* chassis_vy_input_port() { return &chassis_vy_input_port_; }
     InputPort<float>* chassis_omega_z_input_port() { return &chassis_omega_z_input_port_; }
+    InputPort<float>* chassis_yaw_input_port() { return &chassis_yaw_input_port_; }
 
     OutputPort<float>* wheel_torque_ff_output_port(std::size_t index) {
         return (index < wheel_torque_ff_output_ports_.size()) ? &wheel_torque_ff_output_ports_[index] : nullptr;
@@ -22,6 +23,7 @@ public:
     }
 
     void set_reference(const float vel_ref[3], const float acc_ref[3], float yaw_ref_rel_rad);
+    void set_use_3rd_order_leso(bool enable);
     void step(float dt_s);
     void reset();
 
@@ -32,6 +34,7 @@ private:
     InputPort<float> chassis_vx_input_port_;
     InputPort<float> chassis_vy_input_port_;
     InputPort<float> chassis_omega_z_input_port_;
+    InputPort<float> chassis_yaw_input_port_;
 
     std::array<OutputPort<float>, 4> wheel_torque_ff_output_ports_ = {
         OutputPort<float>(0.0f),
@@ -44,7 +47,11 @@ private:
     float acc_ref_[3] = {0.0f, 0.0f, 0.0f};
 
     // 2nd-order LESO states for vx/vy/wz: [z1=velocity, z2=disturbance]
-    float vel_obs_[3][2] = {{0.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f}};
+    float leso2_[3][2] = {{0.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f}};
+
+    // 3rd-order LESO states for ψ axis: z1=position, z2=velocity, z3=disturbance
+    float leso3_psi_[3] = {0.0f, 0.0f, 0.0f};
+    bool use_3rd_order_leso_ = false;
 
     float j1_[3][4] = {{0.0f}};
     float j1_pinv_[4][3] = {{0.0f}};
@@ -54,6 +61,7 @@ private:
     float last_chassis_vx_m_s_ = 0.0f;
     float last_chassis_vy_m_s_ = 0.0f;
     float last_chassis_omega_z_rad_s_ = 0.0f;
+    float last_chassis_yaw_rad_ = 0.0f;
 };
 
 #endif // __CHASSIS_CONTROLLER_HPP
