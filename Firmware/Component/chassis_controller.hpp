@@ -2,6 +2,7 @@
 #define __CHASSIS_CONTROLLER_HPP
 
 #include "component.hpp"
+#include "Task/utils.hpp"
 #include <array>
 #include <cstddef>
 

@@ -20,7 +20,6 @@ public:
     OutputPort<float>* chassis_vx_output_port() { return &chassis_vx_output_port_; }
     OutputPort<float>* chassis_vy_output_port() { return &chassis_vy_output_port_; }
     OutputPort<float>* chassis_yaw_output_port() { return &chassis_yaw_output_port_; }
-    OutputPort<float>* chassis_integrated_yaw_output_port() { return &chassis_integrated_yaw_output_port_; }
     OutputPort<float>* chassis_omega_z_output_port() { return &chassis_omega_z_output_port_; }
 
     void step(float dt_s);
@@ -37,7 +36,6 @@ private:
     OutputPort<float> chassis_vx_output_port_{0.0f};
     OutputPort<float> chassis_vy_output_port_{0.0f};
     OutputPort<float> chassis_yaw_output_port_{0.0f};
-    OutputPort<float> chassis_integrated_yaw_output_port_{0.0f};
     OutputPort<float> chassis_omega_z_output_port_{0.0f};
 
     float j2_pinv_[3][4] = {{0.0f}};

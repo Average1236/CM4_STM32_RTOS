@@ -5,6 +5,7 @@
 
 // Debug
 volatile float torque_cmd_debug = 0;
+volatile float torque_damp_debug = 0;
 volatile float wheel_vel_raw_debug = 0;
 volatile float wheel_integ_debug = 0;
 volatile float wheel_diff_debug = 0;
@@ -62,8 +63,6 @@ static const ButterworthLowPass2::Parameter_t kObsVelFilterParam = {
     .cutoff_hz = control_config::kWheelObsVelocityButterworthCutoffHz,
     .dt = control_config::kControlDtSec,
 };
-
-static constexpr float kPi = 3.1415926535f;
 
 const WheelMotorBase::Info_t motor_info_DMH3510{
     .motor_current_limit = 3.2,
@@ -180,6 +179,7 @@ void MotorDMH3510::pack_mit_data(float position, float velocity, float kp, float
 
     if (config_.feedback_id == 1) {
         torque_cmd_debug = torque_cmd;
+        torque_damp_debug = torque_damp;
     }
 
     const uint16_t pos_tmp = float_to_uint(position, -parameter_.pmax, parameter_.pmax, 16);

@@ -11,20 +11,9 @@ volatile float wheel_vel_0_debug = 0;
 
 namespace {
 
-constexpr float kPi = 3.1415926535f;
-constexpr float kDegToRad = kPi / 180.0f;
-constexpr float kRadToDeg = 180.0f / kPi;
-constexpr float kRpmToRadPerSec = 2.0f * kPi / 60.0f;
-
-float wrap_to_pi(float angle_rad) {
-    while (angle_rad > kPi) {
-        angle_rad -= 2.0f * kPi;
-    }
-    while (angle_rad < -kPi) {
-        angle_rad += 2.0f * kPi;
-    }
-    return angle_rad;
-}
+constexpr float kDegToRad = 3.1415926535f / 180.0f;
+constexpr float kRadToDeg = 180.0f / 3.1415926535f;
+constexpr float kRpmToRadPerSec = 2.0f * 3.1415926535f / 60.0f;
 
 } // namespace
 
@@ -135,13 +124,16 @@ void ChassisEstimator::step(float dt_s) {
     // Debug outputs
     chassis_vx_debug = chassis_vel_meas[0];
     chassis_vy_debug = chassis_vel_meas[1];
-    chassis_yaw_debug = yaw_rad * kRadToDeg;
+    chassis_yaw_debug = (control_config::kChassisOmegaZSource == control_config::ChassisOmegaZSource::kImuOmegaDirect)
+                             ? integrated_yaw_rad_ * kRadToDeg
+                             : yaw_rad * kRadToDeg;
     chassis_omega_z_debug = omega_z_rad_s * kRadToDeg;
 
     chassis_vx_output_port_ = chassis_vel_meas[0];
     chassis_vy_output_port_ = chassis_vel_meas[1];
-    chassis_yaw_output_port_ = yaw_rad;
-    chassis_integrated_yaw_output_port_ = integrated_yaw_rad_;
+    chassis_yaw_output_port_ = (control_config::kChassisOmegaZSource == control_config::ChassisOmegaZSource::kImuOmegaDirect)
+                                   ? integrated_yaw_rad_
+                                   : yaw_rad;
     chassis_omega_z_output_port_ = omega_z_rad_s;
 }
 
@@ -164,7 +156,6 @@ void ChassisEstimator::reset() {
     chassis_vx_output_port_ = 0.0f;
     chassis_vy_output_port_ = 0.0f;
     chassis_yaw_output_port_ = 0.0f;
-    chassis_integrated_yaw_output_port_ = 0.0f;
     chassis_omega_z_output_port_ = 0.0f;
 }
 

@@ -6,6 +6,18 @@
 
 #define PI (3.1415926f)
 
+constexpr float kPi = 3.1415926535f;
+
+inline float wrap_to_pi(float angle_rad) {
+    while (angle_rad > kPi) {
+        angle_rad -= 2.0f * kPi;
+    }
+    while (angle_rad < -kPi) {
+        angle_rad += 2.0f * kPi;
+    }
+    return angle_rad;
+}
+
 template <typename T>
 T limit(T data_t, T limit_t)
 {

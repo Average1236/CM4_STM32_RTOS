@@ -22,7 +22,7 @@ inline constexpr float kJerkLimitY = 75.0f;
 inline constexpr float kJerkLimitYaw = 600.0f;
 
 inline constexpr float kRobotMassKg = 1.99692f;
-inline constexpr float kRobotInertiaKgM2 = 5e-3f;
+inline constexpr float kRobotInertiaKgM2 = 1e-2f;
 inline constexpr float kWheelRadiusM = 0.033f;
 inline constexpr float kWheelCenterDistanceM = 0.07956f;
 inline constexpr float kCenterToComDistanceM = 0.0f;
@@ -38,11 +38,11 @@ inline constexpr float kImuYawPllZeroSnapEpsRadS = 0.1f;
 inline constexpr float kImuYawPllOmegaRampTimeSec = 0.8f;
 inline constexpr float kImuOmegaButterworthCutoffHz = 400.0f;
 
-inline constexpr float kVelFeedbackGainX = 20.0f;
-inline constexpr float kVelFeedbackGainY = 20.0f;
-inline constexpr float kVelFeedbackGainYaw = 450.0f;
+inline constexpr float kVelFeedbackGainX = 100.0f;
+inline constexpr float kVelFeedbackGainY = 100.0f;
+inline constexpr float kVelFeedbackGainYaw = 600.0f;
 
-inline constexpr float kWheelTorqueFfLimitNm = 0.5f;
+inline constexpr float kWheelTorqueFfLimitNm = 0.1f;
 
 inline constexpr float kWheelSpeedPidKp = 0.025f;
 inline constexpr float kWheelSpeedPidKi = 0.0f;
