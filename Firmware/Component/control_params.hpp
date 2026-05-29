@@ -13,12 +13,12 @@ enum class ChassisOmegaZSource : uint8_t {
 inline constexpr float kControlDtSec = static_cast<float>(TIM2_PERIOD_CLOCKS) / 1000000.0f;
 inline constexpr float kPi = 3.1415926535f;
 
-inline constexpr float kAccThresholdX = 5.0f;
+inline constexpr float kAccThresholdX = 6.5f;
 inline constexpr float kAccThresholdY = 5.0f;
 inline constexpr float kAccThresholdYaw = 40.0f;
 
-inline constexpr float kJerkLimitX = 100.0f;
-inline constexpr float kJerkLimitY = 75.0f;
+inline constexpr float kJerkLimitX = 200.0f;
+inline constexpr float kJerkLimitY = 90.0f;
 inline constexpr float kJerkLimitYaw = 600.0f;
 
 inline constexpr float kRobotMassKg = 1.99692f;
@@ -40,9 +40,14 @@ inline constexpr float kImuOmegaButterworthCutoffHz = 400.0f;
 
 inline constexpr float kVelFeedbackGainX = 100.0f;
 inline constexpr float kVelFeedbackGainY = 100.0f;
-inline constexpr float kVelFeedbackGainYaw = 600.0f;
+inline constexpr float kVelFeedbackGainYaw = 450.0f;
+inline constexpr float kPosFeedbackGainYaw = 10.0f;
+inline constexpr float kYawDesiredOmegaGain = 6.0f;
+inline constexpr float kYawTDR = 100.0f;
+inline constexpr float kYawTDH = 0.01f;
+inline constexpr float kYawTDDiffGain = 5.0f;
 
-inline constexpr float kWheelTorqueFfLimitNm = 0.1f;
+inline constexpr float kWheelTorqueFfLimitNm = 0.3f;
 
 inline constexpr float kWheelSpeedPidKp = 0.025f;
 inline constexpr float kWheelSpeedPidKi = 0.0f;
@@ -66,7 +71,7 @@ inline constexpr float kWheelViscousDampingNmPerRadPS = 6.5e-5f;
 inline constexpr float kWheelObsVelocityBandwidth = 100.0f;
 
 // Virtual damping gain (Nm per rad/s).
-inline constexpr float kWheelVirtualDampingNmPerRadPS = 0.025f;
+inline constexpr float kWheelVirtualDampingNmPerRadPS = 0.027f;
 
 // Butterworth on observer velocity for damping (Hz).
 // Heavy filtering emulates dmiao driver's sluggish velocity loop,

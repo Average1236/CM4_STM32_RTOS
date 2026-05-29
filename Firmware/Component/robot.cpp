@@ -222,7 +222,7 @@ void Robot::pi_decode_spi() {
     use_imu = true;
 
     if (use_imu) {
-        robot_vel[2] = wrap_to_pi(robot_vel[2]);
+        yaw_target_rad = wrap_to_pi(robot_vel[2]);
     }
 
     // Debug
@@ -315,6 +315,17 @@ void Robot::pi_encode_spi() {
     memcpy(spi_tx_data, &SpiTx, sizeof(SpiTx));
 }
 
+void Robot::prepare_yaw_control() {
+    if (!use_imu) {
+        return;
+    }
+
+    const auto yaw = chassis_estimator.chassis_yaw_output_port()->any();
+    const float measured_yaw = yaw.has_value() ? *yaw : 0.0f;
+    robot_real_vel[2] = control_config::kYawDesiredOmegaGain * wrap_to_pi(yaw_target_rad - measured_yaw);
+    robot_acc[2] = 0.0f;
+}
+
 void Robot::ik_solve() {
     // Calculate motor velocities
     for (uint8_t i = 0; i < 4; i++) {
@@ -335,6 +346,8 @@ void Robot::motion_planner(const double _dt) {
     }
 
     for (uint8_t i = 0; i < 3; i++) {
+        if (use_imu && i == 2) continue;  // yaw angle control bypasses planner
+
         AxisMotionPlan& plan = g_axis_plans[i];
         const float v_now = last_robot_real_vel[i];
         const float v_target = robot_vel[i];
@@ -395,6 +408,9 @@ void Robot::update_torque_feedforward(const double _dt) {
 
     chassis_controller.set_reference(robot_real_vel, robot_acc, yaw_ref_rel_rad_);
     chassis_controller.set_use_3rd_order_leso(use_imu);
+    if (use_imu) {
+        chassis_controller.set_yaw_target(yaw_target_rad);
+    }
     chassis_estimator.step(dt_s);
     chassis_controller.step(dt_s);
 

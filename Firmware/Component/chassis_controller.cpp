@@ -18,7 +18,10 @@ volatile float u_psi_debug = 0;
 volatile float err_psi_debug = 0;
 volatile float yaw_rad_debug = 0;
 
-MixedLesoChassisController::MixedLesoChassisController() {
+MixedLesoChassisController::MixedLesoChassisController()
+    : yaw_td_({control_config::kYawTDR, control_config::kYawTDH, control_config::kControlDtSec,
+               true, -kPi, kPi},
+              0.0f) {
     precompute_mappings();
 }
 
@@ -37,8 +40,13 @@ void MixedLesoChassisController::set_use_3rd_order_leso(bool enable) {
         leso3_psi_[0] = 0.0f;
         leso3_psi_[1] = 0.0f;
         leso3_psi_[2] = 0.0f;
+        yaw_target_rad_ = 0.0f;
         use_3rd_order_leso_ = enable;
     }
+}
+
+void MixedLesoChassisController::set_yaw_target(float target_rad) {
+    yaw_target_rad_ = target_rad;
 }
 
 void MixedLesoChassisController::step(float dt_s) {
@@ -130,9 +138,13 @@ void MixedLesoChassisController::step(float dt_s) {
         yaw_leso_z2_debug = leso3_psi_[1];
         yaw_leso3_z3_debug = leso3_psi_[2];
 
-        fb_psi = control_config::kVelFeedbackGainYaw * wrap_to_pi(vel_ref_[2] - leso3_psi_[0]);
+        yaw_td_.calc(yaw_target_rad_);
+        const float err_pos = wrap_to_pi(yaw_td_.get_data() - leso3_psi_[0]);
+        const float err_vel = yaw_td_.get_diff() - leso3_psi_[1];
+        fb_psi = control_config::kPosFeedbackGainYaw * err_pos
+               + control_config::kYawTDDiffGain * err_vel;
         yaw_ref_input_debug = fb_psi;
-        F_task_psi = control_config::kRobotInertiaKgM2 * (acc_ref_[2] + fb_psi - leso3_psi_[2]);
+        F_task_psi = control_config::kRobotInertiaKgM2 * (fb_psi - leso3_psi_[2]);
     } else {
         const float wo_omega = control_config::kLesoOmegaObserverBandwidth;
         const float L1_omega = 2.0f * wo_omega;

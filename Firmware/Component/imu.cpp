@@ -6,6 +6,7 @@
 // Debug
 volatile float imu_acc_z_debug = 0.0f;
 volatile float imu_gyro_z_debug = 0.0f;
+volatile float imu_yaw_debug = 0.0f;
 
 const float imu_k[3] = {16.0f * 9.8f / 32768.0f, 2000.0f / 32768.0f, 180.0f / 32768.0f};
 
@@ -60,6 +61,7 @@ void IMU::process_once()
 
     imu_acc_z_debug = data_[kAccZ];
     imu_gyro_z_debug = data_[kOmegaZ];
+    imu_yaw_debug = data_[kAngleZ];
 
     if (updated) {
         publish_ports_from_cache();
@@ -118,10 +120,6 @@ bool IMU::decode_icm42688(const uint8_t* raw_data, size_t len)
     data_[kOmegaX] = static_cast<float>(gx) * gyro_sensitivity_;
     data_[kOmegaY] = static_cast<float>(gy) * gyro_sensitivity_;
     data_[kOmegaZ] = static_cast<float>(gz) * gyro_sensitivity_;
-
-    data_[kAngleX] = 0.0f;
-    data_[kAngleY] = 0.0f;
-    data_[kAngleZ] = 0.0f;
 
     return true;
 }

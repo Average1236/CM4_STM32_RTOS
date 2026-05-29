@@ -44,7 +44,6 @@ private:
     bool has_last_raw_yaw_rad_ = false;
     float last_raw_yaw_rad_ = 0.0f;
     float accumulated_yaw_rad_ = 0.0f;
-    float integrated_yaw_rad_ = 0.0f;
     float last_yaw_rad_ = 0.0f;
     float last_omega_z_rad_s_ = 0.0f;
 

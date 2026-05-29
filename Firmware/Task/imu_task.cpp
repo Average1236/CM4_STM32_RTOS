@@ -1,6 +1,7 @@
 #include "cmsis_os.h"
 #include "freertos_vars.h"
 #include "z_main.h"
+#include "Component/control_params.hpp"
 #include <cstring>
 
 float imu_last_time = 0;
@@ -26,14 +27,12 @@ void StartImuRxTask(void *argument) {
             float current_time = TIM13->CNT / 1000000.0f;  // Current time in seconds
             imu_dt = (current_time > imu_last_time) ? (current_time - imu_last_time) : (current_time + (0.065536f - imu_last_time));
             imu_last_time = current_time;
-            // Acquire robot state mutex
-            if (osMutexAcquire(mtx_robot_stateHandle, 10) == osOK) {
-                imu.process_once();
-                
-                // // Signal IMU data ready
-                // osSemaphoreRelease(sem_imu_readyHandle);
-                
-                osMutexRelease(mtx_robot_stateHandle);
+
+            imu.process_once();
+
+            if (control_config::kChassisOmegaZSource == control_config::ChassisOmegaZSource::kImuOmegaDirect) {
+                const auto omega_z = imu.omega_z_port()->any();
+                imu.update_integrated_yaw(omega_z.has_value() ? *omega_z : 0.0f, imu_dt);
             }
             
         }

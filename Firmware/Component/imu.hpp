@@ -6,6 +6,7 @@
 #include "spi.h"
 #include "usart.h"
 #include "component.hpp"
+#include "Task/utils.hpp"
 
 constexpr size_t IMU_JY931_RX_DATA_LENGTH = (11U * 3U * 2U);
 constexpr size_t IMU_ICM42688_BURST_DATA_LENGTH = 12U;
@@ -75,6 +76,13 @@ public:
     OutputPort<float>* omega_z_port() { return &omega_z_port_; }
     OutputPort<float>* yaw_port() { return &yaw_port_; }
 
+    void update_integrated_yaw(float omega_z_deg_s, float dt_s) {
+        integrated_yaw_deg_ += dt_s * omega_z_deg_s;
+        integrated_yaw_deg_ = wrap_to_pi(integrated_yaw_deg_ * (3.1415926535f / 180.0f)) * (180.0f / 3.1415926535f);
+        data_[kAngleZ] = integrated_yaw_deg_;
+        yaw_port_ = integrated_yaw_deg_;
+    }
+
 private:
     static constexpr uint8_t kIcm42688WhoAmI = 0x75;
     static constexpr uint8_t kIcm42688WhoAmIValue = 0x47;
@@ -128,6 +136,7 @@ private:
     OutputPort<float> omega_y_port_{0.0f};
     OutputPort<float> omega_z_port_{0.0f};
     OutputPort<float> yaw_port_{0.0f};
+    float integrated_yaw_deg_ = 0.0f;
 };
 
 #endif // __IMU_HPP

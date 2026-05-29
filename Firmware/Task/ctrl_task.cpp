@@ -189,14 +189,23 @@ void StartCrtlTask(void *argument) {
     
     uint32_t ctrl_start_tick = 0;
     uint32_t ctrl_end_tick = 0;
+    uint32_t ctrl_last_time = 0;
+    bool ctrl_first = true;
     uint8_t tx_rr_start = 0;
 
     MotorRecoverState motor_recover_state[4] = {kMotorNormal, kMotorNormal, kMotorNormal, kMotorNormal};
     uint32_t motor_recover_tick[4] = {0};
-    
+
     for(;;) {
         if (osSemaphoreAcquire(sem_ctrl_triggerHandle, osWaitForever) == osOK) {
             ctrl_start_tick = TIM2->CNT;
+
+            const uint32_t ctrl_now = TIM13->CNT;
+            const uint32_t ctrl_dt_us = ctrl_first ? TIM2_PERIOD_CLOCKS
+                : ((ctrl_now >= ctrl_last_time) ? (ctrl_now - ctrl_last_time)
+                                                : (ctrl_now + 65536u - ctrl_last_time));
+            ctrl_last_time = ctrl_now;
+            ctrl_first = false;
             
             // Acquire robot state mutex
             if (osMutexAcquire(mtx_robot_stateHandle, 10) == osOK) {
@@ -235,13 +244,16 @@ void StartCrtlTask(void *argument) {
                 }
 
                 // Motion planning: compute acceleration from velocity setpoints
-                robot.motion_planner(TIM2_PERIOD_CLOCKS);  // microseconds
+                robot.motion_planner(ctrl_dt_us);
+
+                // Yaw angle control: override yaw axis when use_imu
+                robot.prepare_yaw_control();
 
                 // Inverse kinematics: compute wheel velocities
                 robot.ik_solve();
 
                 // Observer-based control law: compute wheel torque feedforward
-                robot.update_torque_feedforward(TIM2_PERIOD_CLOCKS);
+                robot.update_torque_feedforward(ctrl_dt_us);
                 
                 can_Message_t wheel_msgs[4];
                 can_Message_t extra_can_msgs[4];
