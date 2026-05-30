@@ -17,6 +17,8 @@
 
 extern "C" void SystemClock_Config(void);
 
+volatile uint8_t g_imu_init_ok = 0;
+
 void system_init() {
     HAL_Init();
     SystemClock_Config();
@@ -78,7 +80,9 @@ bool board_init() {
     motor_filter.fifo = CAN_RX_FIFO1;
     can2_bus.subscribe(motor_filter, on_motor_fb_rx, nullptr, nullptr);
 
-    imu.init();
+    if(imu.init()) {
+        g_imu_init_ok = 1;
+    }
     imu.start_acquisition();
 
     HAL_TIM_Base_Start_IT(&htim2);

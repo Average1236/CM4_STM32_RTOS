@@ -4,7 +4,11 @@
 #include <cstring>
 
 // Debug
+volatile float imu_acc_x_debug = 0.0f;
+volatile float imu_acc_y_debug = 0.0f;
 volatile float imu_acc_z_debug = 0.0f;
+volatile float imu_gyro_x_debug = 0.0f;
+volatile float imu_gyro_y_debug = 0.0f;
 volatile float imu_gyro_z_debug = 0.0f;
 
 const float imu_k[3] = {16.0f * 9.8f / 32768.0f, 2000.0f / 32768.0f, 180.0f / 32768.0f};
@@ -58,7 +62,11 @@ void IMU::process_once()
         }
     }
 
+    imu_acc_x_debug = data_[kAccX];
+    imu_acc_y_debug = data_[kAccY];
     imu_acc_z_debug = data_[kAccZ];
+    imu_gyro_x_debug = data_[kOmegaX];
+    imu_gyro_y_debug = data_[kOmegaY];
     imu_gyro_z_debug = data_[kOmegaZ];
 
     if (updated) {
