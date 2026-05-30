@@ -17,8 +17,7 @@ constexpr float kRpmToRadPerSec = 2.0f * 3.1415926535f / 60.0f;
 
 } // namespace
 
-ChassisEstimator::ChassisEstimator()
-    : imu_omega_filter_({control_config::kImuOmegaButterworthCutoffHz, control_config::kControlDtSec}) {
+ChassisEstimator::ChassisEstimator() {
     yaw_pll_kp_ = 2.0f * control_config::kImuYawPllBandwidth;
     yaw_pll_ki_ = 0.25f * yaw_pll_kp_ * yaw_pll_kp_;
     if (control_config::kControlDtSec * yaw_pll_kp_ >= 1.0f && control_config::kControlDtSec > 0.0f) {
@@ -70,7 +69,7 @@ void ChassisEstimator::step(float dt_s) {
     if (control_config::kChassisOmegaZSource == control_config::ChassisOmegaZSource::kImuOmegaDirect) {
         const std::optional<float> imu_omega_z_deg_s = imu_omega_z_input_port_.any();
         if (imu_omega_z_deg_s.has_value()) {
-            omega_z_rad_s = imu_omega_filter_.filter(*imu_omega_z_deg_s) * kDegToRad;
+            omega_z_rad_s = *imu_omega_z_deg_s * kDegToRad;
         } else {
             omega_z_rad_s = last_omega_z_rad_s_;
         }
@@ -143,7 +142,6 @@ void ChassisEstimator::reset() {
     yaw_pll_vel_est_rad_s_ = 0.0f;
     yaw_omega_ramp_alpha_ = 0.0f;
     yaw_pll_initialized_ = false;
-    imu_omega_filter_.reset();
 
     chassis_vx_output_port_ = 0.0f;
     chassis_vy_output_port_ = 0.0f;

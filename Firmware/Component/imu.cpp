@@ -1,4 +1,5 @@
 #include "imu.hpp"
+#include "control_params.hpp"
 
 #include "cmsis_os.h"
 #include <cstring>
@@ -16,7 +17,8 @@ IMU::IMU(
     UART_HandleTypeDef* huart,
     GPIO_TypeDef* cs_port,
     uint16_t cs_pin
-) : model_(model), hspi_(hspi), huart_(huart), cs_port_(cs_port), cs_pin_(cs_pin) {}
+) : omega_filter_({control_config::kImuOmegaButterworthCutoffHz, 0.00125f}),
+    model_(model), hspi_(hspi), huart_(huart), cs_port_(cs_port), cs_pin_(cs_pin) {}
 
 bool IMU::init()
 {
@@ -130,6 +132,8 @@ bool IMU::icm42688_init()
         return false;
     }
 
+    HAL_Delay(100); // Wait for sensor power up
+
     icm42688_write_reg(kIcm42688RegBankSel, 0x00);
     icm42688_write_reg(kIcm42688DeviceConfig, 0x01);
     HAL_Delay(100);
@@ -240,11 +244,22 @@ void IMU::get_data(float out_data[9]) const
     out_data[8] = data_[kAngleZ];
 }
 
+void IMU::update_integrated_yaw(float dt_s) {
+    const float omega_z_filt = omega_filter_.filter(data_[kOmegaZ]);
+    omega_z_port_ = omega_z_filt;
+    integrated_yaw_deg_ += dt_s * omega_z_filt;
+    integrated_yaw_deg_ = wrap_to_pi(integrated_yaw_deg_ * (3.1415926535f / 180.0f)) * (180.0f / 3.1415926535f);
+    data_[kAngleZ] = integrated_yaw_deg_;
+    yaw_port_ = integrated_yaw_deg_;
+}
+
 void IMU::publish_ports_from_cache() {
     omega_x_port_ = data_[kOmegaX];
     omega_y_port_ = data_[kOmegaY];
-    omega_z_port_ = data_[kOmegaZ];
-    yaw_port_ = data_[kAngleZ];
+    if (model_ != Model::kIcm42688) {
+        omega_z_port_ = data_[kOmegaZ];
+        yaw_port_ = data_[kAngleZ];
+    }
 }
 
 void IMU::reset_ports() {

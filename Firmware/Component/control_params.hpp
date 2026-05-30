@@ -41,24 +41,24 @@ inline constexpr float kImuOmegaButterworthCutoffHz = 400.0f;
 inline constexpr float kVelFeedbackGainX = 100.0f;
 inline constexpr float kVelFeedbackGainY = 100.0f;
 inline constexpr float kVelFeedbackGainYaw = 450.0f;
-inline constexpr float kPosFeedbackGainYaw = 10.0f;
-inline constexpr float kYawDesiredOmegaGain = 6.0f;
+inline constexpr float kPosFeedbackGainYaw = 450.0f;
+inline constexpr float kYawDesiredOmegaGain = 10.0f;
 inline constexpr float kYawTDR = 100.0f;
 inline constexpr float kYawTDH = 0.01f;
-inline constexpr float kYawTDDiffGain = 5.0f;
+inline constexpr float kYawTDDiffGain = 50.0f;
 
-inline constexpr float kWheelTorqueFfLimitNm = 0.3f;
+inline constexpr float kWheelTorqueFfLimitNm = 0.0f;
 
-inline constexpr float kWheelSpeedPidKp = 0.025f;
-inline constexpr float kWheelSpeedPidKi = 0.0f;
+inline constexpr float kWheelSpeedPidKp = 0.03f;
+inline constexpr float kWheelSpeedPidKi = 0.6f;
 inline constexpr float kWheelSpeedPidKd = 0.0f;
-inline constexpr float kWheelSpeedPidBackCalcGain = 0.2f;
-inline constexpr float kWheelSpeedPidDiffCutoffHz = 200.0f;
-inline constexpr float kWheelSpeedPidOutputLimitNm = 0.0f;
-inline constexpr float kWheelSpeedPidIntegLimitNm = 0.0f;
+inline constexpr float kWheelSpeedPidBackCalcGain = 0.3f;
+inline constexpr float kWheelSpeedPidDiffCutoffHz = 50.0f;
+inline constexpr float kWheelSpeedPidOutputLimitNm = 0.3f;
+inline constexpr float kWheelSpeedPidIntegLimitNm = 0.3f;
 inline constexpr float kWheelSpeedPidKpRampTimeSec = 1.5f;
-inline constexpr float kWheelSpeedPllBandwidth = 20.0f;
-inline constexpr float kWheelSpeedPllZeroSnapEpsRpm = 0.0f;
+inline constexpr float kWheelSpeedPllBandwidth = 75.0f;
+inline constexpr float kWheelSpeedPllZeroSnapEpsRpm = 0.1f;
 inline constexpr float kWheelSpeedPllOmegaRampTimeSec = 0.2f;
 
 // Wheels mechanical model

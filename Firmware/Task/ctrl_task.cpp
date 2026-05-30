@@ -180,7 +180,7 @@ extern "C" {
     
 void StartCrtlTask(void *argument) {
     // Wait for system initialization
-    osDelay(100);
+    osDelay(500);
 
     robot.bind_estimator_imu_ports(imu);
 

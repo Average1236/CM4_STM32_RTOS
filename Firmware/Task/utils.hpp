@@ -269,6 +269,10 @@ public:
         d = parameter_.r * parameter_.h;
         d0 = d * parameter_.h;
         cycle = parameter_.cycle_high - parameter_.cycle_low;
+        data = init;
+        diff = 0;
+        last_raw_data_ = init;
+        raw_data_ = init;
     }
     ~TD() = default;
     void calc(float raw_data) {

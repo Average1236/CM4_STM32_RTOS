@@ -31,8 +31,7 @@ void StartImuRxTask(void *argument) {
             imu.process_once();
 
             if (control_config::kChassisOmegaZSource == control_config::ChassisOmegaZSource::kImuOmegaDirect) {
-                const auto omega_z = imu.omega_z_port()->any();
-                imu.update_integrated_yaw(omega_z.has_value() ? *omega_z : 0.0f, imu_dt);
+                imu.update_integrated_yaw(imu_dt);
             }
             
         }

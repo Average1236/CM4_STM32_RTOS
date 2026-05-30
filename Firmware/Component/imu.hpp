@@ -76,12 +76,9 @@ public:
     OutputPort<float>* omega_z_port() { return &omega_z_port_; }
     OutputPort<float>* yaw_port() { return &yaw_port_; }
 
-    void update_integrated_yaw(float omega_z_deg_s, float dt_s) {
-        integrated_yaw_deg_ += dt_s * omega_z_deg_s;
-        integrated_yaw_deg_ = wrap_to_pi(integrated_yaw_deg_ * (3.1415926535f / 180.0f)) * (180.0f / 3.1415926535f);
-        data_[kAngleZ] = integrated_yaw_deg_;
-        yaw_port_ = integrated_yaw_deg_;
-    }
+    ButterworthLowPass2 omega_filter_{{0.0f, 0.0f}};
+
+    void update_integrated_yaw(float dt_s);
 
 private:
     static constexpr uint8_t kIcm42688WhoAmI = 0x75;
