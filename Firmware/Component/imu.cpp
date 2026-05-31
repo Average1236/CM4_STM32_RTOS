@@ -123,6 +123,8 @@ bool IMU::decode_icm42688(const uint8_t* raw_data, size_t len)
     data_[kOmegaY] = static_cast<float>(gy) * gyro_sensitivity_;
     data_[kOmegaZ] = static_cast<float>(gz) * gyro_sensitivity_;
 
+    data_[kOmegaZ] -= control_config::kImuOmegaBiasZ;
+
     return true;
 }
 

@@ -219,7 +219,7 @@ void Robot::pi_decode_spi() {
     kick_discharge_time = SpiRx.kick_discharge_time;
 
     // use_imu = SpiRx.use_imu;
-    use_imu = false;
+    use_imu = true;
 
     if (use_imu) {
         yaw_target_rad = wrap_to_pi(robot_vel[2]);

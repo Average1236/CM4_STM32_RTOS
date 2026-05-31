@@ -17,6 +17,8 @@ volatile float torque_ff_debug_1 = 0;
 volatile float u_psi_debug = 0;
 volatile float err_psi_debug = 0;
 volatile float yaw_rad_debug = 0;
+volatile float yaw_target_td_debug = 0;
+volatile float yaw_target_td_diff_debug = 0;
 
 MixedLesoChassisController::MixedLesoChassisController()
     : yaw_td_({control_config::kYawTDR, control_config::kYawTDH, control_config::kControlDtSec,
@@ -141,6 +143,8 @@ void MixedLesoChassisController::step(float dt_s) {
         yaw_td_.calc(yaw_target_rad_);
         const float err_pos = wrap_to_pi(yaw_td_.get_data() - leso3_psi_[0]);
         const float err_vel = yaw_td_.get_diff() - leso3_psi_[1];
+        yaw_target_td_debug = yaw_td_.get_data();
+        yaw_target_td_diff_debug = yaw_td_.get_diff();
         fb_psi = control_config::kPosFeedbackGainYaw * err_pos
                + control_config::kYawTDDiffGain * err_vel;
         yaw_ref_input_debug = fb_psi;
