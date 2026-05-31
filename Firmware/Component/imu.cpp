@@ -6,6 +6,7 @@
 // Debug
 volatile float imu_acc_z_debug = 0.0f;
 volatile float imu_gyro_z_debug = 0.0f;
+volatile float imu_omega_z_filt_debug = 0.0f;
 volatile float imu_yaw_debug = 0.0f;
 
 IMU::IMU(
@@ -172,6 +173,7 @@ void IMU::get_data(float out_data[9]) const
 
 void IMU::update_integrated_yaw(float dt_s) {
     const float omega_z_filt = omega_filter_.filter(data_[kOmegaZ]);
+    imu_omega_z_filt_debug = omega_z_filt * (3.1415926535f / 180.0f);
     omega_z_port_ = omega_z_filt;
     integrated_yaw_deg_ += dt_s * omega_z_filt;
     integrated_yaw_deg_ = wrap_to_pi(integrated_yaw_deg_ * (3.1415926535f / 180.0f)) * (180.0f / 3.1415926535f);

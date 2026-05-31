@@ -157,7 +157,8 @@ void MixedLesoChassisController::step(float dt_s) {
 
         yaw_td_.calc(yaw_target_rad_);
         const float err_pos = wrap_to_pi(yaw_td_.get_data() - leso3_psi_[0]);
-        const float err_vel = yaw_td_.get_diff() - leso3_psi_[1];
+        // const float err_vel = yaw_td_.get_diff() - leso3_psi_[1];
+        const float err_vel = yaw_td_.get_diff() - omega_z_rad_s;
         yaw_target_td_debug = yaw_td_.get_data();
         yaw_target_td_diff_debug = yaw_td_.get_diff();
         fb_psi = control_config::kPosFeedbackGainYaw * err_pos

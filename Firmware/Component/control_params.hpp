@@ -24,20 +24,20 @@ inline constexpr float kCenterToComDistanceM = 0.0f;
 inline constexpr float kWheelAlphaRad = 30.0f / 180.0f * kPi;
 inline constexpr float kWheelBetaRad = 45.0f / 180.0f * kPi;
 
-inline constexpr float kLesoVelObserverBandwidth = 60.0f;
+inline constexpr float kLesoVelObserverBandwidth = 50.0f;
 inline constexpr float kLesoOmegaObserverBandwidth = 150.0f;
-inline constexpr float kLeso3rdOrderBandwidth = 150.0f;
-inline constexpr float kImuOmegaButterworthCutoffHz = 400.0f;
+inline constexpr float kLeso3rdOrderBandwidth = 120.0f;
+inline constexpr float kImuOmegaButterworthCutoffHz = 200.0f;
 inline constexpr float kImuOmegaBiasZ = 1.0f;
 
-inline constexpr float kVelFeedbackGainX = 0.0f;
-inline constexpr float kVelFeedbackGainY = 0.0f;
+inline constexpr float kVelFeedbackGainX = 50.0f;
+inline constexpr float kVelFeedbackGainY = 50.0f;
 inline constexpr float kVelFeedbackGainYaw = 450.0f;
 inline constexpr float kPosFeedbackGainYaw = 450.0f;
 inline constexpr float kYawDesiredOmegaGain = 10.0f;
 inline constexpr float kYawTDR = 100.0f;
 inline constexpr float kYawTDH = 0.02f;
-inline constexpr float kYawTDDiffGain = 0.0f;
+inline constexpr float kYawTDDiffGain = 20.0f;
 inline constexpr float kYawStartupRampTimeSec = 1.5f;
 
 inline constexpr float kWheelTorqueFfLimitNm = 0.1f;
