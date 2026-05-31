@@ -79,7 +79,6 @@ bool board_init() {
     can2_bus.subscribe(motor_filter, on_motor_fb_rx, nullptr, nullptr);
 
     imu.init();
-    imu.start_acquisition();
 
     HAL_TIM_Base_Start_IT(&htim2);
 
@@ -135,10 +134,7 @@ void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan) {
 void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 {
     if (hspi == imu.spi_handle()) {
-        // For ICM42688 path we use TIM7-triggered polling, not SPI IRQ wakeups.
-        if (imu.model() != IMU::Model::kIcm42688) {
-            osSemaphoreRelease(sem_imu_readyHandle);
-        }
+        // ICM42688 uses TIM7-triggered polling, not SPI IRQ wakeups.
     }
     if (hspi->Instance == SPI1) {
         // Trigger SPI exchange task, similar to ctrl task trigger flow
@@ -172,26 +168,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
     }
 
     if (huart->Instance == UART4) {
-        if (imu.model() != IMU::Model::kJy931) {
-            return;
-        }
-
-        /* read DR to clear RXNE; don't create an unused variable */
-        (void)huart->Instance->DR;
-
-        if(huart->RxEventType == HAL_UART_RXEVENT_TC) {
-            imu.notify_data_ready();
-            HAL_UARTEx_ReceiveToIdle_DMA(&huart4, imu.rx_buffer_ptr(), imu.rx_buffer_len());
-            osSemaphoreRelease(sem_imu_readyHandle);
-        }
-
-        if (huart->RxEventType == HAL_UART_RXEVENT_IDLE) {
-            imu.notify_data_ready();
-            HAL_UARTEx_ReceiveToIdle_DMA(&huart4, imu.rx_buffer_ptr(), imu.rx_buffer_len());
-            osSemaphoreRelease(sem_imu_readyHandle);
-        }
-
-        
+        // UART4 not used (JY931 IMU removed)
     }
 }
 
@@ -204,14 +181,6 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
     if (huart->Instance == UART4) {
     }
 }
-
-// void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
-// {
-//     if (GPIO_Pin == imu.data_ready_pin_) {
-//         // Handle IMU data ready interrupt
-//         HAL_SPI_TransmitReceive_DMA(imu.hspi_, (uint8_t*)imu.lsm6ds3_tx_data, (uint8_t*)imu.lsm6ds3_rx_data, 4);
-//     }
-// }
 
 } // extern "C"
 

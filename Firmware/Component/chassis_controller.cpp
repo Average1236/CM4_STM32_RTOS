@@ -43,6 +43,7 @@ void MixedLesoChassisController::set_use_3rd_order_leso(bool enable) {
         leso3_psi_[1] = 0.0f;
         leso3_psi_[2] = 0.0f;
         yaw_target_rad_ = 0.0f;
+        yaw_ramp_alpha_ = 0.0f;
         use_3rd_order_leso_ = enable;
     }
 }
@@ -66,7 +67,21 @@ void MixedLesoChassisController::step(float dt_s) {
     const float omega_z_rad_s = omega_z_meas.has_value() ? *omega_z_meas : last_chassis_omega_z_rad_s_;
     const float yaw_rad = yaw_meas.has_value() ? *yaw_meas : last_chassis_yaw_rad_;
 
-    yaw_rad_debug = yaw_rad;
+    // Startup ramp: gradually scale yaw_rad from 0 → actual to avoid
+    // a step discontinuity when the 3rd-order LESO initializes.
+    float yaw_rad_effective = yaw_rad;
+    if (use_3rd_order_leso_ && yaw_ramp_alpha_ < 1.0f) {
+        const float ramp_t = control_config::kYawStartupRampTimeSec;
+        if (ramp_t > 1e-6f) {
+            yaw_ramp_alpha_ += dt_s / ramp_t;
+            if (yaw_ramp_alpha_ > 1.0f) yaw_ramp_alpha_ = 1.0f;
+        } else {
+            yaw_ramp_alpha_ = 1.0f;
+        }
+        yaw_rad_effective *= yaw_ramp_alpha_;
+    }
+
+    yaw_rad_debug = yaw_rad_effective;
 
     last_chassis_vx_m_s_ = vx_m_s;
     last_chassis_vy_m_s_ = vy_m_s;
@@ -124,7 +139,7 @@ void MixedLesoChassisController::step(float dt_s) {
         const float L2_psi = 3.0f * wo_psi * wo_psi;
         const float L3_psi = wo_psi * wo_psi * wo_psi;
 
-        const float err_psi = wrap_to_pi(yaw_rad - leso3_psi_[0]);
+        const float err_psi = wrap_to_pi(yaw_rad_effective - leso3_psi_[0]);
         const float dz1_psi = leso3_psi_[1] + L1_psi * err_psi;
         const float dz2_psi = leso3_psi_[2] + L2_psi * err_psi + u_psi;
         const float dz3_psi = L3_psi * err_psi;
@@ -210,6 +225,7 @@ void MixedLesoChassisController::reset() {
     last_chassis_vy_m_s_ = 0.0f;
     last_chassis_omega_z_rad_s_ = 0.0f;
     last_chassis_yaw_rad_ = 0.0f;
+    yaw_ramp_alpha_ = 0.0f;
 }
 
 bool MixedLesoChassisController::inverse3x3(const float in[3][3], float out[3][3]) const {

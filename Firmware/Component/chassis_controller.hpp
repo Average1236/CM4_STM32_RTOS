@@ -55,6 +55,7 @@ private:
     float leso3_psi_[3] = {0.0f, 0.0f, 0.0f};
     float yaw_target_rad_ = 0.0f;
     bool use_3rd_order_leso_ = false;
+    float yaw_ramp_alpha_ = 0.0f;
     TD yaw_td_;
 
     float j1_[3][4] = {{0.0f}};

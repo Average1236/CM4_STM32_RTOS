@@ -1,7 +1,6 @@
 #include "imu.hpp"
 #include "control_params.hpp"
 
-#include "cmsis_os.h"
 #include <cstring>
 
 // Debug
@@ -9,97 +8,33 @@ volatile float imu_acc_z_debug = 0.0f;
 volatile float imu_gyro_z_debug = 0.0f;
 volatile float imu_yaw_debug = 0.0f;
 
-const float imu_k[3] = {16.0f * 9.8f / 32768.0f, 2000.0f / 32768.0f, 180.0f / 32768.0f};
-
 IMU::IMU(
     Model model,
     SPI_HandleTypeDef* hspi,
-    UART_HandleTypeDef* huart,
     GPIO_TypeDef* cs_port,
     uint16_t cs_pin
 ) : omega_filter_({control_config::kImuOmegaButterworthCutoffHz, 0.00125f}),
-    model_(model), hspi_(hspi), huart_(huart), cs_port_(cs_port), cs_pin_(cs_pin) {}
+    model_(model), hspi_(hspi), cs_port_(cs_port), cs_pin_(cs_pin) {}
 
 bool IMU::init()
 {
-    if (model_ == Model::kIcm42688) {
-        return icm42688_init();
-    }
-    return true;
-}
-
-bool IMU::start_acquisition()
-{
-    if (model_ == Model::kJy931) {
-        if (huart_ == nullptr) {
-            return false;
-        }
-        return HAL_UARTEx_ReceiveToIdle_DMA(huart_, uart_rx_buffer_, rx_buffer_len()) == HAL_OK;
-    }
-    return true;
-}
-
-uint32_t IMU::wait_timeout_ms() const
-{
-    if (model_ == Model::kIcm42688) {
-        return 10U;
-    }
-    return osWaitForever;
+    return icm42688_init();
 }
 
 void IMU::process_once()
 {
     bool updated = false;
-    if (model_ == Model::kJy931) {
-        if (data_ready_) {
-            updated = decode_jy931(uart_rx_buffer_, IMU_JY931_RX_DATA_LENGTH);
-            data_ready_ = false;
-        }
-    } else if (model_ == Model::kIcm42688) {
-        if (icm42688_read_burst(icm_rx_buffer_, IMU_ICM42688_BURST_DATA_LENGTH)) {
-            updated = decode_icm42688(icm_rx_buffer_, IMU_ICM42688_BURST_DATA_LENGTH);
-        }
+    if (icm42688_read_burst(icm_rx_buffer_, IMU_ICM42688_BURST_DATA_LENGTH)) {
+        updated = decode_icm42688(icm_rx_buffer_, IMU_ICM42688_BURST_DATA_LENGTH);
     }
 
     imu_acc_z_debug = data_[kAccZ];
-    imu_gyro_z_debug = data_[kOmegaZ];
-    imu_yaw_debug = data_[kAngleZ];
+    imu_gyro_z_debug = data_[kOmegaZ] * (3.1415926535f / 180.0f);
+    imu_yaw_debug = data_[kAngleZ] * (3.1415926535f / 180.0f);
 
     if (updated) {
         publish_ports_from_cache();
     }
-}
-
-bool IMU::decode_jy931(const uint8_t* raw_data, size_t len)
-{
-    if (raw_data == nullptr || len < 33U) {
-        return false;
-    }
-
-    bool updated = false;
-    for (uint8_t j = 0; j < 33; j++)
-    {
-        if (raw_data[j] != 0x55)
-            continue;
-
-        for (uint8_t i = 0; i < 3; i++)
-        {
-            if (raw_data[j + 0 + i * 11] == 0x55 && raw_data[j + 1 + i * 11] == (0x51 + i))
-            {
-
-                if (sumcrc(&(raw_data[j + 0 + i * 11])))
-                {
-                    data_[0 + i * 4] = (short)(((short)raw_data[j + 3 + i * 11] << 8) | raw_data[j + 2 + i * 11]) * imu_k[i];
-                    data_[1 + i * 4] = (short)(((short)raw_data[j + 5 + i * 11] << 8) | raw_data[j + 4 + i * 11]) * imu_k[i];
-                    data_[2 + i * 4] = (short)(((short)raw_data[j + 7 + i * 11] << 8) | raw_data[j + 6 + i * 11]) * imu_k[i];
-                    // data_[kVoltage] = (short)(((short)raw_data[9] << 8) | raw_data[8]) / 100.0;
-                    updated = true;
-                }
-            }
-        }
-    }
-
-    return updated;
 }
 
 bool IMU::decode_icm42688(const uint8_t* raw_data, size_t len)
@@ -220,17 +155,6 @@ void IMU::icm42688_cs_high()
     HAL_GPIO_WritePin(cs_port_, cs_pin_, GPIO_PIN_SET);
 }
 
-bool IMU::sumcrc(const uint8_t raw_data[11])
-{
-    uint16_t sum = 0x0;
-    for (size_t i = 0; i < 10; i++)
-    {
-        sum += raw_data[i];
-    }
-    uint8_t crc = sum & 0xFF;
-    return (crc == raw_data[10]);
-}
-
 void IMU::get_data(float out_data[9]) const
 {
     out_data[0] = data_[kAccX];
@@ -258,10 +182,7 @@ void IMU::update_integrated_yaw(float dt_s) {
 void IMU::publish_ports_from_cache() {
     omega_x_port_ = data_[kOmegaX];
     omega_y_port_ = data_[kOmegaY];
-    if (model_ != Model::kIcm42688) {
-        omega_z_port_ = data_[kOmegaZ];
-        yaw_port_ = data_[kAngleZ];
-    }
+    // omega_z and yaw are published by update_integrated_yaw()
 }
 
 void IMU::reset_ports() {

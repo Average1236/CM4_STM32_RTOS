@@ -4,19 +4,15 @@
 #include <cstdint>
 #include <cstddef>
 #include "spi.h"
-#include "usart.h"
 #include "component.hpp"
 #include "Task/utils.hpp"
 
-constexpr size_t IMU_JY931_RX_DATA_LENGTH = (11U * 3U * 2U);
 constexpr size_t IMU_ICM42688_BURST_DATA_LENGTH = 12U;
-constexpr size_t IMU_TX_DATA_LENGTH = 5U;
 
 class IMU {
 public:
     enum class Model : uint8_t {
-        kJy931 = 0,
-        kIcm42688 = 1,
+        kIcm42688 = 0,
     };
     
     enum DataType {
@@ -41,27 +37,16 @@ public:
         kAuto
     };
 
-    const uint8_t get_acc_header[5] = {0xFF, 0xAA, 0x27, 0x34, 0x00};
-    const uint8_t get_omega_header[5] = {0xFF, 0xAA, 0x27, 0x37, 0x00};
-    const uint8_t get_angle_header[5] = {0xFF, 0xAA, 0x27, 0x3D, 0x00};
-
     IMU(
         Model model,
         SPI_HandleTypeDef* hspi,
-        UART_HandleTypeDef* huart,
         GPIO_TypeDef* cs_port = nullptr,
         uint16_t cs_pin = 0U
     );
     ~IMU() = default;
 
     bool init();
-    bool start_acquisition();
     void process_once();
-    uint32_t wait_timeout_ms() const;
-
-    uint8_t* rx_buffer_ptr() { return uart_rx_buffer_; }
-    uint16_t rx_buffer_len() const { return static_cast<uint16_t>(IMU_JY931_RX_DATA_LENGTH); }
-    void notify_data_ready() { data_ready_ = true; }
 
     Model model() const { return model_; }
     SPI_HandleTypeDef* spi_handle() const { return hspi_; }
@@ -101,9 +86,7 @@ private:
     static constexpr uint8_t kIcm42688Godr200Hz = 0x07;
     static constexpr uint8_t kIcm42688Godr100Hz = 0x08;
 
-    bool decode_jy931(const uint8_t* raw_data, size_t len);
     bool decode_icm42688(const uint8_t* raw_data, size_t len);
-    bool sumcrc(const uint8_t raw_data[11]);
 
     bool icm42688_init();
     uint8_t icm42688_read_reg(uint8_t reg);
@@ -117,15 +100,12 @@ private:
 private:
     Model model_;
     SPI_HandleTypeDef* hspi_;
-    UART_HandleTypeDef* huart_;
     GPIO_TypeDef* cs_port_;
     uint16_t cs_pin_;
 
-    bool data_ready_ = false;
     float acc_sensitivity_ = 16.0f * 9.8f / 32768.0f;
     float gyro_sensitivity_ = 2000.0f / 32768.0f;
 
-    uint8_t uart_rx_buffer_[IMU_JY931_RX_DATA_LENGTH] = {0};
     uint8_t icm_rx_buffer_[IMU_ICM42688_BURST_DATA_LENGTH] = {0};
 
     float data_[12] = {0};

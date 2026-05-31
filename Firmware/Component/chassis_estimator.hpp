@@ -47,12 +47,6 @@ private:
     float last_yaw_rad_ = 0.0f;
     float last_omega_z_rad_s_ = 0.0f;
 
-    float yaw_pll_kp_ = 0.0f;
-    float yaw_pll_ki_ = 0.0f;
-    float yaw_pll_pos_est_rad_ = 0.0f;
-    float yaw_pll_vel_est_rad_s_ = 0.0f;
-    float yaw_omega_ramp_alpha_ = 0.0f;
-    bool yaw_pll_initialized_ = false;
 };
 
 #endif // __CHASSIS_ESTIMATOR_HPP

@@ -19,9 +19,7 @@ void StartImuRxTask(void *argument) {
     osDelay(100);  // Wait for initialization
     
     for(;;) {
-        // Wake source is model-dependent:
-        // - JY931: UART RX callback releases sem_imu_readyHandle.
-        // - ICM42688: TIM7 ISR releases sem_imu_readyHandle at 800Hz.
+        // ICM42688: TIM7 ISR releases sem_imu_readyHandle at 800Hz.
         const osStatus_t imu_wait_status = osSemaphoreAcquire(sem_imu_readyHandle, osWaitForever);
         if (imu_wait_status == osOK) {
             float current_time = TIM13->CNT / 1000000.0f;  // Current time in seconds
@@ -29,11 +27,7 @@ void StartImuRxTask(void *argument) {
             imu_last_time = current_time;
 
             imu.process_once();
-
-            if (control_config::kChassisOmegaZSource == control_config::ChassisOmegaZSource::kImuOmegaDirect) {
-                imu.update_integrated_yaw(imu_dt);
-            }
-            
+            imu.update_integrated_yaw(imu_dt);
         }
     }
 }
