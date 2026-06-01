@@ -14,6 +14,7 @@ volatile float wheel_vel_debug = 0;
 volatile float robot_real_vx_debug = 0;
 volatile uint16_t kick_pulse_debug = 0;
 volatile float dribble_power_debug = 0;
+volatile int use_imu_debug = 0;
 
 // Wheel geometry
 static constexpr float WHEEL_ANGLE_FORWARD = control_config::kWheelAlphaRad;
@@ -219,8 +220,9 @@ void Robot::pi_decode_spi() {
     kick_mode = SpiRx.kick_mode ? false : true;
     kick_discharge_time = SpiRx.kick_discharge_time;
 
-    // use_imu = SpiRx.use_imu;
-    use_imu = true;
+    use_imu = SpiRx.use_imu;
+    // use_imu = true;
+    use_imu_debug = use_imu ? 1 : 0;
 
     if (use_imu) {
         yaw_target_rad = wrap_to_pi(robot_vel[2]);
