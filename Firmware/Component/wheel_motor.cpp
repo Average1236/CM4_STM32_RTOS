@@ -157,9 +157,12 @@ void MotorDMH3510::pack_mit_data(float position, float velocity, float kp, float
 
     // --- Virtual velocity damping (filter velocity, not output) ---
     const float obs_vel_filtered = obs_vel_filter_.filter(obs_omega_rad_s_);
-    const float torque_damp = enabled_
+    const float torque_damp_raw = enabled_
         ? (control_config::kWheelVirtualDampingNmPerRadPS * (velocity - obs_vel_filtered))
         : 0.0f;
+    const float torque_damp = std::clamp(torque_damp_raw,
+        -control_config::kWheelVirtualDampingLimitNm,
+         control_config::kWheelVirtualDampingLimitNm);
 
     if (config_.feedback_id == 1) {
         wheel_obs_vel_debug = obs_omega_rad_s_;

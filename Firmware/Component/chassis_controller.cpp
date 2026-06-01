@@ -19,6 +19,8 @@ volatile float err_psi_debug = 0;
 volatile float yaw_rad_debug = 0;
 volatile float yaw_target_td_debug = 0;
 volatile float yaw_target_td_diff_debug = 0;
+volatile float wo_vel_eff_debug = 0;
+volatile float wo_psi_eff_debug = 0;
 
 MixedLesoChassisController::MixedLesoChassisController()
     : yaw_td_({control_config::kYawTDR, control_config::kYawTDH, control_config::kControlDtSec,
@@ -108,8 +110,26 @@ void MixedLesoChassisController::step(float dt_s) {
 
     u_psi_debug = u_psi;
 
+    // ---- Velocity-scheduled observer bandwidth ----
+    // High when moving (ground, model accurate), low when near-zero speed
+    // (airborne oscillation suppression where plant model is wrong ~400x).
+    const float v_norm = sqrtf(vx_m_s * vx_m_s + vy_m_s * vy_m_s);
+    const float alpha_v = std::clamp(v_norm / control_config::kLesoScheduleVelocityThreshold, 0.0f, 1.0f);
+    const float wo_vel_eff = control_config::kLesoVelBandwidthMin
+                           + (control_config::kLesoVelObserverBandwidth - control_config::kLesoVelBandwidthMin) * alpha_v;
+
+    // Yaw controller suppresses disturbance torque from translational motion —
+    // bandwidth ramps with any motion (vx, vy, or omega_z).
+    const float alpha_omega = std::clamp(fabsf(omega_z_rad_s) / control_config::kLesoScheduleOmegaThreshold, 0.0f, 1.0f);
+    const float alpha_psi = fmaxf(alpha_v, alpha_omega);
+    const float wo_psi_eff = control_config::kLeso3rdBandwidthMin
+                           + (control_config::kLeso3rdOrderBandwidth - control_config::kLeso3rdBandwidthMin) * alpha_psi;
+
+    wo_vel_eff_debug = wo_vel_eff;
+    wo_psi_eff_debug = wo_psi_eff;
+
     // ---- 2nd-order LESO: vx axis ----
-    const float wo_vel = control_config::kLesoVelObserverBandwidth;
+    const float wo_vel = wo_vel_eff;
     const float L1_vel = 2.0f * wo_vel;
     const float L2_vel = wo_vel * wo_vel;
 
@@ -134,7 +154,7 @@ void MixedLesoChassisController::step(float dt_s) {
     float F_task_psi;
 
     if (use_3rd_order_leso_) {
-        const float wo_psi = control_config::kLeso3rdOrderBandwidth;
+        const float wo_psi = wo_psi_eff;
         const float L1_psi = 3.0f * wo_psi;
         const float L2_psi = 3.0f * wo_psi * wo_psi;
         const float L3_psi = wo_psi * wo_psi * wo_psi;

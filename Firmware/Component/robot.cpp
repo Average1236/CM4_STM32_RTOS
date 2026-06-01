@@ -9,6 +9,7 @@
 volatile float target_vx_debug = 0;
 volatile float target_vy_debug = 0;
 volatile float target_vw_debug = 0;
+volatile float robot_ay_debug = 0;
 volatile float wheel_vel_debug = 0;
 volatile float robot_real_vx_debug = 0;
 volatile uint16_t kick_pulse_debug = 0;
@@ -390,6 +391,7 @@ void Robot::motion_planner(const double _dt) {
 
         last_robot_real_vel[i] = robot_real_vel[i];
     }
+    robot_ay_debug = robot_acc[1];
 
     yaw_ref_rel_rad_ += robot_real_vel[2] * dt_s;
     robot_real_vx_debug = robot_real_vel[0];
