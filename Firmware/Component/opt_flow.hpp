@@ -20,21 +20,23 @@
 class Kalman2DPosVel {
 public:
     Kalman2DPosVel();
-    void setNoise(float q_pos, float q_vel, float r_vel, float r_pos);
-    void init(float px0, float py0, float vx0, float vy0, float p0);
-    void predict(float ax, float ay, float dt);   // IMU 加速度预测
+    void setNoise(float q_pos, float q_vel, float q_bias_ax, float q_bias_ay, float r_vel, float r_pos);
+    void init(float px0, float py0, float vx0, float vy0, float bax0, float bay0, float p0);
+    void predict(float ax, float ay, float dt);   // IMU 加速度预测（内部扣除偏置）
     void updateVel(float vx_meas, float vy_meas); // 光流速度更新
     void updatePos(float px_meas, float py_meas); // 光流位置更新（可选）
     float px() const { return x_[0]; }
     float py() const { return x_[1]; }
     float vx() const { return x_[2]; }
     float vy() const { return x_[3]; }
+    float bax() const { return x_[4]; }
+    float bay() const { return x_[5]; }
 private:
-    float Q_[4];   // 过程噪声对角线
+    float Q_[6];   // 过程噪声对角线: [q_pos, q_pos, q_vel, q_vel, q_bias_ax, q_bias_ay]
     float Rv_[2];  // 速度观测噪声
     float Rp_[2];  // 位置观测噪声
-    float x_[4];   // 状态 [px, py, vx, vy]，单位（mm 和 mm/s）
-    float P_[16];  // 协方差矩阵（行主序）
+    float x_[6];   // 状态 [px, py, vx, vy, b_ax, b_ay]，单位（mm, mm/s, mm/s²）
+    float P_[36];  // 协方差矩阵（6×6 行主序）
 };
 
 class OptFlow {
@@ -118,6 +120,8 @@ private:
     static constexpr float MAX_DT = 0.1f;
     static constexpr float kQPos = 0.1f;
     static constexpr float kQVel = 5.0f;
+    static constexpr float kQBiasAx = 0.01f;  // X轴加速度偏置随机游走噪声 (mm/s²)²/s
+    static constexpr float kQBiasAy = 0.01f;  // Y轴加速度偏置随机游走噪声 (mm/s²)²/s
     static constexpr float kRVelMin = 300.0f;
     static constexpr float kRVelMax = 12000.0f;
     static constexpr float kRPos = 1e6f;

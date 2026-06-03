@@ -46,13 +46,13 @@ inline constexpr float kWheelTorqueFfLimitNm = 0.0f;
 inline constexpr float kWheelSpeedPidKp = 0.4f;
 inline constexpr float kWheelSpeedPidKi = 6.0f;
 inline constexpr float kWheelSpeedPidKd = 0.0f;
-inline constexpr float kWheelSpeedPidBackCalcGain = 0.2f;
+inline constexpr float kWheelSpeedPidBackCalcGain = 0.3f;
 inline constexpr float kWheelSpeedPidDiffCutoffHz = 200.0f;
-inline constexpr float kWheelSpeedPidOutputLimitNm = 0.0f;
-inline constexpr float kWheelSpeedPidIntegLimitNm = 0.0f;
+inline constexpr float kWheelSpeedPidOutputLimitNm = 0.2f;
+inline constexpr float kWheelSpeedPidIntegLimitNm = 0.2f;
 inline constexpr float kWheelSpeedPidKpRampTimeSec = 1.5f;
-inline constexpr float kWheelSpeedPllBandwidth = 20.0f;
-inline constexpr float kWheelSpeedPllZeroSnapEpsRpm = 0.0f;
+inline constexpr float kWheelSpeedPllBandwidth = 75.0f;
+inline constexpr float kWheelSpeedPllZeroSnapEpsRpm = 0.1f;
 inline constexpr float kWheelSpeedPllOmegaRampTimeSec = 0.2f;
 
 // Wheels mechanical model
@@ -65,7 +65,7 @@ inline constexpr float kWheelViscousDampingNmPerRadPS = 6.5e-5f;
 inline constexpr float kWheelObsVelocityBandwidth = 100.0f;
 
 // Virtual damping gain (Nm per rad/s).
-inline constexpr float kWheelVirtualDampingNmPerRadPS = 0.025f;
+inline constexpr float kWheelVirtualDampingNmPerRadPS = 0.0f;
 
 // Butterworth on observer velocity for damping (Hz).
 // Heavy filtering emulates dmiao driver's sluggish velocity loop,
@@ -73,8 +73,7 @@ inline constexpr float kWheelVirtualDampingNmPerRadPS = 0.025f;
 inline constexpr float kWheelObsVelocityButterworthCutoffHz = 100.0f;
 
 inline constexpr float kMITRunKp = 0.0f;
-// inline constexpr float kMITRunKd = 0.07f;
-inline constexpr float kMITRunKd = 0.0f;
+inline constexpr float kMITRunKd = 0.035f;
 inline constexpr float kMITRunTorqueFf = 0.0f;
 inline constexpr float kMITKdRampTimeSec = 1.0f;
 

@@ -43,163 +43,168 @@ void apply_velocity_filter(OptFlow::State_t& state, const OptFlow::State_t& prev
 // ============================================================
 
 Kalman2DPosVel::Kalman2DPosVel() {
-    setNoise(0.1f, 5.0f, 300.0f, 1e6f);
-    init(0.0f, 0.0f, 0.0f, 0.0f, 500.0f);
+    setNoise(0.1f, 5.0f, 0.01f, 0.01f, 300.0f, 1e6f);
+    init(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 500.0f);
 }
 
-void Kalman2DPosVel::setNoise(float q_pos, float q_vel, float r_vel, float r_pos) {
-    Q_[0] = q_pos; Q_[1] = q_pos; Q_[2] = q_vel; Q_[3] = q_vel;
+void Kalman2DPosVel::setNoise(float q_pos, float q_vel, float q_bias_ax, float q_bias_ay, float r_vel, float r_pos) {
+    Q_[0] = q_pos; Q_[1] = q_pos;
+    Q_[2] = q_vel; Q_[3] = q_vel;
+    Q_[4] = q_bias_ax; Q_[5] = q_bias_ay;
     Rv_[0] = r_vel; Rv_[1] = r_vel;
     Rp_[0] = r_pos; Rp_[1] = r_pos;
 }
 
-void Kalman2DPosVel::init(float px0, float py0, float vx0, float vy0, float p0) {
-    x_[0] = px0; x_[1] = py0; x_[2] = vx0; x_[3] = vy0;
-    for (int i = 0; i < 16; ++i) P_[i] = 0.0f;
-    P_[0] = p0; P_[5] = p0; P_[10] = p0; P_[15] = p0;
+void Kalman2DPosVel::init(float px0, float py0, float vx0, float vy0, float bax0, float bay0, float p0) {
+    x_[0] = px0; x_[1] = py0;
+    x_[2] = vx0; x_[3] = vy0;
+    x_[4] = bax0; x_[5] = bay0;
+    for (int i = 0; i < 36; ++i) P_[i] = 0.0f;
+    P_[0] = p0; P_[7] = p0; P_[14] = p0; P_[21] = p0;
+    P_[28] = p0; P_[35] = p0;
 }
 
 void Kalman2DPosVel::predict(float ax, float ay, float dt) {
     if (dt <= 0.0f) return;
-    const float dt2_2 = 0.5f * dt * dt;
-    float px = x_[0] + dt * x_[2] + dt2_2 * ax;
-    float py = x_[1] + dt * x_[3] + dt2_2 * ay;
-    float vx = x_[2] + dt * ax;
-    float vy = x_[3] + dt * ay;
-    x_[0] = px; x_[1] = py; x_[2] = vx; x_[3] = vy;
-    float AP[16];
-    AP[0]  = P_[0] + dt * P_[8];
-    AP[1]  = P_[1] + dt * P_[9];
-    AP[2]  = P_[2] + dt * P_[10];
-    AP[3]  = P_[3] + dt * P_[11];
-    AP[4]  = P_[4] + dt * P_[12];
-    AP[5]  = P_[5] + dt * P_[13];
-    AP[6]  = P_[6] + dt * P_[14];
-    AP[7]  = P_[7] + dt * P_[15];
-    AP[8]  = P_[8];
-    AP[9]  = P_[9];
-    AP[10] = P_[10];
-    AP[11] = P_[11];
-    AP[12] = P_[12];
-    AP[13] = P_[13];
-    AP[14] = P_[14];
-    AP[15] = P_[15];
-    float Pn[16];
-    Pn[0]  = AP[0];
-    Pn[4]  = AP[4];
-    Pn[8]  = AP[8];
-    Pn[12] = AP[12];
-    Pn[1]  = AP[1];
-    Pn[5]  = AP[5];
-    Pn[9]  = AP[9];
-    Pn[13] = AP[13];
-    Pn[2]  = AP[0] * dt + AP[2];
-    Pn[6]  = AP[4] * dt + AP[6];
-    Pn[10] = AP[8] * dt + AP[10];
-    Pn[14] = AP[12] * dt + AP[14];
-    Pn[3]  = AP[1] * dt + AP[3];
-    Pn[7]  = AP[5] * dt + AP[7];
-    Pn[11] = AP[9] * dt + AP[11];
-    Pn[15] = AP[13] * dt + AP[15];
-    Pn[0]  += Q_[0];
-    Pn[5]  += Q_[1];
-    Pn[10] += Q_[2];
-    Pn[15] += Q_[3];
-    for (int i = 0; i < 16; ++i) P_[i] = Pn[i];
+    const float hdt2 = 0.5f * dt * dt;
+
+    // 扣除偏置后的有效加速度
+    const float ax_eff = ax - x_[4];
+    const float ay_eff = ay - x_[5];
+
+    // 状态外推（含偏置补偿的运动学积分）
+    x_[0] += dt * x_[2] + hdt2 * ax_eff;
+    x_[1] += dt * x_[3] + hdt2 * ay_eff;
+    x_[2] += dt * ax_eff;
+    x_[3] += dt * ay_eff;
+    // x_[4], x_[5] 偏置项保持不变（随机游走模型）
+
+    // ---- P_pred = F · P · Fᵀ + Q ----
+    // Step 1: AP = F · P  (6×6)
+    float AP[36];
+    for (int j = 0; j < 6; ++j) {
+        AP[0*6+j] = P_[0*6+j] + dt * P_[2*6+j] - hdt2 * P_[4*6+j];
+        AP[1*6+j] = P_[1*6+j] + dt * P_[3*6+j] - hdt2 * P_[5*6+j];
+        AP[2*6+j] = P_[2*6+j] - dt * P_[4*6+j];
+        AP[3*6+j] = P_[3*6+j] - dt * P_[5*6+j];
+        AP[4*6+j] = P_[4*6+j];
+        AP[5*6+j] = P_[5*6+j];
+    }
+
+    // Step 2: Pn = AP · Fᵀ  (6×6)
+    float Pn[36];
+    for (int i = 0; i < 6; ++i) {
+        Pn[i*6+0] = AP[i*6+0];
+        Pn[i*6+1] = AP[i*6+1];
+        Pn[i*6+2] = AP[i*6+0] * dt + AP[i*6+2];
+        Pn[i*6+3] = AP[i*6+1] * dt + AP[i*6+3];
+        Pn[i*6+4] = -AP[i*6+0] * hdt2 - AP[i*6+2] * dt + AP[i*6+4];
+        Pn[i*6+5] = -AP[i*6+1] * hdt2 - AP[i*6+3] * dt + AP[i*6+5];
+    }
+
+    // Step 3: 加过程噪声 Q（对角线）
+    Pn[0]  += Q_[0];   // q_pos
+    Pn[7]  += Q_[1];   // q_pos
+    Pn[14] += Q_[2];   // q_vel
+    Pn[21] += Q_[3];   // q_vel
+    Pn[28] += Q_[4];   // q_bias_ax
+    Pn[35] += Q_[5];   // q_bias_ay
+
+    for (int i = 0; i < 36; ++i) P_[i] = Pn[i];
 }
 
 void Kalman2DPosVel::updateVel(float vx_meas, float vy_meas) {
-    float y0 = vx_meas - x_[2];
-    float y1 = vy_meas - x_[3];
-    float S00 = P_[10] + Rv_[0];
-    float S01 = P_[11];
-    float S10 = P_[14];
-    float S11 = P_[15] + Rv_[1];
-    float det = S00 * S11 - S01 * S10;
+    // 创新: y = z - H·x,  H = [0,0,1,0,0,0; 0,0,0,1,0,0]
+    const float y0 = vx_meas - x_[2];
+    const float y1 = vy_meas - x_[3];
+
+    // S = H·P·Hᵀ + Rv  (2×2, 取 P 的 vx/vy 子块)
+    const float S00 = P_[2*6+2] + Rv_[0];
+    const float S01 = P_[2*6+3];
+    const float S10 = P_[3*6+2];
+    const float S11 = P_[3*6+3] + Rv_[1];
+
+    const float det = S00 * S11 - S01 * S10;
     if (det == 0.0f) return;
-    float invS00 =  S11 / det;
-    float invS01 = -S01 / det;
-    float invS10 = -S10 / det;
-    float invS11 =  S00 / det;
-    float PHt[8];
-    PHt[0] = P_[2];  PHt[1] = P_[3];
-    PHt[2] = P_[6];  PHt[3] = P_[7];
-    PHt[4] = P_[10]; PHt[5] = P_[11];
-    PHt[6] = P_[14]; PHt[7] = P_[15];
-    float K0 = PHt[0] * invS00 + PHt[1] * invS10;
-    float K1 = PHt[0] * invS01 + PHt[1] * invS11;
-    float K2 = PHt[2] * invS00 + PHt[3] * invS10;
-    float K3 = PHt[2] * invS01 + PHt[3] * invS11;
-    float K4 = PHt[4] * invS00 + PHt[5] * invS10;
-    float K5 = PHt[4] * invS01 + PHt[5] * invS11;
-    float K6 = PHt[6] * invS00 + PHt[7] * invS10;
-    float K7 = PHt[6] * invS01 + PHt[7] * invS11;
-    x_[0] += K0 * y0 + K1 * y1;
-    x_[1] += K2 * y0 + K3 * y1;
-    x_[2] += K4 * y0 + K5 * y1;
-    x_[3] += K6 * y0 + K7 * y1;
-    float KH_col2_0 = K0; float KH_col3_0 = K1;
-    float KH_col2_1 = K2; float KH_col3_1 = K3;
-    float KH_col2_2 = K4; float KH_col3_2 = K5;
-    float KH_col2_3 = K6; float KH_col3_3 = K7;
-    float Pn[16];
-    for (int i = 0; i < 16; ++i) Pn[i] = P_[i];
-    Pn[0*4 + 2] = P_[2]  - (KH_col2_0 * P_[10] + KH_col3_0 * P_[14]);
-    Pn[1*4 + 2] = P_[6]  - (KH_col2_1 * P_[10] + KH_col3_1 * P_[14]);
-    Pn[2*4 + 2] = P_[10] - (KH_col2_2 * P_[10] + KH_col3_2 * P_[14]);
-    Pn[3*4 + 2] = P_[14] - (KH_col2_3 * P_[10] + KH_col3_3 * P_[14]);
-    Pn[0*4 + 3] = P_[3]  - (KH_col2_0 * P_[11] + KH_col3_0 * P_[15]);
-    Pn[1*4 + 3] = P_[7]  - (KH_col2_1 * P_[11] + KH_col3_1 * P_[15]);
-    Pn[2*4 + 3] = P_[11] - (KH_col2_2 * P_[11] + KH_col3_2 * P_[15]);
-    Pn[3*4 + 3] = P_[15] - (KH_col2_3 * P_[11] + KH_col3_3 * P_[15]);
-    Pn[0] = P_[0] - (K0 * P_[2] + K1 * P_[3]);
-    Pn[1] = P_[1] - (K0 * P_[6] + K1 * P_[7]);
-    Pn[4] = P_[4] - (K2 * P_[2] + K3 * P_[3]);
-    Pn[5] = P_[5] - (K2 * P_[6] + K3 * P_[7]);
-    for (int i = 0; i < 16; ++i) P_[i] = Pn[i];
+    const float invS00 =  S11 / det;
+    const float invS01 = -S01 / det;
+    const float invS10 = -S10 / det;
+    const float invS11 =  S00 / det;
+
+    // PHt = P · Hᵀ = 取 P 的第 2、3 列 (6×2)
+    float PHt[12];
+    for (int i = 0; i < 6; ++i) {
+        PHt[i*2+0] = P_[i*6+2];
+        PHt[i*2+1] = P_[i*6+3];
+    }
+
+    // K = PHt · S⁻¹  (6×2)
+    float K[12];
+    for (int i = 0; i < 6; ++i) {
+        K[i*2+0] = PHt[i*2+0] * invS00 + PHt[i*2+1] * invS10;
+        K[i*2+1] = PHt[i*2+0] * invS01 + PHt[i*2+1] * invS11;
+    }
+
+    // 状态更新: x += K·y
+    for (int i = 0; i < 6; ++i) {
+        x_[i] += K[i*2+0] * y0 + K[i*2+1] * y1;
+    }
+
+    // P 更新: P_new = P - K·H·P  (6×6 全更新)
+    float Pn[36];
+    for (int i = 0; i < 6; ++i) {
+        for (int j = 0; j < 6; ++j) {
+            Pn[i*6+j] = P_[i*6+j] - (K[i*2+0] * P_[2*6+j] + K[i*2+1] * P_[3*6+j]);
+        }
+    }
+    for (int i = 0; i < 36; ++i) P_[i] = Pn[i];
 }
 
 void Kalman2DPosVel::updatePos(float px_meas, float py_meas) {
-    float y0 = px_meas - x_[0];
-    float y1 = py_meas - x_[1];
-    float S00 = P_[0] + Rp_[0];
-    float S01 = P_[1];
-    float S10 = P_[4];
-    float S11 = P_[5] + Rp_[1];
-    float det = S00 * S11 - S01 * S10;
+    // 创新: y = z - H·x,  H = [1,0,0,0,0,0; 0,1,0,0,0,0]
+    const float y0 = px_meas - x_[0];
+    const float y1 = py_meas - x_[1];
+
+    // S = H·P·Hᵀ + Rp  (2×2, 取 P 的 px/py 子块)
+    const float S00 = P_[0*6+0] + Rp_[0];
+    const float S01 = P_[0*6+1];
+    const float S10 = P_[1*6+0];
+    const float S11 = P_[1*6+1] + Rp_[1];
+
+    const float det = S00 * S11 - S01 * S10;
     if (det == 0.0f) return;
-    float invS00 =  S11 / det;
-    float invS01 = -S01 / det;
-    float invS10 = -S10 / det;
-    float invS11 =  S00 / det;
-    float PHt[8];
-    PHt[0] = P_[0];  PHt[1] = P_[1];
-    PHt[2] = P_[4];  PHt[3] = P_[5];
-    PHt[4] = P_[8];  PHt[5] = P_[9];
-    PHt[6] = P_[12]; PHt[7] = P_[13];
-    float K0 = PHt[0] * invS00 + PHt[1] * invS10;
-    float K1 = PHt[0] * invS01 + PHt[1] * invS11;
-    float K2 = PHt[2] * invS00 + PHt[3] * invS10;
-    float K3 = PHt[2] * invS01 + PHt[3] * invS11;
-    float K4 = PHt[4] * invS00 + PHt[5] * invS10;
-    float K5 = PHt[4] * invS01 + PHt[5] * invS11;
-    float K6 = PHt[6] * invS00 + PHt[7] * invS10;
-    float K7 = PHt[6] * invS01 + PHt[7] * invS11;
-    x_[0] += K0 * y0 + K1 * y1;
-    x_[1] += K2 * y0 + K3 * y1;
-    x_[2] += K4 * y0 + K5 * y1;
-    x_[3] += K6 * y0 + K7 * y1;
-    float Pn[16];
-    for (int i = 0; i < 16; ++i) Pn[i] = P_[i];
-    Pn[0]  = P_[0]  - (K0 * P_[0] + K1 * P_[4]);
-    Pn[4]  = P_[4]  - (K2 * P_[0] + K3 * P_[4]);
-    Pn[8]  = P_[8]  - (K4 * P_[0] + K5 * P_[4]);
-    Pn[12] = P_[12] - (K6 * P_[0] + K7 * P_[4]);
-    Pn[1]  = P_[1]  - (K0 * P_[1] + K1 * P_[5]);
-    Pn[5]  = P_[5]  - (K2 * P_[1] + K3 * P_[5]);
-    Pn[9]  = P_[9]  - (K4 * P_[1] + K5 * P_[5]);
-    Pn[13] = P_[13] - (K6 * P_[1] + K7 * P_[5]);
-    for (int i = 0; i < 16; ++i) P_[i] = Pn[i];
+    const float invS00 =  S11 / det;
+    const float invS01 = -S01 / det;
+    const float invS10 = -S10 / det;
+    const float invS11 =  S00 / det;
+
+    // PHt = P · Hᵀ = 取 P 的第 0、1 列 (6×2)
+    float PHt[12];
+    for (int i = 0; i < 6; ++i) {
+        PHt[i*2+0] = P_[i*6+0];
+        PHt[i*2+1] = P_[i*6+1];
+    }
+
+    // K = PHt · S⁻¹  (6×2)
+    float K[12];
+    for (int i = 0; i < 6; ++i) {
+        K[i*2+0] = PHt[i*2+0] * invS00 + PHt[i*2+1] * invS10;
+        K[i*2+1] = PHt[i*2+0] * invS01 + PHt[i*2+1] * invS11;
+    }
+
+    // 状态更新: x += K·y
+    for (int i = 0; i < 6; ++i) {
+        x_[i] += K[i*2+0] * y0 + K[i*2+1] * y1;
+    }
+
+    // P 更新: P_new = P - K·H·P  (6×6 全更新)
+    float Pn[36];
+    for (int i = 0; i < 6; ++i) {
+        for (int j = 0; j < 6; ++j) {
+            Pn[i*6+j] = P_[i*6+j] - (K[i*2+0] * P_[0*6+j] + K[i*2+1] * P_[1*6+j]);
+        }
+    }
+    for (int i = 0; i < 36; ++i) P_[i] = Pn[i];
 }
 
 // ============================================================
@@ -216,7 +221,7 @@ OptFlow::OptFlow() : left_initialized_(false), right_initialized_(false),
                      cf_omega_z_(0.0f)
                      {
     memset(&state_, 0, sizeof(state_));
-    kf_.setNoise(kQPos, kQVel, kRVelMin, kRPos);
+    kf_.setNoise(kQPos, kQVel, kQBiasAx, kQBiasAy, kRVelMin, kRPos);
 }
 
 void OptFlow::reset() {
@@ -233,8 +238,8 @@ void OptFlow::reset() {
     kf_last_py_  = 0.0f;
     flow_zero_streak_ = 0;
     cf_omega_z_  = 0.0f;
-    kf_.init(0.0f, 0.0f, 0.0f, 0.0f, 1000.0f);
-    kf_.setNoise(kQPos, kQVel, kRVelMin, kRPos);
+    kf_.init(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1000.0f);
+    kf_.setNoise(kQPos, kQVel, kQBiasAx, kQBiasAy, kRVelMin, kRPos);
 }
 
 // ============================================================
@@ -394,7 +399,7 @@ void OptFlow::process(const Data_t& data) {
 
     // 卡尔曼初始化
     if (!kf_inited_ && flow_available) {
-        kf_.init(0.0f, 0.0f, state_.body_vx, state_.body_vy, 1000.0f);
+        kf_.init(0.0f, 0.0f, state_.body_vx, state_.body_vy, 0.0f, 0.0f, 1000.0f);
         kf_last_px_ = 0.0f;
         kf_last_py_ = 0.0f;
         kf_inited_  = true;
@@ -438,7 +443,7 @@ void OptFlow::process(const Data_t& data) {
     // 自适应观测噪声
     const float inv_q = 1.0f - flow_quality;
     const float r_vel_eff = kRVelMin + (inv_q * inv_q) * (kRVelMax - kRVelMin);
-    kf_.setNoise(kQPos, kQVel, r_vel_eff, kRPos);
+    kf_.setNoise(kQPos, kQVel, kQBiasAx, kQBiasAy, r_vel_eff, kRPos);
 
     const bool allow_flow_update = flow_available && (flow_quality >= kMinUpdateQuality);
     if (kf_inited_ && allow_flow_update) {
