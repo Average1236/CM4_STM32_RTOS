@@ -14,7 +14,7 @@ Robot robot{};
 
 ZCAN can1_bus;
 ZCAN can2_bus;
-IMU imu(IMU::Model::kIcm42688, &hspi2, &huart4, GPIOB, GPIO_PIN_9);
+IMU imu(IMU::Model::kIcm42688, &hspi2, GPIOB, GPIO_PIN_9);
 OptFlow opt_flow;
 
 extern "C" int main(void) {

@@ -40,6 +40,7 @@ public:
 
     void ik_solve();
     void motion_planner(const double _dt);
+    void prepare_yaw_control();
     void bind_estimator_imu_ports(IMU& imu_ref);
     void update_torque_feedforward(const double _dt);
 
@@ -78,6 +79,9 @@ public:
     float wheel_PID[3] = {0.000, 0.005, 0};
     float wheel_vel_PID[3] = {0.5, 0.1, 0};
     float wheel_vel_limit = 2000; // rpm
+
+    bool use_imu = false;
+    float yaw_target_rad = 0.0f;
 
     // m/s
     float robot_vel[3] = {0};

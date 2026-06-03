@@ -4,17 +4,28 @@
 #include <cmath>
 
 volatile float yaw_ref_input_debug = 0;
-volatile float vx_obs_z1_debug = 0;
-volatile float vx_obs_z2_debug = 0;
-volatile float yaw_obs_z1_debug = 0;
-volatile float yaw_obs_z2_debug = 0;
-volatile float f_task_0_debug = 0;
-volatile float f_task_1_debug = 0;
-volatile float f_task_2_debug = 0;
+volatile float vx_leso_z1_debug = 0;
+volatile float vx_leso_z2_debug = 0;
+volatile float yaw_leso_z1_debug = 0;
+volatile float yaw_leso_z2_debug = 0;
+volatile float yaw_leso3_z3_debug = 0;
+volatile float F_task_0_debug = 0;
+volatile float F_task_1_debug = 0;
+volatile float F_task_2_debug = 0;
 volatile float torque_ff_debug_0 = 0;
 volatile float torque_ff_debug_1 = 0;
+volatile float u_psi_debug = 0;
+volatile float err_psi_debug = 0;
+volatile float yaw_rad_debug = 0;
+volatile float yaw_target_td_debug = 0;
+volatile float yaw_target_td_diff_debug = 0;
+volatile float wo_vel_eff_debug = 0;
+volatile float wo_psi_eff_debug = 0;
 
-MixedLesoChassisController::MixedLesoChassisController() {
+MixedLesoChassisController::MixedLesoChassisController()
+    : yaw_td_({control_config::kYawTDR, control_config::kYawTDH, control_config::kControlDtSec,
+               true, -kPi, kPi},
+              0.0f) {
     precompute_mappings();
 }
 
@@ -26,6 +37,23 @@ void MixedLesoChassisController::set_reference(const float vel_ref[3], const flo
     (void)yaw_ref_rel_rad;
 }
 
+void MixedLesoChassisController::set_use_3rd_order_leso(bool enable) {
+    if (enable != use_3rd_order_leso_) {
+        leso2_[2][0] = 0.0f;
+        leso2_[2][1] = 0.0f;
+        leso3_psi_[0] = 0.0f;
+        leso3_psi_[1] = 0.0f;
+        leso3_psi_[2] = 0.0f;
+        yaw_target_rad_ = 0.0f;
+        yaw_ramp_alpha_ = 0.0f;
+        use_3rd_order_leso_ = enable;
+    }
+}
+
+void MixedLesoChassisController::set_yaw_target(float target_rad) {
+    yaw_target_rad_ = target_rad;
+}
+
 void MixedLesoChassisController::step(float dt_s) {
     if (dt_s <= 0.0f) {
         return;
@@ -34,14 +62,33 @@ void MixedLesoChassisController::step(float dt_s) {
     const std::optional<float> chassis_vx_meas = chassis_vx_input_port_.any();
     const std::optional<float> chassis_vy_meas = chassis_vy_input_port_.any();
     const std::optional<float> omega_z_meas = chassis_omega_z_input_port_.any();
+    const std::optional<float> yaw_meas = chassis_yaw_input_port_.any();
 
     const float vx_m_s = chassis_vx_meas.has_value() ? *chassis_vx_meas : last_chassis_vx_m_s_;
     const float vy_m_s = chassis_vy_meas.has_value() ? *chassis_vy_meas : last_chassis_vy_m_s_;
     const float omega_z_rad_s = omega_z_meas.has_value() ? *omega_z_meas : last_chassis_omega_z_rad_s_;
+    const float yaw_rad = yaw_meas.has_value() ? *yaw_meas : last_chassis_yaw_rad_;
+
+    // Startup ramp: gradually scale yaw_rad from 0 → actual to avoid
+    // a step discontinuity when the 3rd-order LESO initializes.
+    float yaw_rad_effective = yaw_rad;
+    if (use_3rd_order_leso_ && yaw_ramp_alpha_ < 1.0f) {
+        const float ramp_t = control_config::kYawStartupRampTimeSec;
+        if (ramp_t > 1e-6f) {
+            yaw_ramp_alpha_ += dt_s / ramp_t;
+            if (yaw_ramp_alpha_ > 1.0f) yaw_ramp_alpha_ = 1.0f;
+        } else {
+            yaw_ramp_alpha_ = 1.0f;
+        }
+        yaw_rad_effective *= yaw_ramp_alpha_;
+    }
+
+    yaw_rad_debug = yaw_rad_effective;
 
     last_chassis_vx_m_s_ = vx_m_s;
     last_chassis_vy_m_s_ = vy_m_s;
     last_chassis_omega_z_rad_s_ = omega_z_rad_s;
+    last_chassis_yaw_rad_ = yaw_rad;
 
     // Read actual sent wheel torques from previous control cycle
     float tau_sent[4] = {0.0f, 0.0f, 0.0f, 0.0f};
@@ -57,64 +104,124 @@ void MixedLesoChassisController::step(float dt_s) {
             u_body[row] += j1_[row][col] * tau_sent[col];
         }
     }
-    const float u_vx_actual = u_body[0] / control_config::kRobotMassKg;
-    const float u_vy_actual = u_body[1] / control_config::kRobotMassKg;
-    const float u_wz_actual = u_body[2] / control_config::kRobotInertiaKgM2;
+    const float u_vx = u_body[0] / control_config::kRobotMassKg;
+    const float u_vy = u_body[1] / control_config::kRobotMassKg;
+    const float u_psi = u_body[2] / control_config::kRobotInertiaKgM2;
 
-    const float w_vel = control_config::kLesoVelObserverBandwidth;
-    const float l1 = 2.0f * w_vel;
-    const float l2 = w_vel * w_vel;
+    u_psi_debug = u_psi;
 
-    const float w_omega = control_config::kLesoOmegaObserverBandwidth;
-    const float l1_omega = 2.0f * w_omega;
-    const float l2_omega = w_omega * w_omega;
+    // ---- Velocity-scheduled observer bandwidth ----
+    // High when moving (ground, model accurate), low when near-zero speed
+    // (airborne oscillation suppression where plant model is wrong ~400x).
+    const float v_norm = sqrtf(vx_m_s * vx_m_s + vy_m_s * vy_m_s);
+    const float alpha_v = std::clamp(v_norm / control_config::kLesoScheduleVelocityThreshold, 0.0f, 1.0f);
+    const float wo_vel_eff = control_config::kLesoVelBandwidthMin
+                           + (control_config::kLesoVelObserverBandwidth - control_config::kLesoVelBandwidthMin) * alpha_v;
 
-    const float e_vx = vx_m_s - vel_obs_[0][0];
-    const float z1_dot_vx = vel_obs_[0][1] + l1 * e_vx + u_vx_actual;
-    const float z2_dot_vx = l2 * e_vx;
-    vel_obs_[0][0] += dt_s * z1_dot_vx;
-    vel_obs_[0][1] += dt_s * z2_dot_vx;
+    // Yaw controller suppresses disturbance torque from translational motion —
+    // bandwidth ramps with any motion (vx, vy, or omega_z).
+    const float alpha_omega = std::clamp(fabsf(omega_z_rad_s) / control_config::kLesoScheduleOmegaThreshold, 0.0f, 1.0f);
+    const float alpha_psi = fmaxf(alpha_v, alpha_omega);
+    const float wo_psi_eff = control_config::kLeso3rdBandwidthMin
+                           + (control_config::kLeso3rdOrderBandwidth - control_config::kLeso3rdBandwidthMin) * alpha_psi;
 
-    vx_obs_z1_debug = vel_obs_[0][0];
-    vx_obs_z2_debug = vel_obs_[0][1];
+    wo_vel_eff_debug = wo_vel_eff;
+    wo_psi_eff_debug = wo_psi_eff;
 
-    const float e_vy = vy_m_s - vel_obs_[1][0];
-    const float z1_dot_vy = vel_obs_[1][1] + l1 * e_vy + u_vy_actual;
-    const float z2_dot_vy = l2 * e_vy;
-    vel_obs_[1][0] += dt_s * z1_dot_vy;
-    vel_obs_[1][1] += dt_s * z2_dot_vy;
+    // ---- 2nd-order LESO: vx axis ----
+    const float wo_vel = wo_vel_eff;
+    const float L1_vel = 2.0f * wo_vel;
+    const float L2_vel = wo_vel * wo_vel;
 
-    const float e_wz = omega_z_rad_s - vel_obs_[2][0];
-    const float z1_dot_wz = vel_obs_[2][1] + l1_omega * e_wz + u_wz_actual;
-    const float z2_dot_wz = l2_omega * e_wz;
-    vel_obs_[2][0] += dt_s * z1_dot_wz;
-    vel_obs_[2][1] += dt_s * z2_dot_wz;
+    const float err_vx = vx_m_s - leso2_[0][0];
+    const float dz1_vx = leso2_[0][1] + L1_vel * err_vx + u_vx;
+    const float dz2_vx = L2_vel * err_vx;
+    leso2_[0][0] += dt_s * dz1_vx;
+    leso2_[0][1] += dt_s * dz2_vx;
 
-    yaw_obs_z1_debug = vel_obs_[2][0];
-    yaw_obs_z2_debug = vel_obs_[2][1];
+    vx_leso_z1_debug = leso2_[0][0];
+    vx_leso_z2_debug = leso2_[0][1];
 
-    const float vx_feedback = control_config::kVelFeedbackGainX * (vel_ref_[0] - vel_obs_[0][0]);
-    const float vy_feedback = control_config::kVelFeedbackGainY * (vel_ref_[1] - vel_obs_[1][0]);
-    const float yaw_feedback = control_config::kVelFeedbackGainYaw * (vel_ref_[2] - vel_obs_[2][0]);
-    yaw_ref_input_debug = yaw_feedback;
+    // ---- 2nd-order LESO: vy axis ----
+    const float err_vy = vy_m_s - leso2_[1][0];
+    const float dz1_vy = leso2_[1][1] + L1_vel * err_vy + u_vy;
+    const float dz2_vy = L2_vel * err_vy;
+    leso2_[1][0] += dt_s * dz1_vy;
+    leso2_[1][1] += dt_s * dz2_vy;
 
-    const float f_task[3] = {
-        control_config::kRobotMassKg *
-            (acc_ref_[0] + vx_feedback - vel_obs_[0][1]),
-        control_config::kRobotMassKg *
-            (acc_ref_[1] + vy_feedback - vel_obs_[1][1]),
-        control_config::kRobotInertiaKgM2 *
-            (acc_ref_[2] + yaw_feedback - vel_obs_[2][1]),
+    // ---- yaw axis: 2nd-order or 3rd-order LESO ----
+    float fb_psi;
+    float F_task_psi;
+
+    if (use_3rd_order_leso_) {
+        const float wo_psi = wo_psi_eff;
+        const float L1_psi = 3.0f * wo_psi;
+        const float L2_psi = 3.0f * wo_psi * wo_psi;
+        const float L3_psi = wo_psi * wo_psi * wo_psi;
+
+        const float err_psi = wrap_to_pi(yaw_rad_effective - leso3_psi_[0]);
+        const float dz1_psi = leso3_psi_[1] + L1_psi * err_psi;
+        const float dz2_psi = leso3_psi_[2] + L2_psi * err_psi + u_psi;
+        const float dz3_psi = L3_psi * err_psi;
+
+        err_psi_debug = err_psi;
+
+        // leso3_psi_[0] += dt_s * dz1_psi;
+        leso3_psi_[0] = wrap_to_pi(leso3_psi_[0] + dt_s * dz1_psi);
+        leso3_psi_[1] += dt_s * dz2_psi;
+        leso3_psi_[2] += dt_s * dz3_psi;
+
+        yaw_leso_z1_debug = leso3_psi_[0];
+        yaw_leso_z2_debug = leso3_psi_[1];
+        yaw_leso3_z3_debug = leso3_psi_[2];
+
+        yaw_td_.calc(yaw_target_rad_);
+        const float err_pos = wrap_to_pi(yaw_td_.get_data() - leso3_psi_[0]);
+        // const float err_vel = yaw_td_.get_diff() - leso3_psi_[1];
+        const float err_vel = yaw_td_.get_diff() - omega_z_rad_s;
+        yaw_target_td_debug = yaw_td_.get_data();
+        yaw_target_td_diff_debug = yaw_td_.get_diff();
+        fb_psi = control_config::kPosFeedbackGainYaw * err_pos
+               + control_config::kYawTDDiffGain * err_vel;
+        yaw_ref_input_debug = fb_psi;
+        F_task_psi = control_config::kRobotInertiaKgM2 * (fb_psi - leso3_psi_[2]);
+    } else {
+        const float wo_omega = control_config::kLesoOmegaObserverBandwidth;
+        const float L1_omega = 2.0f * wo_omega;
+        const float L2_omega = wo_omega * wo_omega;
+
+        const float err_wz = omega_z_rad_s - leso2_[2][0];
+        const float dz1_wz = leso2_[2][1] + L1_omega * err_wz + u_psi;
+        const float dz2_wz = L2_omega * err_wz;
+        leso2_[2][0] += dt_s * dz1_wz;
+        leso2_[2][1] += dt_s * dz2_wz;
+
+        yaw_leso_z1_debug = leso2_[2][0];
+        yaw_leso_z2_debug = leso2_[2][1];
+        yaw_leso3_z3_debug = 0.0f;
+
+        fb_psi = control_config::kVelFeedbackGainYaw * (vel_ref_[2] - leso2_[2][0]);
+        yaw_ref_input_debug = fb_psi;
+        F_task_psi = control_config::kRobotInertiaKgM2 * (acc_ref_[2] + fb_psi - leso2_[2][1]);
+    }
+
+    const float fb_vx = control_config::kVelFeedbackGainX * (vel_ref_[0] - leso2_[0][0]);
+    const float fb_vy = control_config::kVelFeedbackGainY * (vel_ref_[1] - leso2_[1][0]);
+
+    const float F_task[3] = {
+        control_config::kRobotMassKg * (acc_ref_[0] + fb_vx - leso2_[0][1]),
+        control_config::kRobotMassKg * (acc_ref_[1] + fb_vy - leso2_[1][1]),
+        F_task_psi,
     };
 
-    f_task_0_debug = f_task[0];
-    f_task_1_debug = f_task[1];
-    f_task_2_debug = f_task[2];
+    F_task_0_debug = F_task[0];
+    F_task_1_debug = F_task[1];
+    F_task_2_debug = F_task[2];
 
     for (int wheel = 0; wheel < 4; ++wheel) {
         float tau = 0.0f;
         for (int row = 0; row < 3; ++row) {
-            tau += j1_pinv_[wheel][row] * f_task[row];
+            tau += j1_pinv_[wheel][row] * F_task[row];
         }
         tau = std::clamp(tau, -control_config::kWheelTorqueFfLimitNm, control_config::kWheelTorqueFfLimitNm);
         wheel_torque_ff_output_ports_[wheel] = tau;
@@ -125,9 +232,12 @@ void MixedLesoChassisController::step(float dt_s) {
 
 void MixedLesoChassisController::reset() {
     for (int axis = 0; axis < 3; ++axis) {
-        vel_obs_[axis][0] = 0.0f;
-        vel_obs_[axis][1] = 0.0f;
+        leso2_[axis][0] = 0.0f;
+        leso2_[axis][1] = 0.0f;
     }
+    leso3_psi_[0] = 0.0f;
+    leso3_psi_[1] = 0.0f;
+    leso3_psi_[2] = 0.0f;
 
     for (int i = 0; i < 4; ++i) {
         wheel_torque_ff_output_ports_[i] = 0.0f;
@@ -135,6 +245,8 @@ void MixedLesoChassisController::reset() {
     last_chassis_vx_m_s_ = 0.0f;
     last_chassis_vy_m_s_ = 0.0f;
     last_chassis_omega_z_rad_s_ = 0.0f;
+    last_chassis_yaw_rad_ = 0.0f;
+    yaw_ramp_alpha_ = 0.0f;
 }
 
 bool MixedLesoChassisController::inverse3x3(const float in[3][3], float out[3][3]) const {

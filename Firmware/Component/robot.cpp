@@ -9,10 +9,12 @@
 volatile float target_vx_debug = 0;
 volatile float target_vy_debug = 0;
 volatile float target_vw_debug = 0;
+volatile float robot_ay_debug = 0;
 volatile float wheel_vel_debug = 0;
 volatile float robot_real_vx_debug = 0;
 volatile uint16_t kick_pulse_debug = 0;
 volatile float dribble_power_debug = 0;
+volatile int use_imu_debug = 0;
 
 // Wheel geometry
 static constexpr float WHEEL_ANGLE_FORWARD = control_config::kWheelAlphaRad;
@@ -195,6 +197,7 @@ Robot::Robot() {
     chassis_controller.chassis_vx_input_port()->connect_to(chassis_estimator.chassis_vx_output_port());
     chassis_controller.chassis_vy_input_port()->connect_to(chassis_estimator.chassis_vy_output_port());
     chassis_controller.chassis_omega_z_input_port()->connect_to(chassis_estimator.chassis_omega_z_output_port());
+    chassis_controller.chassis_yaw_input_port()->connect_to(chassis_estimator.chassis_yaw_output_port());
 }
 
 Robot::~Robot() {
@@ -216,6 +219,14 @@ void Robot::pi_decode_spi() {
 
     kick_mode = SpiRx.kick_mode ? false : true;
     kick_discharge_time = SpiRx.kick_discharge_time;
+
+    use_imu = SpiRx.use_imu;
+    // use_imu = true;
+    use_imu_debug = use_imu ? 1 : 0;
+
+    if (use_imu) {
+        yaw_target_rad = wrap_to_pi(robot_vel[2]);
+    }
 
     // Debug
     target_vx_debug = robot_vel[0];
@@ -307,6 +318,17 @@ void Robot::pi_encode_spi() {
     memcpy(spi_tx_data, &SpiTx, sizeof(SpiTx));
 }
 
+void Robot::prepare_yaw_control() {
+    if (!use_imu) {
+        return;
+    }
+
+    const auto yaw = chassis_estimator.chassis_yaw_output_port()->any();
+    const float measured_yaw = yaw.has_value() ? *yaw : 0.0f;
+    robot_real_vel[2] = control_config::kYawDesiredOmegaGain * wrap_to_pi(yaw_target_rad - measured_yaw);
+    robot_acc[2] = 0.0f;
+}
+
 void Robot::ik_solve() {
     // Calculate motor velocities
     for (uint8_t i = 0; i < 4; i++) {
@@ -327,6 +349,8 @@ void Robot::motion_planner(const double _dt) {
     }
 
     for (uint8_t i = 0; i < 3; i++) {
+        if (use_imu && i == 2) continue;  // yaw angle control bypasses planner
+
         AxisMotionPlan& plan = g_axis_plans[i];
         const float v_now = last_robot_real_vel[i];
         const float v_target = robot_vel[i];
@@ -369,6 +393,7 @@ void Robot::motion_planner(const double _dt) {
 
         last_robot_real_vel[i] = robot_real_vel[i];
     }
+    robot_ay_debug = robot_acc[1];
 
     yaw_ref_rel_rad_ += robot_real_vel[2] * dt_s;
     robot_real_vx_debug = robot_real_vel[0];
@@ -386,6 +411,10 @@ void Robot::update_torque_feedforward(const double _dt) {
     }
 
     chassis_controller.set_reference(robot_real_vel, robot_acc, yaw_ref_rel_rad_);
+    chassis_controller.set_use_3rd_order_leso(use_imu);
+    if (use_imu) {
+        chassis_controller.set_yaw_target(yaw_target_rad);
+    }
     chassis_estimator.step(dt_s);
     chassis_controller.step(dt_s);
 

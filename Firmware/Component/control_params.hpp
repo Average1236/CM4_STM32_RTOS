@@ -5,51 +5,57 @@
 
 namespace control_config {
 
-enum class ChassisOmegaZSource : uint8_t {
-	kYawPll = 0,
-	kImuOmegaDirect = 1,
-};
-
 inline constexpr float kControlDtSec = static_cast<float>(TIM2_PERIOD_CLOCKS) / 1000000.0f;
 inline constexpr float kPi = 3.1415926535f;
 
-inline constexpr float kAccThresholdX = 5.0f;
-inline constexpr float kAccThresholdY = 5.0f;
+inline constexpr float kAccThresholdX = 7.5f;
+inline constexpr float kAccThresholdY = 5.5f;
 inline constexpr float kAccThresholdYaw = 40.0f;
 
-inline constexpr float kJerkLimitX = 100.0f;
-inline constexpr float kJerkLimitY = 75.0f;
+inline constexpr float kJerkLimitX = 300.0f;
+inline constexpr float kJerkLimitY = 150.0f;
 inline constexpr float kJerkLimitYaw = 600.0f;
 
 inline constexpr float kRobotMassKg = 1.99692f;
-inline constexpr float kRobotInertiaKgM2 = 5e-3f;
+inline constexpr float kRobotInertiaKgM2 = 1e-2f;
 inline constexpr float kWheelRadiusM = 0.033f;
 inline constexpr float kWheelCenterDistanceM = 0.07956f;
 inline constexpr float kCenterToComDistanceM = 0.0f;
 inline constexpr float kWheelAlphaRad = 30.0f / 180.0f * kPi;
 inline constexpr float kWheelBetaRad = 45.0f / 180.0f * kPi;
 
-inline constexpr float kLesoVelObserverBandwidth = 60.0f;
+inline constexpr float kLesoVelObserverBandwidth = 50.0f;
 inline constexpr float kLesoOmegaObserverBandwidth = 150.0f;
-inline constexpr ChassisOmegaZSource kChassisOmegaZSource = ChassisOmegaZSource::kImuOmegaDirect;
-inline constexpr float kImuYawPllBandwidth = 200.0f;
-inline constexpr float kImuYawPllZeroSnapEpsRadS = 0.1f;
-inline constexpr float kImuYawPllOmegaRampTimeSec = 0.8f;
-inline constexpr float kImuOmegaButterworthCutoffHz = 400.0f;
+inline constexpr float kLeso3rdOrderBandwidth = 220.0f;
 
-inline constexpr float kVelFeedbackGainX = 20.0f;
-inline constexpr float kVelFeedbackGainY = 20.0f;
+// Velocity-scheduled LESO bandwidth limits — high when moving (ground),
+// low when near-zero speed (airborne oscillation suppression).
+inline constexpr float kLesoVelBandwidthMin = 20.0f;
+inline constexpr float kLeso3rdBandwidthMin = 80.0f;
+inline constexpr float kLesoScheduleVelocityThreshold = 0.2f;  // m/s
+inline constexpr float kLesoScheduleOmegaThreshold = 1.0f;    // rad/s
+inline constexpr float kImuOmegaButterworthCutoffHz = 200.0f;
+inline constexpr float kImuOmegaBiasZ = 1.0f;
+
+inline constexpr float kVelFeedbackGainX = 50.0f;
+inline constexpr float kVelFeedbackGainY = 50.0f;
 inline constexpr float kVelFeedbackGainYaw = 450.0f;
+inline constexpr float kPosFeedbackGainYaw = 600.0f;
+inline constexpr float kYawTDDiffGain = 50.0f;
+inline constexpr float kYawDesiredOmegaGain = 10.0f;
+inline constexpr float kYawTDR = 100.0f;
+inline constexpr float kYawTDH = 0.02f;
+inline constexpr float kYawStartupRampTimeSec = 1.5f;
 
-inline constexpr float kWheelTorqueFfLimitNm = 0.0f;
+inline constexpr float kWheelTorqueFfLimitNm = 0.1f;
 
-inline constexpr float kWheelSpeedPidKp = 0.4f;
-inline constexpr float kWheelSpeedPidKi = 6.0f;
+inline constexpr float kWheelSpeedPidKp = 0.03f;
+inline constexpr float kWheelSpeedPidKi = 0.6f;
 inline constexpr float kWheelSpeedPidKd = 0.0f;
 inline constexpr float kWheelSpeedPidBackCalcGain = 0.3f;
-inline constexpr float kWheelSpeedPidDiffCutoffHz = 200.0f;
-inline constexpr float kWheelSpeedPidOutputLimitNm = 0.2f;
-inline constexpr float kWheelSpeedPidIntegLimitNm = 0.2f;
+inline constexpr float kWheelSpeedPidDiffCutoffHz = 50.0f;
+inline constexpr float kWheelSpeedPidOutputLimitNm = 0.0f;
+inline constexpr float kWheelSpeedPidIntegLimitNm = 0.0f;
 inline constexpr float kWheelSpeedPidKpRampTimeSec = 1.5f;
 inline constexpr float kWheelSpeedPllBandwidth = 75.0f;
 inline constexpr float kWheelSpeedPllZeroSnapEpsRpm = 0.1f;
@@ -65,7 +71,8 @@ inline constexpr float kWheelViscousDampingNmPerRadPS = 6.5e-5f;
 inline constexpr float kWheelObsVelocityBandwidth = 100.0f;
 
 // Virtual damping gain (Nm per rad/s).
-inline constexpr float kWheelVirtualDampingNmPerRadPS = 0.0f;
+inline constexpr float kWheelVirtualDampingNmPerRadPS = 0.027f;
+inline constexpr float kWheelVirtualDampingLimitNm = 1.0f;
 
 // Butterworth on observer velocity for damping (Hz).
 // Heavy filtering emulates dmiao driver's sluggish velocity loop,
@@ -83,6 +90,7 @@ inline constexpr float kMITSafeTorqueFf = 0.0f;
 
 inline constexpr float kMotorRecoverDelayMs = 1000.0f;
 inline constexpr float kMotorClearErrorToEnableDelayMs = 10.0f;
+
 
 } // namespace control_config
 
