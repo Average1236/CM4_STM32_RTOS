@@ -5,6 +5,7 @@
 #include "chassis_controller.hpp"
 #include "chassis_estimator.hpp"
 #include "dribbler_zfoc.hpp"
+#include "yaw_s_curve.hpp"
 
 struct __attribute__((packed)) CM4_to_stm32_spi
 {
@@ -82,6 +83,7 @@ public:
 
     bool use_imu = false;
     float yaw_target_rad = 0.0f;
+    YawSCurve yaw_s_curve_{{0.0f, 0.0f, 0.0f}};
 
     // m/s
     float robot_vel[3] = {0};

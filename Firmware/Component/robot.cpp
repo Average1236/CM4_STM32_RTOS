@@ -184,6 +184,10 @@ static const WheelMotorBase::Config_t WHEEL_MOTOR_PARAMS[4] = {
 };
 
 Robot::Robot() {
+    yaw_s_curve_.set_config({control_config::kYawSCurveVmax,
+                             control_config::kYawSCurveAmax,
+                             control_config::kYawSCurveJmax});
+
     // Initialize wheel motors
     for (int i = 0; i < 4; i++) {
         wheel_motors[i] = new MotorDMH3510(WHEEL_MOTOR_PARAMS[i]);
@@ -225,7 +229,12 @@ void Robot::pi_decode_spi() {
     use_imu_debug = use_imu ? 1 : 0;
 
     if (use_imu) {
-        yaw_target_rad = wrap_to_pi(robot_vel[2]);
+        const float new_target = wrap_to_pi(robot_vel[2]);
+        if (fabsf(wrap_to_pi(new_target - yaw_target_rad)) > 1e-6f) {
+            yaw_target_rad = new_target;
+            const auto yaw = chassis_estimator.chassis_yaw_output_port()->any();
+            yaw_s_curve_.set_target(yaw_target_rad, yaw.has_value() ? *yaw : 0.0f);
+        }
     }
 
     // Debug
@@ -413,7 +422,8 @@ void Robot::update_torque_feedforward(const double _dt) {
     chassis_controller.set_reference(robot_real_vel, robot_acc, yaw_ref_rel_rad_);
     chassis_controller.set_use_3rd_order_leso(use_imu);
     if (use_imu) {
-        chassis_controller.set_yaw_target(yaw_target_rad);
+        yaw_s_curve_.step(dt_s);
+        chassis_controller.set_yaw_target(yaw_s_curve_.position(), yaw_s_curve_.velocity());
     }
     chassis_estimator.step(dt_s);
     chassis_controller.step(dt_s);

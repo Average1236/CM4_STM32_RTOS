@@ -6,6 +6,8 @@
 volatile float yaw_ref_input_debug = 0;
 volatile float vx_leso_z1_debug = 0;
 volatile float vx_leso_z2_debug = 0;
+volatile float vy_leso_z1_debug = 0;
+volatile float vy_leso_z2_debug = 0;
 volatile float yaw_leso_z1_debug = 0;
 volatile float yaw_leso_z2_debug = 0;
 volatile float yaw_leso3_z3_debug = 0;
@@ -18,17 +20,14 @@ volatile float u_psi_debug = 0;
 volatile float err_psi_debug = 0;
 volatile float err_wz_debug = 0;
 volatile float yaw_rad_debug = 0;
-volatile float yaw_target_td_debug = 0;
-volatile float yaw_target_td_diff_debug = 0;
 volatile float wo_vel_eff_debug = 0;
 volatile float wo_psi_eff_debug = 0;
 volatile float omega_z_filt_debug = 0;
+volatile float yaw_target_pos_debug = 0;
+volatile float yaw_target_vel_debug = 0;
 
 MixedLesoChassisController::MixedLesoChassisController()
-    : yaw_td_({control_config::kYawTDR, control_config::kYawTDH, control_config::kControlDtSec,
-               true, -kPi, kPi},
-              0.0f),
-      omega_z_filter_({control_config::kChassisOmegaZFilterCutoffHz,
+    : omega_z_filter_({control_config::kChassisOmegaZFilterCutoffHz,
                        control_config::kControlDtSec},
                       0.0f) {
     precompute_mappings();
@@ -49,14 +48,19 @@ void MixedLesoChassisController::set_use_3rd_order_leso(bool enable) {
         leso3_psi_[0] = 0.0f;
         leso3_psi_[1] = 0.0f;
         leso3_psi_[2] = 0.0f;
-        yaw_target_rad_ = 0.0f;
+        yaw_target_pos_ = 0.0f;
+        yaw_target_vel_ = 0.0f;
         yaw_ramp_alpha_ = 0.0f;
         use_3rd_order_leso_ = enable;
     }
 }
 
-void MixedLesoChassisController::set_yaw_target(float target_rad) {
-    yaw_target_rad_ = target_rad;
+void MixedLesoChassisController::set_yaw_target(float target_pos, float target_vel) {
+    yaw_target_pos_ = target_pos;
+    yaw_target_vel_ = target_vel;
+
+    yaw_target_pos_debug = target_pos;
+    yaw_target_vel_debug = target_vel;
 }
 
 void MixedLesoChassisController::step(float dt_s) {
@@ -156,6 +160,9 @@ void MixedLesoChassisController::step(float dt_s) {
     leso2_[1][0] += dt_s * dz1_vy;
     leso2_[1][1] += dt_s * dz2_vy;
 
+    vy_leso_z1_debug = leso2_[1][0];
+    vy_leso_z2_debug = leso2_[1][1];
+
     // ---- yaw axis: 2nd-order or 3rd-order LESO ----
     float fb_psi;
     float F_task_psi;
@@ -187,12 +194,8 @@ void MixedLesoChassisController::step(float dt_s) {
         yaw_leso_z2_debug = leso3_psi_[1];
         yaw_leso3_z3_debug = leso3_psi_[2];
 
-        yaw_td_.calc(yaw_target_rad_);
-        const float err_pos = wrap_to_pi(yaw_td_.get_data() - leso3_psi_[0]);
-        // const float err_vel = yaw_td_.get_diff() - leso3_psi_[1];
-        const float err_vel = yaw_td_.get_diff() - omega_z_rad_s;
-        yaw_target_td_debug = yaw_td_.get_data();
-        yaw_target_td_diff_debug = yaw_td_.get_diff();
+        const float err_pos = wrap_to_pi(yaw_target_pos_ - leso3_psi_[0]);
+        const float err_vel = yaw_target_vel_ - omega_z_rad_s;
         // PD gains via pole placement: both poles at -ω_c
         // Controller bandwidth tracks observer bandwidth (same alpha_psi).
         const float wc = control_config::kAngleControllerBandwidthMin
@@ -232,8 +235,10 @@ void MixedLesoChassisController::step(float dt_s) {
     const float fb_vy = Kv_y * (vel_ref_[1] - leso2_[1][0]);
 
     const float F_task[3] = {
-        control_config::kRobotMassKg * (acc_ref_[0] + fb_vx - leso2_[0][1]),
-        control_config::kRobotMassKg * (acc_ref_[1] + fb_vy - leso2_[1][1]),
+        // control_config::kRobotMassKg * (acc_ref_[0] + fb_vx - leso2_[0][1]),
+        // control_config::kRobotMassKg * (acc_ref_[1] + fb_vy - leso2_[1][1]),
+        control_config::kRobotMassKg * (acc_ref_[0] + fb_vx),
+        control_config::kRobotMassKg * (acc_ref_[1] + fb_vy),
         F_task_psi,
     };
 

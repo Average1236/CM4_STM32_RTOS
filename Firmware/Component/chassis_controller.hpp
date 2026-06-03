@@ -25,7 +25,7 @@ public:
 
     void set_reference(const float vel_ref[3], const float acc_ref[3], float yaw_ref_rel_rad);
     void set_use_3rd_order_leso(bool enable);
-    void set_yaw_target(float target_rad);
+    void set_yaw_target(float target_pos, float target_vel);
     void step(float dt_s);
     void reset();
 
@@ -53,10 +53,10 @@ private:
 
     // 3rd-order LESO states for ψ axis: z1=position, z2=velocity, z3=disturbance
     float leso3_psi_[3] = {0.0f, 0.0f, 0.0f};
-    float yaw_target_rad_ = 0.0f;
+    float yaw_target_pos_ = 0.0f;
+    float yaw_target_vel_ = 0.0f;
     bool use_3rd_order_leso_ = false;
     float yaw_ramp_alpha_ = 0.0f;
-    TD yaw_td_;
 
     float j1_[3][4] = {{0.0f}};
     float j1_pinv_[4][3] = {{0.0f}};

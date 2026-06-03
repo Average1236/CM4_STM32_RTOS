@@ -25,24 +25,24 @@ inline constexpr float kCenterToComDistanceM = -0.01f;
 inline constexpr float kWheelAlphaRad = 30.0f / 180.0f * kPi;
 inline constexpr float kWheelBetaRad = 45.0f / 180.0f * kPi;
 
-inline constexpr float kLesoVelObserverBandwidth = 40.0f;
+inline constexpr float kLesoVelObserverBandwidth = 10.0f;
 inline constexpr float kLesoOmegaObserverBandwidth = 150.0f;
 inline constexpr float kLesoAngleObserverBandwidth = 150.0f;
 
 // Velocity-scheduled LESO bandwidth limits — high when moving (ground),
 // low when near-zero speed (airborne oscillation suppression).
 inline constexpr float kLesoVelBandwidthMin = 8.0f;
-inline constexpr float kLesoAngleBandwidthMin = 1.0f;
+inline constexpr float kLesoAngleBandwidthMin = 0.0f;
 inline constexpr float kLesoScheduleVelocityThreshold = 0.01f;  // m/s
-inline constexpr float kLesoScheduleOmegaThreshold = 0.0f;    // rad/s
+inline constexpr float kLesoScheduleOmegaThreshold = 0.01f;    // rad/s
 inline constexpr float kImuOmegaButterworthCutoffHz = 350.0f;
 inline constexpr float kChassisOmegaZFilterCutoffHz = 0.0f;
 inline constexpr float kImuOmegaBiasZ = 1.0f;
 
 // Velocity feedback gains — scheduled with LESO bandwidth via alpha_v.
 // Kv = ω_c for 1st-order velocity loop pole placement.
-inline constexpr float kVelFeedbackGainX = 30.0f;
-inline constexpr float kVelFeedbackGainY = 15.0f;
+inline constexpr float kVelFeedbackGainX = 1.0f;
+inline constexpr float kVelFeedbackGainY = 1.0f;
 inline constexpr float kVelFeedbackGainMinX = 0.0f;
 inline constexpr float kVelFeedbackGainMinY = 0.0f;
 inline constexpr float kVelFeedbackGainYaw = 30.0f;
@@ -51,10 +51,13 @@ inline constexpr float kVelFeedbackGainYaw = 30.0f;
 inline constexpr float kAngleControllerBandwidth = 50.0f;
 inline constexpr float kAngleControllerBandwidthMin = 0.0f;
 inline constexpr float kYawDesiredOmegaGain = 10.0f;
-inline constexpr float kYawTDR = 200.0f;
-inline constexpr float kYawTDH = 0.03f;
 inline constexpr float kYawStartupRampTimeSec = 1.5f;
-inline constexpr float kYawVyCoupling = 100.0f;
+
+// S-curve yaw target planner
+inline constexpr float kYawSCurveVmax = 30.0f;   // rad/s
+inline constexpr float kYawSCurveAmax = 80.0f;  // rad/s²
+inline constexpr float kYawSCurveJmax = 2000.0f; // rad/s³
+inline constexpr float kYawVyCoupling = 0.0f;
 
 inline constexpr float kWheelTorqueFfLimitNm = 0.7f;
 
