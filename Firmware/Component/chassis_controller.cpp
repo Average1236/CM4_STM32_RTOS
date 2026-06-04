@@ -29,7 +29,13 @@ volatile float yaw_target_vel_debug = 0;
 MixedLesoChassisController::MixedLesoChassisController()
     : omega_z_filter_({control_config::kChassisOmegaZFilterCutoffHz,
                        control_config::kControlDtSec},
-                      0.0f) {
+                      0.0f),
+      vx_pid_({control_config::kVxPidKp, control_config::kVxPidKi, control_config::kVxPidKd,
+               control_config::kVxPidOutputLimit, control_config::kVxPidIntegLimit,
+               control_config::kControlDtSec}),
+      vy_pid_({control_config::kVyPidKp, control_config::kVyPidKi, control_config::kVyPidKd,
+               control_config::kVyPidOutputLimit, control_config::kVyPidIntegLimit,
+               control_config::kControlDtSec}) {
     precompute_mappings();
 }
 
@@ -231,14 +237,20 @@ void MixedLesoChassisController::step(float dt_s) {
                      + (control_config::kVelFeedbackGainX - control_config::kVelFeedbackGainMinX) * alpha_v;
     const float Kv_y = control_config::kVelFeedbackGainMinY
                      + (control_config::kVelFeedbackGainY - control_config::kVelFeedbackGainMinY) * alpha_v;
-    const float fb_vx = Kv_x * (vel_ref_[0] - leso2_[0][0]);
-    const float fb_vy = Kv_y * (vel_ref_[1] - leso2_[1][0]);
+    float Fx_ctrl, Fy_ctrl;
+    if constexpr (control_config::kChassisControlMode == control_config::ChassisControlMode::kPid) {
+        Fx_ctrl = vx_pid_.calc(vel_ref_[0], vx_m_s);
+        Fy_ctrl = vy_pid_.calc(vel_ref_[1], vy_m_s);
+    } else {
+        const float fb_vx = Kv_x * (vel_ref_[0] - leso2_[0][0]);
+        const float fb_vy = Kv_y * (vel_ref_[1] - leso2_[1][0]);
+        Fx_ctrl = fb_vx;
+        Fy_ctrl = fb_vy;
+    }
 
     const float F_task[3] = {
-        // control_config::kRobotMassKg * (acc_ref_[0] + fb_vx - leso2_[0][1]),
-        // control_config::kRobotMassKg * (acc_ref_[1] + fb_vy - leso2_[1][1]),
-        control_config::kRobotMassKg * (acc_ref_[0] + fb_vx),
-        control_config::kRobotMassKg * (acc_ref_[1] + fb_vy),
+        control_config::kRobotMassKg * (acc_ref_[0] + Fx_ctrl),
+        control_config::kRobotMassKg * (acc_ref_[1] + Fy_ctrl),
         F_task_psi,
     };
 
@@ -276,6 +288,8 @@ void MixedLesoChassisController::reset() {
     last_chassis_yaw_rad_ = 0.0f;
     yaw_ramp_alpha_ = 0.0f;
     omega_z_filter_.reset(0.0f);
+    vx_pid_.reset();
+    vy_pid_.reset();
 }
 
 bool MixedLesoChassisController::inverse3x3(const float in[3][3], float out[3][3]) const {

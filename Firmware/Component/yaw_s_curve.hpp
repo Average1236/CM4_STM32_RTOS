@@ -19,7 +19,8 @@ public:
     void set_config(const Config& cfg) { cfg_ = cfg; }
 
     /// Call when target changes. current_rad = measured yaw (unwrapped, rad).
-    void set_target(float target_rad, float current_rad) {
+    /// current_vel = measured angular velocity (rad/s).
+    void set_target(float target_rad, float current_rad, float current_vel) {
         const float dq = wrap_pm_pi(target_rad - current_rad);
         if (fabsf(dq) < 1e-9f) {
             active_ = false;
@@ -30,7 +31,8 @@ public:
         const float q0 = 0.0f;
         const float q1 = sign_ * dq;
         start_pos_ = current_rad;
-        compute_plan(q0, q1);
+        start_vel_ = sign_ * current_vel;  // signed for positive-direction plan
+        compute_plan(q0, q1, start_vel_);
         elapsed_ = 0.0f;
         active_ = (total_time_ > 1e-9f);
     }
@@ -61,6 +63,7 @@ private:
     bool active_ = false;
     float sign_ = 1.0f;
     float start_pos_ = 0.0f;
+    float start_vel_ = 0.0f;
     float elapsed_ = 0.0f;
     float total_time_ = 0.0f;
 
@@ -75,12 +78,12 @@ private:
         return x;
     }
 
-    void compute_plan(float q0, float q1) {
+    void compute_plan(float q0, float q1, float v0) {
         q1_ = q1;
         const float vmax = cfg_.vmax;
         float amax = cfg_.amax;
         const float jmax = cfg_.jmax;
-        const float v0 = 0.0f, v1 = 0.0f;
+        const float v1 = 0.0f;
         j_max_ = jmax;
 
         if (try_max_speed(q0, q1, v0, v1, vmax, amax, jmax)) return;
@@ -166,12 +169,12 @@ private:
     float sample_pos(float t) const {
         const float T = total_time_;
         if (t <= 0.0f) return 0.0f;
-        const float q_acc_end = vlim_ * Ta_ / 2.0f;
-        const float q_dec_start = q1_ - vlim_ * Td_ / 2.0f;
+        const float q_acc_end = (vlim_ + start_vel_) * Ta_ / 2.0f;
+        const float q_dec_start = q1_ - vlim_ * Td_ / 2.0f;  // v1=0
         if (t < Tj1_) {
-            return j_max_ * (t * t * t) / 6.0f;
+            return start_vel_ * t + j_max_ * (t * t * t) / 6.0f;
         } else if (t < Ta_ - Tj1_) {
-            return (alima_ / 6.0f) * (3.0f * t * t - 3.0f * Tj1_ * t + Tj1_ * Tj1_);
+            return start_vel_ * t + (alima_ / 6.0f) * (3.0f * t * t - 3.0f * Tj1_ * t + Tj1_ * Tj1_);
         } else if (t < Ta_) {
             const float tr = Ta_ - t;
             return q_acc_end - vlim_ * tr + j_max_ * (tr * tr * tr) / 6.0f;
@@ -194,11 +197,11 @@ private:
 
     float sample_vel(float t) const {
         const float T = total_time_;
-        if (t <= 0.0f) return 0.0f;
+        if (t <= 0.0f) return start_vel_;
         if (t < Tj1_) {
-            return j_max_ * t * t / 2.0f;
+            return start_vel_ + j_max_ * t * t / 2.0f;
         } else if (t < Ta_ - Tj1_) {
-            return alima_ * (t - Tj1_ / 2.0f);
+            return start_vel_ + alima_ * (t - Tj1_ / 2.0f);
         } else if (t < Ta_) {
             const float tr = Ta_ - t;
             return vlim_ - j_max_ * (tr * tr) / 2.0f;

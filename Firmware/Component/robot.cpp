@@ -233,7 +233,10 @@ void Robot::pi_decode_spi() {
         if (fabsf(wrap_to_pi(new_target - yaw_target_rad)) > 1e-6f) {
             yaw_target_rad = new_target;
             const auto yaw = chassis_estimator.chassis_yaw_output_port()->any();
-            yaw_s_curve_.set_target(yaw_target_rad, yaw.has_value() ? *yaw : 0.0f);
+            const auto wz  = chassis_estimator.chassis_omega_z_output_port()->any();
+            yaw_s_curve_.set_target(yaw_target_rad,
+                                    yaw.has_value() ? *yaw : 0.0f,
+                                    wz.has_value()  ? *wz  : 0.0f);
         }
     }
 

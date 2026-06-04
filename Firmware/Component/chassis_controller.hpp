@@ -69,6 +69,9 @@ private:
     float last_chassis_yaw_rad_ = 0.0f;
 
     ButterworthLowPass2 omega_z_filter_;
+
+    PID vx_pid_;
+    PID vy_pid_;
 };
 
 #endif // __CHASSIS_CONTROLLER_HPP
