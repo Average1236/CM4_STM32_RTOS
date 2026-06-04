@@ -29,13 +29,7 @@ volatile float yaw_target_vel_debug = 0;
 MixedLesoChassisController::MixedLesoChassisController()
     : omega_z_filter_({control_config::kChassisOmegaZFilterCutoffHz,
                        control_config::kControlDtSec},
-                      0.0f),
-      vx_pid_({control_config::kVxPidKp, control_config::kVxPidKi, control_config::kVxPidKd,
-               control_config::kVxPidOutputLimit, control_config::kVxPidIntegLimit,
-               control_config::kControlDtSec}),
-      vy_pid_({control_config::kVyPidKp, control_config::kVyPidKi, control_config::kVyPidKd,
-               control_config::kVyPidOutputLimit, control_config::kVyPidIntegLimit,
-               control_config::kControlDtSec}) {
+                      0.0f) {
     precompute_mappings();
 }
 
@@ -48,16 +42,13 @@ void MixedLesoChassisController::set_reference(const float vel_ref[3], const flo
 }
 
 void MixedLesoChassisController::set_use_3rd_order_leso(bool enable) {
-    if (enable != use_3rd_order_leso_) {
-        leso2_[2][0] = 0.0f;
-        leso2_[2][1] = 0.0f;
-        leso3_psi_[0] = 0.0f;
-        leso3_psi_[1] = 0.0f;
-        leso3_psi_[2] = 0.0f;
+    if (enable != use_imu_) {
+        leso2_[0][0] = 0.0f; leso2_[0][1] = 0.0f;
+        leso2_[1][0] = 0.0f; leso2_[1][1] = 0.0f;
+        leso2_[2][0] = 0.0f; leso2_[2][1] = 0.0f;
         yaw_target_pos_ = 0.0f;
         yaw_target_vel_ = 0.0f;
-        yaw_ramp_alpha_ = 0.0f;
-        use_3rd_order_leso_ = enable;
+        use_imu_ = enable;
     }
 }
 
@@ -86,21 +77,7 @@ void MixedLesoChassisController::step(float dt_s) {
     omega_z_filt_debug = omega_z_rad_s;
     const float yaw_rad = yaw_meas.has_value() ? *yaw_meas : last_chassis_yaw_rad_;
 
-    // Startup ramp: gradually scale yaw_rad from 0 → actual to avoid
-    // a step discontinuity when the 3rd-order LESO initializes.
-    float yaw_rad_effective = yaw_rad;
-    if (use_3rd_order_leso_ && yaw_ramp_alpha_ < 1.0f) {
-        const float ramp_t = control_config::kYawStartupRampTimeSec;
-        if (ramp_t > 1e-6f) {
-            yaw_ramp_alpha_ += dt_s / ramp_t;
-            if (yaw_ramp_alpha_ > 1.0f) yaw_ramp_alpha_ = 1.0f;
-        } else {
-            yaw_ramp_alpha_ = 1.0f;
-        }
-        yaw_rad_effective *= yaw_ramp_alpha_;
-    }
-
-    yaw_rad_debug = yaw_rad_effective;
+    yaw_rad_debug = yaw_rad;
 
     last_chassis_vx_m_s_ = vx_m_s;
     last_chassis_vy_m_s_ = vy_m_s;
@@ -169,65 +146,41 @@ void MixedLesoChassisController::step(float dt_s) {
     vy_leso_z1_debug = leso2_[1][0];
     vy_leso_z2_debug = leso2_[1][1];
 
-    // ---- yaw axis: 2nd-order or 3rd-order LESO ----
+    // ---- 2nd-order LESO on ω_z (unified, both use_imu modes) ----
+    const float wo_psi = wo_psi_eff;
+    const float L1_w = 2.0f * wo_psi;
+    const float L2_w = wo_psi * wo_psi;
+    const float err_w = omega_z_rad_s - leso2_[2][0];
+    const float dz1_w = leso2_[2][1] + L1_w * err_w + u_psi;
+    const float dz2_w = L2_w * err_w;
+    leso2_[2][0] += dt_s * dz1_w;
+    leso2_[2][1] += dt_s * dz2_w;
+
+    err_wz_debug = err_w;
+    yaw_leso_z1_debug = leso2_[2][0];
+    yaw_leso_z2_debug = leso2_[2][1];
+    yaw_leso3_z3_debug = 0.0f;
+
     float fb_psi;
     float F_task_psi;
 
-    if (use_3rd_order_leso_) {
-        const float wo_psi = wo_psi_eff;
-
-        // Decoupled observer: PLL on position + 2nd-order LESO on velocity.
-        // Uses measured ω_z directly instead of deriving velocity from position,
-        // reducing worst-case noise gain from ω_o³ → ω_o².
-
-        // [1] Position PLL — ω_z feedforward + PLL correction
-        const float err_psi = wrap_to_pi(yaw_rad_effective - leso3_psi_[0]);
-        const float dz1_psi = omega_z_rad_s + wo_psi * err_psi;
-        leso3_psi_[0] = wrap_to_pi(leso3_psi_[0] + dt_s * dz1_psi);
-
-        // [2] 2nd-order LESO on velocity — tracks ω_z, estimates disturbance
-        const float L1_w = 2.0f * wo_psi;
-        const float L2_w = wo_psi * wo_psi;
-        const float err_w = omega_z_rad_s - leso3_psi_[1];
-        const float dz2_psi = leso3_psi_[2] + L1_w * err_w + u_psi;
-        const float dz3_psi = L2_w * err_w;
-        leso3_psi_[1] += dt_s * dz2_psi;
-        leso3_psi_[2] += dt_s * dz3_psi;
-
-        err_psi_debug = err_psi;
-        err_wz_debug = err_w;
-        yaw_leso_z1_debug = leso3_psi_[0];
-        yaw_leso_z2_debug = leso3_psi_[1];
-        yaw_leso3_z3_debug = leso3_psi_[2];
-
-        const float err_pos = wrap_to_pi(yaw_target_pos_ - leso3_psi_[0]);
+    if (use_imu_) {
+        // PD controller on yaw angle (direct IMU measurement, no PLL needed)
+        const float err_pos = wrap_to_pi(yaw_target_pos_ - yaw_rad);
         const float err_vel = yaw_target_vel_ - omega_z_rad_s;
-        // PD gains via pole placement: both poles at -ω_c
-        // Controller bandwidth tracks observer bandwidth (same alpha_psi).
+        err_psi_debug = err_pos;
         const float wc = control_config::kAngleControllerBandwidthMin
                        + (control_config::kAngleControllerBandwidth - control_config::kAngleControllerBandwidthMin) * alpha_psi;
         const float Kp = wc * wc;
         const float Kd = 2.0f * wc;
         fb_psi = Kp * err_pos + Kd * err_vel;
         yaw_ref_input_debug = fb_psi;
-        F_task_psi = control_config::kRobotInertiaKgM2 * (fb_psi - leso3_psi_[2]
+        F_task_psi = control_config::kRobotInertiaKgM2 * (fb_psi - leso2_[2][1]
                      + control_config::kYawVyCoupling * vel_ref_[1]);
     } else {
-        const float wo_omega = control_config::kLesoOmegaObserverBandwidth;
-        const float L1_omega = 2.0f * wo_omega;
-        const float L2_omega = wo_omega * wo_omega;
-
-        const float err_wz = omega_z_rad_s - leso2_[2][0];
-        const float dz1_wz = leso2_[2][1] + L1_omega * err_wz + u_psi;
-        const float dz2_wz = L2_omega * err_wz;
-        leso2_[2][0] += dt_s * dz1_wz;
-        leso2_[2][1] += dt_s * dz2_wz;
-
-        yaw_leso_z1_debug = leso2_[2][0];
-        yaw_leso_z2_debug = leso2_[2][1];
-        yaw_leso3_z3_debug = 0.0f;
-
+        // P controller on yaw velocity
         fb_psi = control_config::kVelFeedbackGainYaw * (vel_ref_[2] - leso2_[2][0]);
+        err_psi_debug = 0.0f;
         yaw_ref_input_debug = fb_psi;
         F_task_psi = control_config::kRobotInertiaKgM2 * (acc_ref_[2] + fb_psi - leso2_[2][1]);
     }
@@ -237,20 +190,12 @@ void MixedLesoChassisController::step(float dt_s) {
                      + (control_config::kVelFeedbackGainX - control_config::kVelFeedbackGainMinX) * alpha_v;
     const float Kv_y = control_config::kVelFeedbackGainMinY
                      + (control_config::kVelFeedbackGainY - control_config::kVelFeedbackGainMinY) * alpha_v;
-    float Fx_ctrl, Fy_ctrl;
-    if constexpr (control_config::kChassisControlMode == control_config::ChassisControlMode::kPid) {
-        Fx_ctrl = vx_pid_.calc(vel_ref_[0], vx_m_s);
-        Fy_ctrl = vy_pid_.calc(vel_ref_[1], vy_m_s);
-    } else {
-        const float fb_vx = Kv_x * (vel_ref_[0] - leso2_[0][0]);
-        const float fb_vy = Kv_y * (vel_ref_[1] - leso2_[1][0]);
-        Fx_ctrl = fb_vx;
-        Fy_ctrl = fb_vy;
-    }
+    const float fb_vx = Kv_x * (vel_ref_[0] - leso2_[0][0]);
+    const float fb_vy = Kv_y * (vel_ref_[1] - leso2_[1][0]);
 
     const float F_task[3] = {
-        control_config::kRobotMassKg * (acc_ref_[0] + Fx_ctrl),
-        control_config::kRobotMassKg * (acc_ref_[1] + Fy_ctrl),
+        control_config::kRobotMassKg * (acc_ref_[0] + fb_vx),
+        control_config::kRobotMassKg * (acc_ref_[1] + fb_vy),
         F_task_psi,
     };
 
@@ -275,10 +220,6 @@ void MixedLesoChassisController::reset() {
         leso2_[axis][0] = 0.0f;
         leso2_[axis][1] = 0.0f;
     }
-    leso3_psi_[0] = 0.0f;
-    leso3_psi_[1] = 0.0f;
-    leso3_psi_[2] = 0.0f;
-
     for (int i = 0; i < 4; ++i) {
         wheel_torque_ff_output_ports_[i] = 0.0f;
     }
@@ -286,10 +227,7 @@ void MixedLesoChassisController::reset() {
     last_chassis_vy_m_s_ = 0.0f;
     last_chassis_omega_z_rad_s_ = 0.0f;
     last_chassis_yaw_rad_ = 0.0f;
-    yaw_ramp_alpha_ = 0.0f;
     omega_z_filter_.reset(0.0f);
-    vx_pid_.reset();
-    vy_pid_.reset();
 }
 
 bool MixedLesoChassisController::inverse3x3(const float in[3][3], float out[3][3]) const {

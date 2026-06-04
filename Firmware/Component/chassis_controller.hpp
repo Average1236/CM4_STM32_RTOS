@@ -48,15 +48,12 @@ private:
     float vel_ref_[3] = {0.0f, 0.0f, 0.0f};
     float acc_ref_[3] = {0.0f, 0.0f, 0.0f};
 
-    // 2nd-order LESO states for vx/vy/wz: [z1=velocity, z2=disturbance]
+    // 2nd-order LESO states: [z1=velocity, z2=disturbance] for vx, vy, yaw
     float leso2_[3][2] = {{0.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f}};
 
-    // 3rd-order LESO states for ψ axis: z1=position, z2=velocity, z3=disturbance
-    float leso3_psi_[3] = {0.0f, 0.0f, 0.0f};
     float yaw_target_pos_ = 0.0f;
     float yaw_target_vel_ = 0.0f;
-    bool use_3rd_order_leso_ = false;
-    float yaw_ramp_alpha_ = 0.0f;
+    bool use_imu_ = false;
 
     float j1_[3][4] = {{0.0f}};
     float j1_pinv_[4][3] = {{0.0f}};
@@ -69,9 +66,6 @@ private:
     float last_chassis_yaw_rad_ = 0.0f;
 
     ButterworthLowPass2 omega_z_filter_;
-
-    PID vx_pid_;
-    PID vy_pid_;
 };
 
 #endif // __CHASSIS_CONTROLLER_HPP

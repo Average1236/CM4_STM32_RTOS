@@ -26,24 +26,7 @@ inline constexpr float kWheelAlphaRad = 30.0f / 180.0f * kPi;
 inline constexpr float kWheelBetaRad = 45.0f / 180.0f * kPi;
 
 inline constexpr float kLesoVelObserverBandwidth = 60.0f;
-inline constexpr float kLesoOmegaObserverBandwidth = 0.0f;
 inline constexpr float kLesoAngleObserverBandwidth = 150.0f;
-
-// VX/VY control mode: LESO (disturbance observer) or PID
-enum class ChassisControlMode : uint8_t { kLeso = 0, kPid = 1 };
-inline constexpr ChassisControlMode kChassisControlMode = ChassisControlMode::kLeso;
-
-// PID gains for vx/vy when kChassisControlMode == kPid
-inline constexpr float kVxPidKp = 1.0f;
-inline constexpr float kVxPidKi = 1.5f;
-inline constexpr float kVxPidKd = 0.01f;
-inline constexpr float kVxPidOutputLimit = 5.0f;
-inline constexpr float kVxPidIntegLimit = 3.0f;
-inline constexpr float kVyPidKp = 1.0f;
-inline constexpr float kVyPidKi = 1.5f;
-inline constexpr float kVyPidKd = 0.01f;
-inline constexpr float kVyPidOutputLimit = 5.0f;
-inline constexpr float kVyPidIntegLimit = 3.0f;
 
 // Velocity-scheduled LESO bandwidth limits — high when moving (ground),
 // low when near-zero speed (airborne oscillation suppression).
@@ -67,7 +50,6 @@ inline constexpr float kVelFeedbackGainYaw = 0.0f;
 inline constexpr float kAngleControllerBandwidth = 50.0f;
 inline constexpr float kAngleControllerBandwidthMin = 0.0f;
 inline constexpr float kYawDesiredOmegaGain = 10.0f;
-inline constexpr float kYawStartupRampTimeSec = 1.5f;
 
 // S-curve yaw target planner
 inline constexpr float kYawSCurveVmax = 40.0f;   // rad/s
