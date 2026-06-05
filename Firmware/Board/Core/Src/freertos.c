@@ -158,7 +158,7 @@ void MX_FREERTOS_Init(void) {
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
-  q_optflow_dataHandle = osMessageQueueNew(8, 32, NULL);  // 8 snapshots, 32 bytes each (DualOptFlowSnapshot_t)
+  q_optflow_dataHandle = osMessageQueueNew(8, 16, NULL);  // 8 messages, 16 bytes each (2 floats)
   q_motor_fbHandle = osMessageQueueNew(25, 16, NULL);     // 25 messages for 5 motors
   q_imu_dataHandle = osMessageQueueNew(8, 36, NULL);      // 8 messages, 36 bytes (9 floats)
   /* USER CODE END RTOS_QUEUES */
