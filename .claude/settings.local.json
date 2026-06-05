@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -n \"can1_bus\\\\|can2_bus\\\\|optflow\\\\|hcan1\\\\|hcan2\" /d/Nlict/lichengji/double/mouse_stm32/Firmware/Board/board.cpp 2>/dev/null | head -20)",
+      "Read(//d/Nlict/lichengji/double/mouse_stm32/Firmware/Board/**)",
+      "Bash(xargs grep -l \"CM4_to_stm32_spi\")",
+      "Bash(diff /d/Nlict/lichengji/CM4_STM32_RTOS_NEW/Firmware/Communication/can/z_can.cpp /d/Nlict/lichengji/double/mouse_stm32/Firmware/Communication/can/z_can.cpp 2>/dev/null | head -60)",
+      "Read(//d/Nlict/lichengji/double/mouse_stm32/Firmware/Communication/can/**)"
+    ]
+  }
+}

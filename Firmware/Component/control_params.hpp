@@ -93,8 +93,7 @@ inline constexpr float kWheelVirtualDampingLimitNm = 0.4f;
 inline constexpr float kWheelObsVelocityButterworthCutoffHz = 100.0f;
 
 inline constexpr float kMITRunKp = 0.0f;
-// inline constexpr float kMITRunKd = 0.07f;
-inline constexpr float kMITRunKd = 0.0f;
+inline constexpr float kMITRunKd = 0.035f;
 inline constexpr float kMITRunTorqueFf = 0.0f;
 inline constexpr float kMITKdRampTimeSec = 1.0f;
 
