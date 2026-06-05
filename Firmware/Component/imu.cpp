@@ -4,7 +4,11 @@
 #include <cstring>
 
 // Debug
+volatile float imu_acc_x_debug = 0.0f;
+volatile float imu_acc_y_debug = 0.0f;
 volatile float imu_acc_z_debug = 0.0f;
+volatile float imu_gyro_x_debug = 0.0f;
+volatile float imu_gyro_y_debug = 0.0f;
 volatile float imu_gyro_z_debug = 0.0f;
 volatile float imu_omega_z_filt_debug = 0.0f;
 volatile float imu_yaw_debug = 0.0f;
@@ -29,7 +33,11 @@ void IMU::process_once()
         updated = decode_icm42688(icm_rx_buffer_, IMU_ICM42688_BURST_DATA_LENGTH);
     }
 
+    imu_acc_x_debug = data_[kAccX];
+    imu_acc_y_debug = data_[kAccY];
     imu_acc_z_debug = data_[kAccZ];
+    imu_gyro_x_debug = data_[kOmegaX];
+    imu_gyro_y_debug = data_[kOmegaY];
     imu_gyro_z_debug = data_[kOmegaZ] * (3.1415926535f / 180.0f);
     imu_yaw_debug = data_[kAngleZ] * (3.1415926535f / 180.0f);
 

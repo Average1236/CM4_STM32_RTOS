@@ -8,6 +8,7 @@ Thumbs.db
 # VS Code / IDE local settings
 # .vscode/
 .idea/
+.claude/
 
 # Python cache (Docs scripts)
 __pycache__/
