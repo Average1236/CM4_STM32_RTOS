@@ -52,8 +52,8 @@ inline constexpr float kAngleControllerBandwidthMin = 0.0f;
 inline constexpr float kYawDesiredOmegaGain = 10.0f;
 
 // S-curve yaw target planner
-inline constexpr float kYawSCurveVmax = 40.0f;   // rad/s
-inline constexpr float kYawSCurveAmax = 40.0f;  // rad/s²
+inline constexpr float kYawSCurveVmax = 10.0f;   // rad/s
+inline constexpr float kYawSCurveAmax = 15.0f;  // rad/s²
 inline constexpr float kYawSCurveJmax = 1000.0f; // rad/s³
 inline constexpr float kYawVyCoupling = 0.0f;
 
@@ -93,7 +93,7 @@ inline constexpr float kWheelVirtualDampingLimitNm = 0.4f;
 inline constexpr float kWheelObsVelocityButterworthCutoffHz = 100.0f;
 
 inline constexpr float kMITRunKp = 0.0f;
-inline constexpr float kMITRunKd = 0.035f;
+inline constexpr float kMITRunKd = 0.0f;
 inline constexpr float kMITRunTorqueFf = 0.0f;
 inline constexpr float kMITKdRampTimeSec = 1.0f;
 

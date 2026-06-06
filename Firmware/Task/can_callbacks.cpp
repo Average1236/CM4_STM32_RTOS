@@ -9,6 +9,8 @@
 #include <cstring>
 #include "stm32f4xx_hal.h"
 
+volatile uint32_t optflow_can_counter[2] = {0, 0}; // For debugging: count received frames for left (0) and right (1) optical flow sensors
+
 namespace {
 
 DualOptFlowSnapshot_t g_optflow_snapshot = {};
@@ -38,11 +40,13 @@ void on_optflow_rx(void* ctx, const can_Message_t& msg) {
         snapshot.left_y = -y;
         snapshot.valid_mask |= 0x01;
         snapshot.left_tick_ms = HAL_GetTick();
+        optflow_can_counter[0]++;
     } else {
         snapshot.right_x = x;
         snapshot.right_y = -y;
         snapshot.valid_mask |= 0x02;
         snapshot.right_tick_ms = HAL_GetTick();
+        optflow_can_counter[1]++;
     }
     snapshot.tick_ms = HAL_GetTick();
     g_optflow_snapshot = snapshot;
