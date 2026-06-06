@@ -5,12 +5,14 @@
 #include "Component/opt_flow.hpp"
 #include <cstring>
 
-// IMU init flag defined in board.cpp (set after imu.init() succeeds)
-extern volatile uint8_t g_imu_init_ok;
-
 // OptFlow health flags consumed by telemetry_task
 volatile bool g_optflow_available = false;
 volatile uint32_t g_optflow_last_update_ms = 0;
+
+// IMU roll/pitch anchor flag + gyro bias (written by SixAxisImuBias, read by imu_task)
+volatile bool  g_imu_trust_accel = false;
+volatile float g_imu_bias_gx_dps = 0.0f;
+volatile float g_imu_bias_gy_dps = 0.0f;
 
 namespace {
 static constexpr uint32_t kOptFlowQueueWaitMs = 20;
@@ -68,25 +70,28 @@ void StartOptFlowRxTask(void *argument) {
             data.right_tick_ms = snapshot.right_tick_ms;
             data.valid_mask    = snapshot.valid_mask;
 
-            // Fetch the latest IMU frame and feed acc x/y (m/s²) + gyro z (rad/s).
+            // Fetch the latest IMU frame — all 6 axes (3 acc + 3 gyro)
             float imu_frame[9];
             imu.get_data(imu_frame);
-            data.imu_acc_x   = imu_frame[0];
-            data.imu_acc_y   = imu_frame[1];
-            data.imu_omega_z = imu_frame[5] * (3.14159f / 180.0f); // DPS -> rad/s
-            data.imu_valid   = (g_imu_init_ok != 0);
+            data.imu_acc_x   = imu_frame[0];   // ax  m/s²
+            data.imu_acc_y   = imu_frame[1];   // ay  m/s²
+            data.imu_acc_z   = imu_frame[2];   // az  m/s²
+            data.imu_gyro_x  = imu_frame[3];   // gx  deg/s
+            data.imu_gyro_y  = imu_frame[4];   // gy  deg/s
+            data.imu_gyro_z  = imu_frame[5];   // gz  deg/s (will be converted to rad/s in process)
+            data.imu_valid   = true;
 
             opt_flow.process(data);
 
             // --- Pull fused state back into globals ---
             const OptFlow::State_t& s = opt_flow.get_state();
 
-            dual_flow_left_vx  = s.left_vx;
-            dual_flow_left_vy  = s.left_vy;
-            dual_flow_right_vx = s.right_vx;
-            dual_flow_right_vy = s.right_vy;
+            dual_flow_left_vx  = s.pll_l_vx;
+            dual_flow_left_vy  = s.pll_l_vy;
+            dual_flow_right_vx = s.pll_r_vx;
+            dual_flow_right_vy = s.pll_r_vy;
 
-            // body_vx/vy 现在采用卡尔曼融合结果；omega_z 用原始光流值
+            // body_vx/vy 采用卡尔曼融合结果
             body_vx = s.kf_vx;
             body_vy = s.kf_vy;
             omega_z = s.omega_z;
@@ -96,7 +101,7 @@ void StartOptFlowRxTask(void *argument) {
             flow_py = s.flow_py;
             flow_yaw = s.flow_yaw;
 
-            // raw 保留原始光流推导，方便调试对比
+            // raw 保留 PLL 融合后的 body 速度，方便调试对比
             raw_vx = s.body_vx;
             raw_vy = s.body_vy;
 

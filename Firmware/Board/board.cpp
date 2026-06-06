@@ -17,8 +17,6 @@
 
 extern "C" void SystemClock_Config(void);
 
-volatile uint8_t g_imu_init_ok = 0;
-
 void system_init() {
     HAL_Init();
     SystemClock_Config();

@@ -104,6 +104,26 @@ inline constexpr float kMITSafeTorqueFf = 0.0f;
 inline constexpr float kMotorRecoverDelayMs = 1000.0f;
 inline constexpr float kMotorClearErrorToEnableDelayMs = 10.0f;
 
+// ---- Optical Flow PLL ----
+inline constexpr float kOptFlowPllBandwidthHz = 40.0f;
+inline constexpr float kOptFlowPllZeroSnapMmPerS = 1.0f;
+inline constexpr float kOptFlowPllMaxJumpMm = 100.0f;
+inline constexpr uint8_t kOptFlowPllJumpConfirmFrames = 3;
+
+// ---- Six-Axis Stationary Detection ----
+inline constexpr float kStationaryAccelVarThreshold = 0.15f;
+inline constexpr float kStationaryGyroThresholdDegPerS = 5.0f;
+inline constexpr float kStationaryFlowThresholdMmPerS = 10.0f;
+inline constexpr uint8_t kStationaryConfirmFrames = 10;
+inline constexpr uint8_t kStationaryWindowFrames = 50;
+inline constexpr float kImuBiasAlpha = 0.02f;
+
+// ---- Simplified Kalman ----
+inline constexpr float kOptFlowKfQVel = 20.0f;
+inline constexpr float kOptFlowKfRVelFixed = 300.0f;
+
+// ---- IMU Roll/Pitch Complementary Filter ----
+inline constexpr float kImuRollPitchAlpha = 0.98f;
 
 } // namespace control_config
 

@@ -60,10 +60,14 @@ public:
     OutputPort<float>* omega_y_port() { return &omega_y_port_; }
     OutputPort<float>* omega_z_port() { return &omega_z_port_; }
     OutputPort<float>* yaw_port() { return &yaw_port_; }
+    OutputPort<float>* roll_port() { return &roll_port_; }
+    OutputPort<float>* pitch_port() { return &pitch_port_; }
 
     ButterworthLowPass2 omega_filter_{{0.0f, 0.0f}};
 
     void update_integrated_yaw(float dt_s);
+    void update_roll_pitch(float dt_s, bool trust_accel,
+                           float bias_gx_dps, float bias_gy_dps);
 
 private:
     static constexpr uint8_t kIcm42688WhoAmI = 0x75;
@@ -113,7 +117,11 @@ private:
     OutputPort<float> omega_y_port_{0.0f};
     OutputPort<float> omega_z_port_{0.0f};
     OutputPort<float> yaw_port_{0.0f};
+    OutputPort<float> roll_port_{0.0f};
+    OutputPort<float> pitch_port_{0.0f};
     float integrated_yaw_deg_ = 0.0f;
+    float integrated_roll_deg_ = 0.0f;
+    float integrated_pitch_deg_ = 0.0f;
 };
 
 #endif // __IMU_HPP

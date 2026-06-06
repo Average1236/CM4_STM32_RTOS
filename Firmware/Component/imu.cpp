@@ -194,9 +194,52 @@ void IMU::publish_ports_from_cache() {
     // omega_z and yaw are published by update_integrated_yaw()
 }
 
+void IMU::update_roll_pitch(float dt_s, bool trust_accel,
+                             float bias_gx_dps, float bias_gy_dps) {
+    // 锚定帧计数器（函数级静态，跨调用保持；仅 trust_accel 退出时清零）
+    static uint8_t anchor_frame_count = 0;
+
+    // 1. 去偏后陀螺积分（gyro 单位 deg/s）
+    const float omega_x = data_[kOmegaX] - bias_gx_dps;
+    const float omega_y = data_[kOmegaY] - bias_gy_dps;
+    integrated_roll_deg_  += dt_s * omega_x;
+    integrated_pitch_deg_ += dt_s * omega_y;
+
+    // 2. 加速度计锚定（仅在 trust_accel=true 时）
+    //    此时机器人静止/匀速，加速度计测到的是纯重力方向
+    if (trust_accel) {
+        // 前3帧用瞬时锚定（alpha=0.5，快速收敛），之后用参数维持平滑（修订#3）
+        const float alpha = (anchor_frame_count < 3)
+            ? 0.5f : control_config::kImuRollPitchAlpha;
+        anchor_frame_count++;
+
+        const float gx = data_[kAccX];
+        const float gy = data_[kAccY];
+        const float gz = data_[kAccZ];
+
+        constexpr float kRadToDeg = 180.0f / 3.1415926535f;
+        const float acc_roll  = atan2f(gy, gz) * kRadToDeg;
+        const float acc_pitch = atan2f(-gx, sqrtf(gy*gy + gz*gz)) * kRadToDeg;
+
+        integrated_roll_deg_  = alpha * integrated_roll_deg_
+                              + (1.0f - alpha) * acc_roll;
+        integrated_pitch_deg_ = alpha * integrated_pitch_deg_
+                              + (1.0f - alpha) * acc_pitch;
+    } else {
+        anchor_frame_count = 0;  // 退出锚定，重置计数器
+    }
+
+    data_[kAngleX] = integrated_roll_deg_;
+    data_[kAngleY] = integrated_pitch_deg_;
+    roll_port_  = integrated_roll_deg_;
+    pitch_port_ = integrated_pitch_deg_;
+}
+
 void IMU::reset_ports() {
     omega_x_port_.reset();
     omega_y_port_.reset();
     omega_z_port_.reset();
     yaw_port_.reset();
+    roll_port_.reset();
+    pitch_port_.reset();
 }

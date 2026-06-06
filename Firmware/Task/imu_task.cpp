@@ -28,6 +28,11 @@ void StartImuRxTask(void *argument) {
 
             imu.process_once();
             imu.update_integrated_yaw(imu_dt);
+            // Roll/pitch with gyro bias correction from SixAxisImuBias
+            imu.update_roll_pitch(imu_dt,
+                g_imu_trust_accel,
+                g_imu_bias_gx_dps,
+                g_imu_bias_gy_dps);
         }
     }
 }
