@@ -66,6 +66,15 @@ inline float signf_nonzero(const float x) {
     return (x >= 0.0f) ? 1.0f : -1.0f;
 }
 
+int16_t encode_velocity_mm_s(const float velocity_m_s) {
+    const float velocity_mm_s = velocity_m_s * 1000.0f;
+    if (!std::isfinite(velocity_mm_s)) {
+        return 0;
+    }
+
+    return static_cast<int16_t>(std::clamp(velocity_mm_s, -32768.0f, 32767.0f));
+}
+
 void init_axis_plan(
     AxisMotionPlan& plan,
     const float v_start,
@@ -321,6 +330,11 @@ void Robot::pi_encode_spi() {
         SpiTx.wheel[i] = static_cast<int16_t>(wheel_motors[i]->get_velocity() * 10);
         // SpiTx.wheel_ref[i] = static_cast<int16_t>(motor_vel[i] * 10);
     }
+
+    const auto chassis_vx = chassis_estimator.chassis_vx_output_port()->any();
+    const auto chassis_vy = chassis_estimator.chassis_vy_output_port()->any();
+    SpiTx.odom_vel[0] = encode_velocity_mm_s(chassis_vx.has_value() ? *chassis_vx : 0.0f);
+    SpiTx.odom_vel[1] = encode_velocity_mm_s(chassis_vy.has_value() ? *chassis_vy : 0.0f);
 
     // Encode IMU data
     for (uint8_t i = 0; i < 9; i++) {

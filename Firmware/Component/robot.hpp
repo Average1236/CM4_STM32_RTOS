@@ -27,7 +27,11 @@ struct __attribute__((packed)) stm32_to_CM4_spi
     int8_t battery_vol;
     int16_t cap_vol;
     int16_t wheel[4];
+    int16_t odom_vel[2]; // vx, vy in mm/s
 };
+
+static_assert(sizeof(CM4_to_stm32_spi) <= SPI_LENGTH, "CM4_to_stm32_spi exceeds SPI buffer length");
+static_assert(sizeof(stm32_to_CM4_spi) <= SPI_LENGTH, "stm32_to_CM4_spi exceeds SPI buffer length");
 
 class Robot: public RobotIntf {
 public:
