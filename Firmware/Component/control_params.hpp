@@ -5,6 +5,9 @@
 
 namespace control_config {
 
+// Dribbler control mode: true = torque control (CAN ID 0xAD), false = velocity control (CAN ID 0xAC)
+inline constexpr bool kDribblerTorqueMode = true;
+
 inline constexpr float kControlDtSec = static_cast<float>(TIM2_PERIOD_CLOCKS) / 1000000.0f;
 inline constexpr float kImuDtSec = static_cast<float>(TIM7_PERIOD_CLOCKS) / 1000000.0f;
 inline constexpr float kPi = 3.1415926535f;

@@ -13,12 +13,14 @@ public:
     static constexpr uint8_t kCmdHeartbeat = 0x001;
     static constexpr uint8_t kCmdSetRequestedState = 0x006;
     static constexpr uint8_t kCmdSetControllerModes = 0x00A;
+    static constexpr uint8_t kCmdSetInputVelocity = 0x00C;
     static constexpr uint8_t kCmdSetInputTorque = 0x00D;
 
     // Full CAN IDs = (node_id << 5) | cmd_id
     static constexpr uint32_t kCanIdHeartbeat = (kNodeId << 5) | kCmdHeartbeat;
     static constexpr uint32_t kCanIdSetRequestedState = (kNodeId << 5) | kCmdSetRequestedState;
     static constexpr uint32_t kCanIdSetControllerModes = (kNodeId << 5) | kCmdSetControllerModes;
+    static constexpr uint32_t kCanIdSetInputVelocity = (kNodeId << 5) | kCmdSetInputVelocity;
     static constexpr uint32_t kCanIdSetInputTorque = (kNodeId << 5) | kCmdSetInputTorque;
 
     // Axis states
@@ -28,6 +30,7 @@ public:
     static constexpr uint8_t kAxisStateClosedLoopControl = 8;
 
     // Control / input modes
+    static constexpr int32_t kControlModeVelocity = 2;
     static constexpr int32_t kControlModeTorque = 1;
     static constexpr int32_t kInputModePassthrough = 1;
 
@@ -45,10 +48,11 @@ public:
     void filter_voltage();
 
     // Called in ctrl_task: if no error and idle, queue state transition messages
-    void process_state_machine();
+    void process_state_machine(bool torque_mode);
 
     // Build CAN messages (does NOT send — ctrl_task sends under semaphore)
-    void build_torque_msg(can_Message_t& msg, float torque) const;
+    void build_velocity_msg(can_Message_t& msg, float velocity, float torque_ff = 0.0f) const;
+    void build_torque_msg(can_Message_t& msg, float torque, float velocity = 0.0f) const;
 
     // Pending messages populated by process_state_machine, sent by ctrl_task
     uint8_t pending_count = 0;
@@ -61,6 +65,12 @@ public:
     bool has_error = false;
     uint8_t error_flags = 0;
     uint32_t axis_error = 0;
+
+    // Idle confirmation: wait kIdleConfirmDelayMs after heartbeat reports Idle
+    // before sending CAN commands to the dribbler motor.
+    static constexpr uint32_t kIdleConfirmDelayMs = 1000;
+    bool idle_confirmed_ = false;
+    uint32_t idle_first_tick_ = 0;
 
 private:
     void build_set_requested_state_msg(can_Message_t& msg, int32_t state) const;

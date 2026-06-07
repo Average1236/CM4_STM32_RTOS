@@ -38,11 +38,28 @@ void DribblerZfoc::filter_voltage() {
     infra_voltage_filt_debug = infra_voltage_filt;
 }
 
-void DribblerZfoc::process_state_machine() {
+void DribblerZfoc::process_state_machine(bool torque_mode) {
     pending_count = 0;
+
+    // Idle confirmation gate: wait until heartbeat has reported Idle (buf[4]==1)
+    // for at least kIdleConfirmDelayMs continuously before sending any CAN commands.
+    if (!idle_confirmed_) {
+        if (!has_error && current_state == kAxisStateIdle) {
+            if (idle_first_tick_ == 0) {
+                idle_first_tick_ = HAL_GetTick();
+            } else if (HAL_GetTick() - idle_first_tick_ >= kIdleConfirmDelayMs) {
+                idle_confirmed_ = true;
+            }
+        } else {
+            idle_first_tick_ = 0;
+        }
+        return;
+    }
+
     if (!has_error && current_state == kAxisStateIdle) {
         build_set_requested_state_msg(pending_msgs[pending_count++], kAxisStateClosedLoopControl);
-        build_set_controller_modes_msg(pending_msgs[pending_count++], kControlModeTorque, kInputModePassthrough);
+        const int32_t ctrl_mode = torque_mode ? kControlModeTorque : kControlModeVelocity;
+        build_set_controller_modes_msg(pending_msgs[pending_count++], ctrl_mode, kInputModePassthrough);
     }
 }
 
@@ -65,11 +82,22 @@ void DribblerZfoc::build_set_controller_modes_msg(can_Message_t& msg, int32_t ct
     memcpy(&msg.buf[4], &input_mode, sizeof(input_mode));
 }
 
-void DribblerZfoc::build_torque_msg(can_Message_t& msg, float torque) const {
+void DribblerZfoc::build_torque_msg(can_Message_t& msg, float torque, float velocity) const {
+    // buf[0..3]: torque [Nm], buf[4..7]: velocity [turns/s or m/s], both little-endian float32
     msg.id = kCanIdSetInputTorque;
     msg.isExt = false;
     msg.rtr = false;
     msg.len = 8;
-    memset(msg.buf, 0, sizeof(msg.buf));
-    memcpy(msg.buf, &torque, sizeof(torque));
+    memcpy(&msg.buf[0], &torque, sizeof(torque));
+    memcpy(&msg.buf[4], &velocity, sizeof(velocity));
+}
+
+void DribblerZfoc::build_velocity_msg(can_Message_t& msg, float velocity, float torque_ff) const {
+    // buf[0..3]: velocity [turns/s], buf[4..7]: torque feedforward [Nm], both little-endian float32
+    msg.id = kCanIdSetInputVelocity;
+    msg.isExt = false;
+    msg.rtr = false;
+    msg.len = 8;
+    memcpy(&msg.buf[0], &velocity, sizeof(velocity));
+    memcpy(&msg.buf[4], &torque_ff, sizeof(torque_ff));
 }
