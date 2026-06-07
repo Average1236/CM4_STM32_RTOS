@@ -127,6 +127,7 @@ volatile uint32_t wait_us_debug = 0;
 volatile uint32_t exec_time_us = 0;
 volatile uint32_t tx_cmd_sent_count = 0;
 volatile uint32_t tx_cmd_drop_count = 0;
+volatile uint32_t ctrl_dt_us_debug = 0;
 
 float wheelInput[4];
 float debug_motor_vel[4];
@@ -215,6 +216,8 @@ void StartCrtlTask(void *argument) {
                                                 : (ctrl_now + 65536u - ctrl_last_time));
             ctrl_last_time = ctrl_now;
             ctrl_first = false;
+
+            ctrl_dt_us_debug = ctrl_dt_us;
             
             // Acquire robot state mutex
             if (osMutexAcquire(mtx_robot_stateHandle, 10) == osOK) {
@@ -263,10 +266,11 @@ void StartCrtlTask(void *argument) {
                 }
 
                 // Motion planning: compute acceleration from velocity setpoints
+                const float dt_s = static_cast<float>(ctrl_dt_us / 1000000.0);
                 robot.motion_planner(ctrl_dt_us);
 
-                // Yaw angle control: override yaw axis when use_imu
-                robot.prepare_yaw_control();
+                // Yaw angle control: S-curve planned omega (not raw P controller)
+                robot.prepare_yaw_control(dt_s);
 
                 // Inverse kinematics: compute wheel velocities
                 robot.ik_solve();

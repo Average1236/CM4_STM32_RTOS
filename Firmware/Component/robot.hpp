@@ -41,7 +41,7 @@ public:
 
     void ik_solve();
     void motion_planner(const double _dt);
-    void prepare_yaw_control();
+    void prepare_yaw_control(float dt_s);
     void bind_estimator_imu_ports(IMU& imu_ref);
     void bind_estimator_optflow_ports(OptFlow& optflow_ref);
     void update_torque_feedforward(const double _dt);

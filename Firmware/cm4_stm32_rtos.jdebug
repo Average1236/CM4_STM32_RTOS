@@ -4,9 +4,9 @@
 *                         www.segger.com                             *
 **********************************************************************
 
-File          : 
-Created       : 16. Dec 2025 18:47
-Ozone Version : V3.40c
+File          : C:/Users/lennox/Desktop/NewFolder/zjunlict/CM4_STM32_RTOS/Firmware/cm4_stm32_rtos.jdebug
+Created       : 07. Jun 2026 23:33
+Ozone Version : V3.40
 */
 
 /*********************************************************************
@@ -22,14 +22,14 @@ void OnProjectLoad (void) {
   //
   // Dialog-generated settings
   //
-  Project.AddPathSubstitute ("/home/lxl/zjunlict/cm4_stm32_RTOS/Firmware", "$(ProjectDir)");
-  Project.AddPathSubstitute ("/home/lxl/zjunlict/cm4_stm32_rtos/firmware", "$(ProjectDir)");
+  Project.AddPathSubstitute ("C:/Users/lennox/Desktop/NewFolder/zjunlict/CM4_STM32_RTOS/Firmware", "$(ProjectDir)");
+  Project.AddPathSubstitute ("c:/users/lennox/desktop/newfolder/zjunlict/cm4_stm32_rtos/firmware", "$(ProjectDir)");
   Project.SetDevice ("STM32F405RG");
   Project.SetHostIF ("USB", "");
   Project.SetTargetIF ("SWD");
   Project.SetTIFSpeed ("4 MHz");
   Project.AddSvdFile ("$(InstallDir)/Config/CPU/Cortex-M4F.svd");
-  Project.AddSvdFile ("/home/lxl/下载/STM32F405.svd");
+  Project.AddSvdFile ("$(InstallDir)/Config/CPU/Cortex-M4.svd");
   //
   // User settings
   //

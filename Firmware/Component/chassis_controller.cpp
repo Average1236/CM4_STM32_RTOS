@@ -10,14 +10,18 @@ volatile float vy_leso_z1_debug = 0;
 volatile float vy_leso_z2_debug = 0;
 volatile float yaw_leso_z1_debug = 0;
 volatile float yaw_leso_z2_debug = 0;
-volatile float yaw_leso3_z3_debug = 0;
+volatile float vx_ref_debug = 0;
+volatile float vy_ref_debug = 0;
+volatile float fb_vx_debug = 0;
+volatile float fb_vy_debug = 0;
 volatile float F_task_0_debug = 0;
 volatile float F_task_1_debug = 0;
 volatile float F_task_2_debug = 0;
 volatile float torque_ff_debug_0 = 0;
 volatile float torque_ff_debug_1 = 0;
 volatile float u_psi_debug = 0;
-volatile float err_psi_debug = 0;
+volatile float err_psi_pos_debug = 0;
+volatile float err_psi_vel_debug = 0;
 volatile float err_wz_debug = 0;
 volatile float yaw_rad_debug = 0;
 volatile float wo_vel_eff_debug = 0;
@@ -159,7 +163,6 @@ void MixedLesoChassisController::step(float dt_s) {
     err_wz_debug = err_w;
     yaw_leso_z1_debug = leso2_[2][0];
     yaw_leso_z2_debug = leso2_[2][1];
-    yaw_leso3_z3_debug = 0.0f;
 
     float fb_psi;
     float F_task_psi;
@@ -168,7 +171,8 @@ void MixedLesoChassisController::step(float dt_s) {
         // PD controller on yaw angle (direct IMU measurement, no PLL needed)
         const float err_pos = wrap_to_pi(yaw_target_pos_ - yaw_rad);
         const float err_vel = yaw_target_vel_ - omega_z_rad_s;
-        err_psi_debug = err_pos;
+        err_psi_pos_debug = err_pos;
+        err_psi_vel_debug = err_vel;
         const float wc = control_config::kAngleControllerBandwidthMin
                        + (control_config::kAngleControllerBandwidth - control_config::kAngleControllerBandwidthMin) * alpha_psi;
         const float Kp = wc * wc;
@@ -180,7 +184,7 @@ void MixedLesoChassisController::step(float dt_s) {
     } else {
         // P controller on yaw velocity
         fb_psi = control_config::kVelFeedbackGainYaw * (vel_ref_[2] - leso2_[2][0]);
-        err_psi_debug = 0.0f;
+        err_psi_pos_debug = 0.0f;
         yaw_ref_input_debug = fb_psi;
         F_task_psi = control_config::kRobotInertiaKgM2 * (acc_ref_[2] + fb_psi - leso2_[2][1]);
     }
@@ -192,6 +196,11 @@ void MixedLesoChassisController::step(float dt_s) {
                      + (control_config::kVelFeedbackGainY - control_config::kVelFeedbackGainMinY) * alpha_v;
     const float fb_vx = Kv_x * (vel_ref_[0] - leso2_[0][0]);
     const float fb_vy = Kv_y * (vel_ref_[1] - leso2_[1][0]);
+
+    vx_ref_debug = vel_ref_[0];
+    vy_ref_debug = vel_ref_[1];
+    fb_vx_debug = fb_vx;
+    fb_vy_debug = fb_vy;
 
     const float F_task[3] = {
         control_config::kRobotMassKg * (acc_ref_[0] + fb_vx),

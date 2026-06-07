@@ -233,10 +233,9 @@ void Robot::pi_decode_spi() {
         if (fabsf(wrap_to_pi(new_target - yaw_target_rad)) > 1e-6f) {
             yaw_target_rad = new_target;
             const auto yaw = chassis_estimator.chassis_yaw_output_port()->any();
-            const auto wz  = chassis_estimator.chassis_omega_z_output_port()->any();
             yaw_s_curve_.set_target(yaw_target_rad,
                                     yaw.has_value() ? *yaw : 0.0f,
-                                    wz.has_value()  ? *wz  : 0.0f);
+                                    0.0f);
         }
     }
 
@@ -330,14 +329,14 @@ void Robot::pi_encode_spi() {
     memcpy(spi_tx_data, &SpiTx, sizeof(SpiTx));
 }
 
-void Robot::prepare_yaw_control() {
+void Robot::prepare_yaw_control(float dt_s) {
     if (!use_imu) {
         return;
     }
 
-    const auto yaw = chassis_estimator.chassis_yaw_output_port()->any();
-    const float measured_yaw = yaw.has_value() ? *yaw : 0.0f;
-    robot_real_vel[2] = control_config::kYawDesiredOmegaGain * wrap_to_pi(yaw_target_rad - measured_yaw);
+    // Step the S-curve yaw planner → use its velocity as omega reference
+    yaw_s_curve_.step(dt_s);
+    robot_real_vel[2] = yaw_s_curve_.velocity();
     robot_acc[2] = 0.0f;
 }
 
@@ -430,7 +429,6 @@ void Robot::update_torque_feedforward(const double _dt) {
     chassis_controller.set_reference(robot_real_vel, robot_acc, yaw_ref_rel_rad_);
     chassis_controller.set_use_3rd_order_leso(use_imu);
     if (use_imu) {
-        yaw_s_curve_.step(dt_s);
         chassis_controller.set_yaw_target(yaw_s_curve_.position(), yaw_s_curve_.velocity());
     }
     chassis_estimator.step(dt_s);

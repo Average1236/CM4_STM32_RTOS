@@ -9,19 +9,19 @@ inline constexpr float kControlDtSec = static_cast<float>(TIM2_PERIOD_CLOCKS) / 
 inline constexpr float kImuDtSec = static_cast<float>(TIM7_PERIOD_CLOCKS) / 1000000.0f;
 inline constexpr float kPi = 3.1415926535f;
 
-inline constexpr float kAccThresholdX = 4.0f;
-inline constexpr float kAccThresholdY = 4.0f;
+inline constexpr float kAccThresholdX = 10.0f;
+inline constexpr float kAccThresholdY = 10.0f;
 inline constexpr float kAccThresholdYaw = 40.0f;
 
-inline constexpr float kJerkLimitX = 50.0f;
-inline constexpr float kJerkLimitY = 50.0f;
+inline constexpr float kJerkLimitX = 300.0f;
+inline constexpr float kJerkLimitY = 300.0f;
 inline constexpr float kJerkLimitYaw = 600.0f;
 
 inline constexpr float kRobotMassKg = 2.25f;
 inline constexpr float kRobotInertiaKgM2 = 8e-3f;
 inline constexpr float kWheelRadiusM = 0.033f;
 inline constexpr float kWheelCenterDistanceM = 0.07956f;
-inline constexpr float kCenterToComDistanceM = -0.01f;
+inline constexpr float kCenterToComDistanceM = 0.0f;
 inline constexpr float kWheelAlphaRad = 30.0f / 180.0f * kPi;
 inline constexpr float kWheelBetaRad = 45.0f / 180.0f * kPi;
 
@@ -48,13 +48,12 @@ inline constexpr float kVelFeedbackGainYaw = 0.0f;
 // PD controller bandwidth — scheduled together with LESO bandwidth.
 // max when moving (stiff angle tracking), min when stationary (stable).
 inline constexpr float kAngleControllerBandwidth = 50.0f;
-inline constexpr float kAngleControllerBandwidthMin = 0.0f;
-inline constexpr float kYawDesiredOmegaGain = 10.0f;
+inline constexpr float kAngleControllerBandwidthMin = 50.0f;
 
 // S-curve yaw target planner
-inline constexpr float kYawSCurveVmax = 10.0f;   // rad/s
-inline constexpr float kYawSCurveAmax = 15.0f;  // rad/s²
-inline constexpr float kYawSCurveJmax = 1000.0f; // rad/s³
+inline constexpr float kYawSCurveVmax = 25.0f;   // rad/s
+inline constexpr float kYawSCurveAmax = 40.0f;  // rad/s²
+inline constexpr float kYawSCurveJmax = 200.0f; // rad/s³
 inline constexpr float kYawVyCoupling = 0.0f;
 
 inline constexpr float kWheelTorqueFfLimitNm = 0.7f;
@@ -130,7 +129,7 @@ inline constexpr uint8_t kChassisVelocitySource = 1;
 // ---- Test Kick ----
 // true:  bypass infrared sensor, rising-edge trigger on kick_discharge_time
 // false: require infrared ball detection (INFRARED_THRESHOLD)
-inline constexpr bool kTestKick = true;
+inline constexpr bool kTestKick = false;
 
 // ---- IMU Roll/Pitch Complementary Filter ----
 inline constexpr float kImuRollPitchAlpha = 0.98f;
