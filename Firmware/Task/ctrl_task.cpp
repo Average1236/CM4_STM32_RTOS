@@ -247,9 +247,19 @@ void StartCrtlTask(void *argument) {
                 can_Message_t dribbler_torque_msg;
                 robot.dribbler.build_torque_msg(dribbler_torque_msg, robot.dribble_power);
 
-                // Only allow kick when ball is detected (infrared voltage above threshold)
-                if (robot.dribbler.infra_voltage_filt > INFRARED_THRESHOLD) {
-                    robot.request_kick_from_spi();
+                // Kick trigger
+                if (control_config::kTestKick) {
+                    // Test mode: rising-edge on kick_discharge_time (0 → non-zero)
+                    static uint16_t prev_discharge_time = 0;
+                    if (robot.kick_discharge_time > 0 && prev_discharge_time == 0) {
+                        robot.request_kick_from_spi();
+                    }
+                    prev_discharge_time = robot.kick_discharge_time;
+                } else {
+                    // Normal mode: require infrared ball detection
+                    if (robot.dribbler.infra_voltage_filt > INFRARED_THRESHOLD) {
+                        robot.request_kick_from_spi();
+                    }
                 }
 
                 // Motion planning: compute acceleration from velocity setpoints

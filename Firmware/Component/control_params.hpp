@@ -127,6 +127,11 @@ inline constexpr float kOptFlowKfRVelFixed = 300.0f;
 // 1: optical-flow-based (kf_vx / kf_vy from OptFlow)
 inline constexpr uint8_t kChassisVelocitySource = 1;
 
+// ---- Test Kick ----
+// true:  bypass infrared sensor, rising-edge trigger on kick_discharge_time
+// false: require infrared ball detection (INFRARED_THRESHOLD)
+inline constexpr bool kTestKick = true;
+
 // ---- IMU Roll/Pitch Complementary Filter ----
 inline constexpr float kImuRollPitchAlpha = 0.98f;
 
