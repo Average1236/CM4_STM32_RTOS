@@ -36,9 +36,26 @@ void ChassisEstimator::step(float dt_s) {
     wheel_vel_0_debug = wheel_vel_rad_s[0];
 
     float chassis_vel_meas[3] = {0.0f, 0.0f, 0.0f};
-    for (int row = 0; row < 3; ++row) {
-        for (int col = 0; col < 4; ++col) {
-            chassis_vel_meas[row] += j2_pinv_[row][col] * wheel_vel_rad_s[col];
+
+    if (control_config::kChassisVelocitySource == 1) {
+        // Optical-flow-based velocity
+        const std::optional<float> optflow_vx = optflow_vx_input_port_.any();
+        const std::optional<float> optflow_vy = optflow_vy_input_port_.any();
+        if (optflow_vx.has_value() && optflow_vy.has_value()) {
+            // Convert mm/s → m/s for chassis_vel_meas
+            chassis_vel_meas[0] = *optflow_vx * 0.001f;
+            chassis_vel_meas[1] = *optflow_vy * 0.001f;
+        }
+        // omega_z (chassis_vel_meas[2]) stays 0 from wheel fallback or from below
+    }
+
+    if (control_config::kChassisVelocitySource == 0 || chassis_vel_meas[0] == 0.0f) {
+        // Wheel-based velocity (Jacobian pseudo-inverse from motor velocities)
+        // Only vx (row 0) and vy (row 1) — omega_z comes from IMU
+        for (int row = 0; row < 2; ++row) {
+            for (int col = 0; col < 4; ++col) {
+                chassis_vel_meas[row] += j2_pinv_[row][col] * wheel_vel_rad_s[col];
+            }
         }
     }
 
@@ -67,6 +84,9 @@ void ChassisEstimator::step(float dt_s) {
 
     last_yaw_rad_ = yaw_rad;
     last_omega_z_rad_s_ = omega_z_rad_s;
+
+    // omega_z always from IMU (not wheel Jacobian)
+    chassis_vel_meas[2] = omega_z_rad_s;
 
     // Debug outputs
     chassis_vx_debug = chassis_vel_meas[0];

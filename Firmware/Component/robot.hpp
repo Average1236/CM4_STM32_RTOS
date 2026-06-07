@@ -43,6 +43,7 @@ public:
     void motion_planner(const double _dt);
     void prepare_yaw_control();
     void bind_estimator_imu_ports(IMU& imu_ref);
+    void bind_estimator_optflow_ports(OptFlow& optflow_ref);
     void update_torque_feedforward(const double _dt);
 
     void watchdog_feed();

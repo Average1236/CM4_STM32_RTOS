@@ -62,12 +62,15 @@ public:
     OutputPort<float>* yaw_port() { return &yaw_port_; }
     OutputPort<float>* roll_port() { return &roll_port_; }
     OutputPort<float>* pitch_port() { return &pitch_port_; }
+    OutputPort<float>* acc_x_port() { return &acc_x_port_; }
+    OutputPort<float>* acc_y_port() { return &acc_y_port_; }
+    OutputPort<float>* acc_z_port() { return &acc_z_port_; }
 
     ButterworthLowPass2 omega_filter_{{0.0f, 0.0f}};
 
     void update_integrated_yaw(float dt_s);
-    void update_roll_pitch(float dt_s, bool trust_accel,
-                           float bias_gx_dps, float bias_gy_dps);
+    void update_roll_pitch(float dt_s);
+    void compute_stationary_and_bias();
 
 private:
     static constexpr uint8_t kIcm42688WhoAmI = 0x75;
@@ -119,9 +122,29 @@ private:
     OutputPort<float> yaw_port_{0.0f};
     OutputPort<float> roll_port_{0.0f};
     OutputPort<float> pitch_port_{0.0f};
+    OutputPort<float> acc_x_port_{0.0f};
+    OutputPort<float> acc_y_port_{0.0f};
+    OutputPort<float> acc_z_port_{0.0f};
     float integrated_yaw_deg_ = 0.0f;
     float integrated_roll_deg_ = 0.0f;
     float integrated_pitch_deg_ = 0.0f;
+
+    // IMU-internal stationary detection + gyro bias estimation
+    // No flow dependency — uses only IMU data
+    struct ImuStationaryState {
+        bool  trust_accel = false;
+        float bias_gx_dps = 0.0f;
+        float bias_gy_dps = 0.0f;
+        float bias_gz_dps = 0.0f;
+        uint8_t confirm_count = 0;
+    };
+    ImuStationaryState imu_stat_;
+    float prev_acc_norm_ = 9.81f;
+    enum class ImuStatPhase { kNormal, kCollecting, kVerifying };
+    ImuStatPhase imu_stat_phase_ = ImuStatPhase::kNormal;
+    uint8_t imu_stat_collect_count_ = 0;
+    float imu_stat_sum_ax_ = 0.0f, imu_stat_sum_ay_ = 0.0f;
+    float imu_stat_sum_gx_ = 0.0f, imu_stat_sum_gy_ = 0.0f, imu_stat_sum_gz_ = 0.0f;
 };
 
 #endif // __IMU_HPP

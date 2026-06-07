@@ -179,7 +179,9 @@ void IMU::get_data(float out_data[9]) const
 }
 
 void IMU::update_integrated_yaw(float dt_s) {
-    const float omega_z_filt = omega_filter_.filter(data_[kOmegaZ]);
+    // 使用动态估计的陀螺 Z 偏置（静止窗口 EMA 更新）
+    const float omega_z_corrected = data_[kOmegaZ] - imu_stat_.bias_gz_dps;
+    const float omega_z_filt = omega_filter_.filter(omega_z_corrected);
     imu_omega_z_filt_debug = omega_z_filt * (3.1415926535f / 180.0f);
     omega_z_port_ = omega_z_filt;
     integrated_yaw_deg_ += dt_s * omega_z_filt;
@@ -191,31 +193,31 @@ void IMU::update_integrated_yaw(float dt_s) {
 void IMU::publish_ports_from_cache() {
     omega_x_port_ = data_[kOmegaX];
     omega_y_port_ = data_[kOmegaY];
+    acc_x_port_ = data_[kAccX];
+    acc_y_port_ = data_[kAccY];
+    acc_z_port_ = data_[kAccZ];
     // omega_z and yaw are published by update_integrated_yaw()
 }
 
-void IMU::update_roll_pitch(float dt_s, bool trust_accel,
-                             float bias_gx_dps, float bias_gy_dps) {
+void IMU::update_roll_pitch(float dt_s) {
     // 锚定帧计数器（函数级静态，跨调用保持；仅 trust_accel 退出时清零）
     static uint8_t anchor_frame_count = 0;
 
-    // 1. 去偏后陀螺积分（gyro 单位 deg/s）
-    const float omega_x = data_[kOmegaX] - bias_gx_dps;
-    const float omega_y = data_[kOmegaY] - bias_gy_dps;
+    // 1. 去偏后陀螺积分（使用内部估计的 bias）
+    const float omega_x = data_[kOmegaX] - imu_stat_.bias_gx_dps;
+    const float omega_y = data_[kOmegaY] - imu_stat_.bias_gy_dps;
     integrated_roll_deg_  += dt_s * omega_x;
     integrated_pitch_deg_ += dt_s * omega_y;
 
-    // 2. 加速度计锚定（仅在 trust_accel=true 时）
-    //    此时机器人静止/匀速，加速度计测到的是纯重力方向
-    if (trust_accel) {
-        // 前3帧用瞬时锚定（alpha=0.5，快速收敛），之后用参数维持平滑（修订#3）
+    // 2. 加速度计锚定（仅在内部 trust_accel=true 时）
+    if (imu_stat_.trust_accel) {
         const float alpha = (anchor_frame_count < 3)
             ? 0.5f : control_config::kImuRollPitchAlpha;
         anchor_frame_count++;
 
-        const float gx = data_[kAccX];
         const float gy = data_[kAccY];
         const float gz = data_[kAccZ];
+        const float gx = data_[kAccX];
 
         constexpr float kRadToDeg = 180.0f / 3.1415926535f;
         const float acc_roll  = atan2f(gy, gz) * kRadToDeg;
@@ -226,13 +228,89 @@ void IMU::update_roll_pitch(float dt_s, bool trust_accel,
         integrated_pitch_deg_ = alpha * integrated_pitch_deg_
                               + (1.0f - alpha) * acc_pitch;
     } else {
-        anchor_frame_count = 0;  // 退出锚定，重置计数器
+        anchor_frame_count = 0;
     }
 
     data_[kAngleX] = integrated_roll_deg_;
     data_[kAngleY] = integrated_pitch_deg_;
     roll_port_  = integrated_roll_deg_;
     pitch_port_ = integrated_pitch_deg_;
+}
+
+void IMU::compute_stationary_and_bias() {
+    const float ax = data_[kAccX], ay = data_[kAccY], az = data_[kAccZ];
+    const float gx = data_[kOmegaX], gy = data_[kOmegaY], gz = data_[kOmegaZ];
+
+    const float acc_norm = sqrtf(ax*ax + ay*ay + az*az);
+    const float acc_var  = fabsf(acc_norm - prev_acc_norm_);
+    prev_acc_norm_ = acc_norm;
+
+    const bool accel_stable = (acc_var < control_config::kStationaryAccelVarThreshold);
+    const bool gyro_still   = (fabsf(gx) < control_config::kStationaryGyroThresholdDegPerS)
+                           && (fabsf(gy) < control_config::kStationaryGyroThresholdDegPerS)
+                           && (fabsf(gz) < control_config::kStationaryGyroThresholdDegPerS);
+    const bool all_still    = accel_stable && gyro_still;
+
+    switch (imu_stat_phase_) {
+    case ImuStatPhase::kNormal:
+        if (all_still) {
+            imu_stat_.confirm_count++;
+            if (imu_stat_.confirm_count >= control_config::kStationaryConfirmFrames) {
+                imu_stat_phase_ = ImuStatPhase::kCollecting;
+                imu_stat_collect_count_ = 0;
+                imu_stat_sum_gx_ = 0.0f; imu_stat_sum_gy_ = 0.0f; imu_stat_sum_gz_ = 0.0f;
+            }
+        } else {
+            imu_stat_.confirm_count = 0;
+        }
+        imu_stat_.trust_accel = false;
+        break;
+
+    case ImuStatPhase::kCollecting:
+        if (!all_still) {
+            imu_stat_phase_ = ImuStatPhase::kNormal;
+            imu_stat_.confirm_count = 0;
+            imu_stat_.trust_accel = false;
+            break;
+        }
+        imu_stat_sum_gx_ += gx; imu_stat_sum_gy_ += gy; imu_stat_sum_gz_ += gz;
+        imu_stat_collect_count_++;
+        if (imu_stat_collect_count_ >= control_config::kStationaryWindowFrames) {
+            imu_stat_phase_ = ImuStatPhase::kVerifying;
+        }
+        imu_stat_.trust_accel = true;
+        break;
+
+    case ImuStatPhase::kVerifying:
+        if (all_still) {
+            const float n = static_cast<float>(imu_stat_collect_count_);
+            const float mean_gx = imu_stat_sum_gx_ / n;
+            const float mean_gy = imu_stat_sum_gy_ / n;
+            const float mean_gz = imu_stat_sum_gz_ / n;
+
+            const float alpha = control_config::kImuBiasAlpha;
+            imu_stat_.bias_gx_dps = alpha * mean_gx + (1.0f - alpha) * imu_stat_.bias_gx_dps;
+            imu_stat_.bias_gy_dps = alpha * mean_gy + (1.0f - alpha) * imu_stat_.bias_gy_dps;
+            imu_stat_.bias_gz_dps = alpha * mean_gz + (1.0f - alpha) * imu_stat_.bias_gz_dps;
+
+            // Continue collecting next window
+            imu_stat_phase_ = ImuStatPhase::kCollecting;
+            imu_stat_collect_count_ = 0;
+            imu_stat_sum_gx_ = 0.0f; imu_stat_sum_gy_ = 0.0f; imu_stat_sum_gz_ = 0.0f;
+            imu_stat_.trust_accel = true;
+        } else {
+            imu_stat_phase_ = ImuStatPhase::kNormal;
+            imu_stat_.confirm_count = 0;
+            imu_stat_.trust_accel = false;
+        }
+        break;
+    }
+
+    if (!all_still && imu_stat_phase_ == ImuStatPhase::kCollecting) {
+        imu_stat_phase_ = ImuStatPhase::kNormal;
+        imu_stat_.confirm_count = 0;
+        imu_stat_.trust_accel = false;
+    }
 }
 
 void IMU::reset_ports() {
@@ -242,4 +320,7 @@ void IMU::reset_ports() {
     yaw_port_.reset();
     roll_port_.reset();
     pitch_port_.reset();
+    acc_x_port_.reset();
+    acc_y_port_.reset();
+    acc_z_port_.reset();
 }

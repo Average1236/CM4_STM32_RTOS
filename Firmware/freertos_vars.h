@@ -25,9 +25,4 @@ extern osMutexId_t mtx_spi_bufferHandle;
 extern volatile bool g_optflow_available;
 extern volatile uint32_t g_optflow_last_update_ms;
 
-// IMU roll/pitch trust-accel anchor flag (set by SixAxisImuBias in optflow task)
-extern volatile bool g_imu_trust_accel;
-extern volatile float g_imu_bias_gx_dps;
-extern volatile float g_imu_bias_gy_dps;
-
 #endif // __FREERTOS_VARS_H

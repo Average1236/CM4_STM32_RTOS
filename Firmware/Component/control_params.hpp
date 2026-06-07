@@ -9,12 +9,12 @@ inline constexpr float kControlDtSec = static_cast<float>(TIM2_PERIOD_CLOCKS) / 
 inline constexpr float kImuDtSec = static_cast<float>(TIM7_PERIOD_CLOCKS) / 1000000.0f;
 inline constexpr float kPi = 3.1415926535f;
 
-inline constexpr float kAccThresholdX = 15.0f;
-inline constexpr float kAccThresholdY = 9.0f;
+inline constexpr float kAccThresholdX = 4.0f;
+inline constexpr float kAccThresholdY = 4.0f;
 inline constexpr float kAccThresholdYaw = 40.0f;
 
-inline constexpr float kJerkLimitX = 300.0f;
-inline constexpr float kJerkLimitY = 100.0f;
+inline constexpr float kJerkLimitX = 50.0f;
+inline constexpr float kJerkLimitY = 50.0f;
 inline constexpr float kJerkLimitYaw = 600.0f;
 
 inline constexpr float kRobotMassKg = 2.25f;
@@ -25,13 +25,13 @@ inline constexpr float kCenterToComDistanceM = -0.01f;
 inline constexpr float kWheelAlphaRad = 30.0f / 180.0f * kPi;
 inline constexpr float kWheelBetaRad = 45.0f / 180.0f * kPi;
 
-inline constexpr float kLesoVelObserverBandwidth = 60.0f;
+inline constexpr float kLesoVelObserverBandwidth = 120.0f;
 inline constexpr float kLesoAngleObserverBandwidth = 150.0f;
 
 // Velocity-scheduled LESO bandwidth limits — high when moving (ground),
 // low when near-zero speed (airborne oscillation suppression).
-inline constexpr float kLesoVelBandwidthMin = 0.0f;
-inline constexpr float kLesoAngleBandwidthMin = 0.0f;
+inline constexpr float kLesoVelBandwidthMin = 80.0f;
+inline constexpr float kLesoAngleBandwidthMin = 50.0f;
 inline constexpr float kLesoScheduleVelocityThreshold = 0.01f;  // m/s
 inline constexpr float kLesoScheduleOmegaThreshold = 0.01f;    // rad/s
 inline constexpr float kImuOmegaButterworthCutoffHz = 350.0f;
@@ -40,10 +40,10 @@ inline constexpr float kImuOmegaBiasZ = 1.0f;
 
 // Velocity feedback gains — scheduled with LESO bandwidth via alpha_v.
 // Kv = ω_c for 1st-order velocity loop pole placement.
-inline constexpr float kVelFeedbackGainX = 8.0f;
-inline constexpr float kVelFeedbackGainY = 2.0f;
-inline constexpr float kVelFeedbackGainMinX = 1.0f;
-inline constexpr float kVelFeedbackGainMinY = 1.0f;
+inline constexpr float kVelFeedbackGainX = 20.0f;
+inline constexpr float kVelFeedbackGainY = 20.0f;
+inline constexpr float kVelFeedbackGainMinX = 8.0f;
+inline constexpr float kVelFeedbackGainMinY = 8.0f;
 inline constexpr float kVelFeedbackGainYaw = 0.0f;
 // PD controller bandwidth — scheduled together with LESO bandwidth.
 // max when moving (stiff angle tracking), min when stationary (stable).
@@ -121,6 +121,11 @@ inline constexpr float kImuBiasAlpha = 0.02f;
 // ---- Simplified Kalman ----
 inline constexpr float kOptFlowKfQVel = 20.0f;
 inline constexpr float kOptFlowKfRVelFixed = 300.0f;
+
+// ---- Chassis Velocity Source ----
+// 0: wheel-based (Jacobian pseudo-inverse from motor velocities)
+// 1: optical-flow-based (kf_vx / kf_vy from OptFlow)
+inline constexpr uint8_t kChassisVelocitySource = 1;
 
 // ---- IMU Roll/Pitch Complementary Filter ----
 inline constexpr float kImuRollPitchAlpha = 0.98f;

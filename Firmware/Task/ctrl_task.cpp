@@ -183,6 +183,15 @@ void StartCrtlTask(void *argument) {
     osDelay(500);
 
     robot.bind_estimator_imu_ports(imu);
+    robot.bind_estimator_optflow_ports(opt_flow);
+
+    // Connect OptFlow IMU input ports (cross-task Port-based data flow)
+    opt_flow.imu_acc_x_input()->connect_to(imu.acc_x_port());
+    opt_flow.imu_acc_y_input()->connect_to(imu.acc_y_port());
+    opt_flow.imu_acc_z_input()->connect_to(imu.acc_z_port());
+    opt_flow.imu_gyro_x_input()->connect_to(imu.omega_x_port());
+    opt_flow.imu_gyro_y_input()->connect_to(imu.omega_y_port());
+    opt_flow.imu_gyro_z_input()->connect_to(imu.omega_z_port());
 
     // Initialize motors (set control mode, PID gains, enable)
     motor_init();

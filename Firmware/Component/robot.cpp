@@ -416,6 +416,11 @@ void Robot::bind_estimator_imu_ports(IMU& imu_ref) {
     chassis_estimator.imu_omega_z_input_port()->connect_to(imu_ref.omega_z_port());
 }
 
+void Robot::bind_estimator_optflow_ports(OptFlow& optflow_ref) {
+    chassis_estimator.optflow_vx_input_port()->connect_to(optflow_ref.kf_vx_output());
+    chassis_estimator.optflow_vy_input_port()->connect_to(optflow_ref.kf_vy_output());
+}
+
 void Robot::update_torque_feedforward(const double _dt) {
     const float dt_s = static_cast<float>(_dt / 1000000.0);
     if (dt_s <= 1e-9f) {
