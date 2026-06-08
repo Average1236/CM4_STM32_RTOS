@@ -124,7 +124,33 @@ inline constexpr float kOptFlowKfRVelFixed = 300.0f;
 // ---- Chassis Velocity Source ----
 // 0: wheel-based (Jacobian pseudo-inverse from motor velocities)
 // 1: optical-flow-based (kf_vx / kf_vy from OptFlow)
-inline constexpr uint8_t kChassisVelocitySource = 1;
+// 2: fused (1-state Kalman, adaptive R per speed + tilt)
+inline constexpr uint8_t kChassisVelocitySource = 2;
+
+// ---- Fusion Kalman (source==2) ----
+// Process noise
+inline constexpr float kFusionKalmanQX = 0.001f;
+inline constexpr float kFusionKalmanQY = 0.001f;
+
+// Wheel measurement noise: high at low speed, low at high speed
+inline constexpr float kFusionKalmanRWheelMinX = 0.01f;
+inline constexpr float kFusionKalmanRWheelMaxX = 5.0f;
+inline constexpr float kFusionKalmanRWheelMinY = 0.5f;
+inline constexpr float kFusionKalmanRWheelMaxY = 10.0f;
+
+// Optflow measurement noise: low at low speed, high at high speed
+inline constexpr float kFusionKalmanROptflowMinX = 0.01f;
+inline constexpr float kFusionKalmanROptflowMaxX = 0.5f;
+inline constexpr float kFusionKalmanROptflowMinY = 0.01f;
+inline constexpr float kFusionKalmanROptflowMaxY = 0.3f;
+
+// Speed transition point (m/s)
+inline constexpr float kFusionSpeedTransitionX = 1.0f;
+inline constexpr float kFusionSpeedTransitionY = 1.0f;
+
+// Tilt penalty gain (per deg/s)
+inline constexpr float kFusionTiltPenaltyGainX = 1.0f;
+inline constexpr float kFusionTiltPenaltyGainY = 1.0f;
 
 // ---- Test Kick ----
 // true:  bypass infrared sensor, rising-edge trigger on kick_discharge_time

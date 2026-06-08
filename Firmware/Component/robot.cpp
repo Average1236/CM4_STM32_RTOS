@@ -413,6 +413,8 @@ void Robot::motion_planner(const double _dt) {
 void Robot::bind_estimator_imu_ports(IMU& imu_ref) {
     chassis_estimator.imu_yaw_input_port()->connect_to(imu_ref.yaw_port());
     chassis_estimator.imu_omega_z_input_port()->connect_to(imu_ref.omega_z_port());
+    chassis_estimator.imu_gyro_x_input_port()->connect_to(imu_ref.omega_x_port());
+    chassis_estimator.imu_gyro_y_input_port()->connect_to(imu_ref.omega_y_port());
 }
 
 void Robot::bind_estimator_optflow_ports(OptFlow& optflow_ref) {
