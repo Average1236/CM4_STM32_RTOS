@@ -16,7 +16,11 @@ struct __attribute__((packed)) CM4_to_stm32_spi
     bool use_imu;
     bool kick_mode; // chip:1  shoot:0
     uint16_t kick_discharge_time;
+    int16_t drib_velocity;  // turns/s * 100
+    int16_t drib_torque_ff; // Nm * 1000
 };
+
+static_assert(sizeof(CM4_to_stm32_spi) <= SPI_LENGTH, "CM4_to_stm32_spi exceeds SPI_LENGTH");
 
 struct __attribute__((packed)) stm32_to_CM4_spi
 {
@@ -51,6 +55,8 @@ public:
 
     float infra_voltage = 0;
     float dribble_power = 0;
+    float dribble_velocity = -50.0f;
+    float dribble_torque_ff = -0.01f;
 
     DribblerZfoc dribbler;
 

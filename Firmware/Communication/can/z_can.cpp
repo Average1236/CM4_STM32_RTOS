@@ -194,5 +194,5 @@ void HAL_CAN_SleepCallback(CAN_HandleTypeDef *hcan) {}
 void HAL_CAN_WakeUpFromRxMsgCallback(CAN_HandleTypeDef *hcan) {}
 
 void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan) {
-    //HAL_CAN_ResetError(hcan);
+    HAL_CAN_ResetError(hcan);
 }

@@ -7,10 +7,13 @@ volatile float infra_voltage_raw_debug = 0;
 volatile float infra_voltage_filt_debug = 0;
 volatile int current_state_debug = 0;
 volatile int has_error_debug = 0;
+volatile uint32_t axis_error_debug = 0;
+volatile uint8_t error_flags_debug = 0;
 
 void DribblerZfoc::parse_heartbeat(const can_Message_t& msg) {
     // Bytes [0:3]: axis.error_
     axis_error = static_cast<uint32_t>(msg.buf[0]) | (static_cast<uint32_t>(msg.buf[1]) << 8) | (static_cast<uint32_t>(msg.buf[2]) << 16) | (static_cast<uint32_t>(msg.buf[3]) << 24);
+    axis_error_debug = axis_error;
 
     // Byte 4: current_state
     current_state = msg.buf[4];
@@ -20,6 +23,7 @@ void DribblerZfoc::parse_heartbeat(const can_Message_t& msg) {
     error_flags = msg.buf[5];
     has_error = (axis_error != 0) || (error_flags & 0x07) != 0;
     has_error_debug = has_error ? 1 : 0;
+    error_flags_debug = error_flags;
 
     // Bytes [6:7]: infra_adc_raw (uint16, little-endian)
     uint16_t infra_adc_raw = static_cast<uint16_t>(msg.buf[6]) | (static_cast<uint16_t>(msg.buf[7]) << 8);

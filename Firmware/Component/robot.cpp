@@ -15,6 +15,8 @@ volatile float robot_real_vx_debug = 0;
 volatile uint16_t kick_pulse_debug = 0;
 volatile float dribble_power_debug = 0;
 volatile int use_imu_debug = 0;
+volatile float dribble_velocity_debug = 0;
+volatile float dribble_torque_ff_debug = 0;
 
 // Wheel geometry
 static constexpr float WHEEL_ANGLE_FORWARD = control_config::kWheelAlphaRad;
@@ -219,6 +221,10 @@ void Robot::pi_decode_spi() {
     }
     robot_vel[2] = SpiRx.vel[2] / 100.0f;
 
+    dribble_power = (SpiRx.drib_power != 0) ? 1.0f : 0.0f;
+    dribble_velocity = SpiRx.drib_velocity / 100.0f;
+    dribble_torque_ff = SpiRx.drib_torque_ff / 1000.0f;
+
     dribble_power = SpiRx.drib_power / 50.0f * -1.0f;
 
     kick_mode = SpiRx.kick_mode ? false : true;
@@ -245,6 +251,8 @@ void Robot::pi_decode_spi() {
     target_vy_debug = robot_vel[1];
     target_vw_debug = robot_vel[2];
     dribble_power_debug = dribble_power;
+    dribble_velocity_debug = dribble_velocity;
+    dribble_torque_ff_debug = dribble_torque_ff;
 }
 
 void Robot::request_kick_from_spi() {

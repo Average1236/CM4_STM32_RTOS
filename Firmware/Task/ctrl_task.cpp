@@ -249,17 +249,13 @@ void StartCrtlTask(void *argument) {
                 can_Message_t dribbler_cmd_msg;
                 can_Message_t dribbler_stop_msg;
                 {
-                    // Odometry-measured chassis x-velocity for torque mode feedforward
-                    const auto chassis_vx_opt = robot.chassis_estimator.chassis_vx_output_port()->any();
-                    const float chassis_vx = chassis_vx_opt.has_value() ? *chassis_vx_opt : 0.0f;
-
                     if (control_config::kDribblerTorqueMode) {
                         // Torque control: CAN ID 0xAD
-                        // bytes 0..3 = torque (Nm), bytes 4..7 = odometry-measured chassis vx (m/s)
+                        // bytes 0..3 = torque (Nm), bytes 4..7 = CM4 velocity command vx (m/s)
                         robot.dribbler.build_torque_msg(
                             dribbler_cmd_msg,
-                            robot.dribble_power,
-                            chassis_vx
+                            robot.dribble_torque_ff,
+                            robot.robot_vel[0]
                         );
                         robot.dribbler.build_torque_msg(dribbler_stop_msg, 0.0f, 0.0f);
                     } else {
@@ -267,8 +263,8 @@ void StartCrtlTask(void *argument) {
                         // bytes 0..3 = velocity (turns/s), bytes 4..7 = torque_ff (Nm)
                         robot.dribbler.build_velocity_msg(
                             dribbler_cmd_msg,
-                            robot.dribble_power,
-                            0.0f
+                            robot.dribble_velocity,
+                            robot.dribble_torque_ff
                         );
                         robot.dribbler.build_velocity_msg(dribbler_stop_msg, 0.0f, 0.0f);
                     }
