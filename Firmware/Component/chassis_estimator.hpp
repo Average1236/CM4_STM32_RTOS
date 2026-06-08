@@ -6,6 +6,22 @@
 #include <array>
 #include <cstddef>
 
+// 1-state Kalman for 2-source velocity fusion (wheel + optflow)
+struct FusionKalman1D {
+    float v_est = 0.0f;
+    float P = 1.0f;
+
+    void predict(float Q) {
+        P += Q;
+    }
+
+    void update(float meas, float R) {
+        const float K = P / (P + R);
+        v_est += K * (meas - v_est);
+        P = (1.0f - K) * P;
+    }
+};
+
 class ChassisEstimator {
 public:
     ChassisEstimator();
@@ -18,6 +34,8 @@ public:
     InputPort<float>* imu_omega_z_input_port() { return &imu_omega_z_input_port_; }
     InputPort<float>* optflow_vx_input_port() { return &optflow_vx_input_port_; }
     InputPort<float>* optflow_vy_input_port() { return &optflow_vy_input_port_; }
+    InputPort<float>* imu_gyro_x_input_port() { return &imu_gyro_x_input_port_; }
+    InputPort<float>* imu_gyro_y_input_port() { return &imu_gyro_y_input_port_; }
 
     OutputPort<float>* chassis_vx_output_port() { return &chassis_vx_output_port_; }
     OutputPort<float>* chassis_vy_output_port() { return &chassis_vy_output_port_; }
@@ -36,6 +54,11 @@ private:
     InputPort<float> imu_omega_z_input_port_;
     InputPort<float> optflow_vx_input_port_;
     InputPort<float> optflow_vy_input_port_;
+    InputPort<float> imu_gyro_x_input_port_;
+    InputPort<float> imu_gyro_y_input_port_;
+
+    FusionKalman1D kf_vx_;
+    FusionKalman1D kf_vy_;
 
     OutputPort<float> chassis_vx_output_port_{0.0f};
     OutputPort<float> chassis_vy_output_port_{0.0f};

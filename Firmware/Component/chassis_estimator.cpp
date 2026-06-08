@@ -1,5 +1,6 @@
 #include "chassis_estimator.hpp"
 #include "control_params.hpp"
+#include <algorithm>
 #include <cmath>
 
 // Debug
@@ -37,26 +38,75 @@ void ChassisEstimator::step(float dt_s) {
 
     float chassis_vel_meas[3] = {0.0f, 0.0f, 0.0f};
 
-    if (control_config::kChassisVelocitySource == 1) {
-        // Optical-flow-based velocity
-        const std::optional<float> optflow_vx = optflow_vx_input_port_.any();
-        const std::optional<float> optflow_vy = optflow_vy_input_port_.any();
-        if (optflow_vx.has_value() && optflow_vy.has_value()) {
-            // Convert mm/s → m/s for chassis_vel_meas
-            chassis_vel_meas[0] = *optflow_vx * 0.001f;
-            chassis_vel_meas[1] = *optflow_vy * 0.001f;
-        }
-        // omega_z (chassis_vel_meas[2]) stays 0 from wheel fallback or from below
+    // Compute wheel-based vx/vy once (used by source==0 and source==2)
+    float wheel_vx = 0.0f, wheel_vy = 0.0f;
+    for (int col = 0; col < 4; ++col) {
+        wheel_vx += j2_pinv_[0][col] * wheel_vel_rad_s[col];
+        wheel_vy += j2_pinv_[1][col] * wheel_vel_rad_s[col];
     }
 
-    if (control_config::kChassisVelocitySource == 0 || chassis_vel_meas[0] == 0.0f) {
-        // Wheel-based velocity (Jacobian pseudo-inverse from motor velocities)
-        // Only vx (row 0) and vy (row 1) — omega_z comes from IMU
-        for (int row = 0; row < 2; ++row) {
-            for (int col = 0; col < 4; ++col) {
-                chassis_vel_meas[row] += j2_pinv_[row][col] * wheel_vel_rad_s[col];
-            }
+    if (control_config::kChassisVelocitySource == 2) {
+        // --- Fused: adaptive Kalman (wheel + optflow), per-axis params ---
+        const auto of_vx = optflow_vx_input_port_.any();
+        const auto of_vy = optflow_vy_input_port_.any();
+        const float flow_vx = of_vx.has_value() ? *of_vx * 0.001f : 0.0f; // mm/s→m/s
+        const float flow_vy = of_vy.has_value() ? *of_vy * 0.001f : 0.0f;
+
+        // Tilt penalty (shared computation)
+        const auto gx_opt = imu_gyro_x_input_port_.any();
+        const auto gy_opt = imu_gyro_y_input_port_.any();
+        const float gx = gx_opt.has_value() ? *gx_opt : 0.0f;
+        const float gy = gy_opt.has_value() ? *gy_opt : 0.0f;
+        const float tilt_rate = sqrtf(gx * gx + gy * gy);
+
+        // ---- vx axis ----
+        {
+            const float alpha_x = std::clamp(fabsf(kf_vx_.v_est) / control_config::kFusionSpeedTransitionX, 0.0f, 1.0f);
+            float R_w_x = control_config::kFusionKalmanRWheelMinX
+                        + (control_config::kFusionKalmanRWheelMaxX - control_config::kFusionKalmanRWheelMinX)
+                        * (1.0f - alpha_x);
+            float R_of_x = control_config::kFusionKalmanROptflowMinX
+                         + (control_config::kFusionKalmanROptflowMaxX - control_config::kFusionKalmanROptflowMinX)
+                         * alpha_x;
+            R_of_x *= (1.0f + control_config::kFusionTiltPenaltyGainX * tilt_rate);
+
+            kf_vx_.predict(control_config::kFusionKalmanQX);
+            kf_vx_.update(wheel_vx, R_w_x);
+            kf_vx_.update(flow_vx, R_of_x);
         }
+
+        // ---- vy axis ----
+        {
+            const float alpha_y = std::clamp(fabsf(kf_vy_.v_est) / control_config::kFusionSpeedTransitionY, 0.0f, 1.0f);
+            float R_w_y = control_config::kFusionKalmanRWheelMinY
+                        + (control_config::kFusionKalmanRWheelMaxY - control_config::kFusionKalmanRWheelMinY)
+                        * (1.0f - alpha_y);
+            float R_of_y = control_config::kFusionKalmanROptflowMinY
+                         + (control_config::kFusionKalmanROptflowMaxY - control_config::kFusionKalmanROptflowMinY)
+                         * alpha_y;
+            R_of_y *= (1.0f + control_config::kFusionTiltPenaltyGainY * tilt_rate);
+
+            kf_vy_.predict(control_config::kFusionKalmanQY);
+            kf_vy_.update(wheel_vy, R_w_y);
+            kf_vy_.update(flow_vy, R_of_y);
+        }
+
+        chassis_vel_meas[0] = kf_vx_.v_est;
+        chassis_vel_meas[1] = kf_vy_.v_est;
+
+    } else if (control_config::kChassisVelocitySource == 1) {
+        // Optical-flow-only velocity
+        const auto of_vx = optflow_vx_input_port_.any();
+        const auto of_vy = optflow_vy_input_port_.any();
+        if (of_vx.has_value() && of_vy.has_value()) {
+            chassis_vel_meas[0] = *of_vx * 0.001f;
+            chassis_vel_meas[1] = *of_vy * 0.001f;
+        }
+
+    } else {
+        // Wheel-only velocity (source==0, default)
+        chassis_vel_meas[0] = wheel_vx;
+        chassis_vel_meas[1] = wheel_vy;
     }
 
     const std::optional<float> yaw_deg = imu_yaw_input_port_.any();
@@ -91,7 +141,7 @@ void ChassisEstimator::step(float dt_s) {
     // Debug outputs
     chassis_vx_debug = chassis_vel_meas[0];
     chassis_vy_debug = chassis_vel_meas[1];
-    chassis_yaw_debug = yaw_rad * kRadToDeg;
+    chassis_yaw_debug = yaw_rad;
     chassis_omega_z_debug = omega_z_rad_s * kRadToDeg;
 
     chassis_vx_output_port_ = chassis_vel_meas[0];
