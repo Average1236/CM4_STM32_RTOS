@@ -9,6 +9,10 @@ volatile float chassis_vy_debug = 0;
 volatile float chassis_yaw_debug = 0;
 volatile float chassis_omega_z_debug = 0;
 volatile float wheel_vel_0_debug = 0;
+volatile float wheel_vx_debug = 0;
+volatile float wheel_vy_debug = 0;
+volatile float of_vx_debug = 0;
+volatile float of_vy_debug = 0;
 
 namespace {
 
@@ -51,6 +55,11 @@ void ChassisEstimator::step(float dt_s) {
         const auto of_vy = optflow_vy_input_port_.any();
         const float flow_vx = of_vx.has_value() ? *of_vx * 0.001f : 0.0f; // mm/s→m/s
         const float flow_vy = of_vy.has_value() ? *of_vy * 0.001f : 0.0f;
+
+        wheel_vx_debug = wheel_vx;
+        wheel_vy_debug = wheel_vy;
+        of_vx_debug = flow_vx;
+        of_vy_debug = flow_vy;
 
         // Tilt penalty (shared computation)
         const auto gx_opt = imu_gyro_x_input_port_.any();

@@ -31,10 +31,10 @@ static const float COS_WHEEL_ANGLE_BWD = cosf(WHEEL_ANGLE_BACKWARD);
 // Robot dynamics parameters
 static constexpr float ROBOT_RADIUS = control_config::kWheelCenterDistanceM;
 static constexpr float WHEEL_RADIUS = control_config::kWheelRadiusM;
-static constexpr float ACC_THRESHOLD[3] = {
-    control_config::kAccThresholdX,
-    control_config::kAccThresholdY,
-    control_config::kAccThresholdYaw,
+static constexpr float ACC_LIMITS[3][2] = {
+    {control_config::kAccMaxX, control_config::kDecMaxX},
+    {control_config::kAccMaxY, control_config::kDecMaxY},
+    {control_config::kAccThresholdYaw, control_config::kAccThresholdYaw},
 };
 
 static constexpr float JERK_LIMIT[3] = {
@@ -387,7 +387,10 @@ void Robot::motion_planner(const double _dt) {
         AxisMotionPlan& plan = g_axis_plans[i];
         const float v_now = last_robot_real_vel[i];
         const float v_target = robot_vel[i];
-        const float a_max = ACC_THRESHOLD[i];
+        // S-curve uses the larger limit for timing; directional clamp enforces per-phase limits.
+        // This handles zero-crossing correctly: AccMax limits the speeding-up phase,
+        // DecMax limits the slowing-down phase, regardless of sign.
+        const float a_max = fmaxf(ACC_LIMITS[i][0], ACC_LIMITS[i][1]);
         const float j_max = JERK_LIMIT[i];
 
         const bool target_changed = fabsf(v_target - plan.v_target) > kPlannerReplanEps;
@@ -406,7 +409,16 @@ void Robot::motion_planner(const double _dt) {
         // Track planned acceleration while enforcing per-step jerk and acceleration limits.
         const float max_da = j_max * dt_s;
         const float da = std::clamp(a_profile - robot_acc[i], -max_da, max_da);
-        robot_acc[i] = std::clamp(robot_acc[i] + da, -a_max, a_max);
+        // Direction-aware clamp: AccMax limits speed-up, DecMax limits slow-down
+        const float a_acc = ACC_LIMITS[i][0];
+        const float a_dec = ACC_LIMITS[i][1];
+        const float a_hi = (v_now > kPlannerVelEps) ? a_acc
+                         : (v_now < -kPlannerVelEps) ? a_dec
+                         : fmaxf(a_acc, a_dec);
+        const float a_lo = (v_now > kPlannerVelEps) ? -a_dec
+                         : (v_now < -kPlannerVelEps) ? -a_acc
+                         : -fmaxf(a_acc, a_dec);
+        robot_acc[i] = std::clamp(robot_acc[i] + da, a_lo, a_hi);
 
         robot_real_vel[i] = last_robot_real_vel[i] + robot_acc[i] * dt_s;
 
