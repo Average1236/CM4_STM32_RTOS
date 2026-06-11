@@ -31,17 +31,6 @@ static const float COS_WHEEL_ANGLE_BWD = cosf(WHEEL_ANGLE_BACKWARD);
 // Robot dynamics parameters
 static constexpr float ROBOT_RADIUS = control_config::kWheelCenterDistanceM;
 static constexpr float WHEEL_RADIUS = control_config::kWheelRadiusM;
-static constexpr float ACC_LIMITS[3][2] = {
-    {control_config::kAccMaxX, control_config::kDecMaxX},
-    {control_config::kAccMaxY, control_config::kDecMaxY},
-    {control_config::kAccThresholdYaw, control_config::kAccThresholdYaw},
-};
-
-static constexpr float JERK_LIMIT[3] = {
-    control_config::kJerkLimitX,
-    control_config::kJerkLimitY,
-    control_config::kJerkLimitYaw,
-};
 
 namespace {
 
@@ -68,13 +57,42 @@ inline float signf_nonzero(const float x) {
     return (x >= 0.0f) ? 1.0f : -1.0f;
 }
 
-int16_t encode_velocity_mm_s(const float velocity_m_s) {
-    const float velocity_mm_s = velocity_m_s * 1000.0f;
-    if (!std::isfinite(velocity_mm_s)) {
+int16_t encode_i16(const float value) {
+    if (!std::isfinite(value)) {
         return 0;
     }
 
-    return static_cast<int16_t>(std::clamp(velocity_mm_s, -32768.0f, 32767.0f));
+    return static_cast<int16_t>(std::lroundf(std::clamp(value, -32768.0f, 32767.0f)));
+}
+
+int16_t encode_velocity_mm_s(const float velocity_m_s) {
+    return encode_i16(velocity_m_s * 1000.0f);
+}
+
+int16_t encode_accel_mm_s2(const float accel_m_s2) {
+    return encode_i16(accel_m_s2 * 1000.0f);
+}
+
+int16_t encode_linear_jerk_deci_m_s3(const float jerk_m_s3) {
+    return encode_i16(jerk_m_s3 * 10.0f);
+}
+
+int16_t encode_angular_centi(const float value) {
+    return encode_i16(value * 100.0f);
+}
+
+float decomposed_axis_velocity_limit_m_s(const float wheel_axis_coeff[4], const float wheel_vel_limit_rpm) {
+    float max_coeff = 0.0f;
+    for (uint8_t i = 0; i < 4; ++i) {
+        max_coeff = fmaxf(max_coeff, fabsf(wheel_axis_coeff[i]));
+    }
+
+    if (max_coeff <= 1e-6f) {
+        return 0.0f;
+    }
+
+    const float wheel_vel_limit_rad_s = wheel_vel_limit_rpm * control_config::kPi / 30.0f;
+    return wheel_vel_limit_rad_s * WHEEL_RADIUS / max_coeff;
 }
 
 void init_axis_plan(
@@ -195,9 +213,7 @@ static const WheelMotorBase::Config_t WHEEL_MOTOR_PARAMS[4] = {
 };
 
 Robot::Robot() {
-    yaw_s_curve_.set_config({control_config::kYawSCurveVmax,
-                             control_config::kYawSCurveAmax,
-                             control_config::kYawSCurveJmax});
+    yaw_s_curve_.set_config({yaw_max_vel, yaw_max_acc, yaw_max_jerk});
 
     // Initialize wheel motors
     for (int i = 0; i < 4; i++) {
@@ -233,6 +249,23 @@ void Robot::pi_decode_spi() {
     dribble_power = (SpiRx.drib_power != 0) ? 1.0f : 0.0f;
     dribble_velocity = SpiRx.drib_velocity / 100.0f;
     dribble_torque_ff = SpiRx.drib_torque_ff / 1000.0f;
+
+    for (uint8_t i = 0; i < 2; ++i) {
+        const float acc_cmd = SpiRx.xy_max_acc[i] / 1000.0f;
+        const float jerk_cmd = SpiRx.xy_max_jerk[i] / 10.0f;
+        const float dec_cmd = SpiRx.xy_max_dec[i] / 1000.0f;
+        if (acc_cmd > 0.0f) xy_max_acc[i] = acc_cmd;
+        if (jerk_cmd > 0.0f) xy_max_jerk[i] = jerk_cmd;
+        if (dec_cmd > 0.0f) xy_max_dec[i] = dec_cmd;
+    }
+    const float yaw_vel_cmd = SpiRx.yaw_max_vel / 100.0f;
+    const float yaw_acc_cmd = SpiRx.yaw_max_acc / 100.0f;
+    const float yaw_jerk_cmd = SpiRx.yaw_max_jerk / 100.0f;
+    if (yaw_vel_cmd > 0.0f) yaw_max_vel = yaw_vel_cmd;
+    if (yaw_acc_cmd > 0.0f) yaw_max_acc = yaw_acc_cmd;
+    if (yaw_jerk_cmd > 0.0f) yaw_max_jerk = yaw_jerk_cmd;
+    yaw_s_curve_.set_config({yaw_max_vel, yaw_max_acc, yaw_max_jerk});
+    robot_vel[2] = std::clamp(robot_vel[2], -yaw_max_vel, yaw_max_vel);
 
     dribble_power = SpiRx.drib_power / 50.0f * -1.0f;
 
@@ -343,6 +376,23 @@ void Robot::pi_encode_spi() {
     SpiTx.odom_vel[0] = encode_velocity_mm_s(chassis_vx.has_value() ? *chassis_vx : 0.0f);
     SpiTx.odom_vel[1] = encode_velocity_mm_s(chassis_vy.has_value() ? *chassis_vy : 0.0f);
 
+    SpiTx.xy_max_vel[0] = encode_velocity_mm_s(
+        decomposed_axis_velocity_limit_m_s(WHEEL_VX_ANGLE, wheel_vel_limit));
+    SpiTx.xy_max_vel[1] = encode_velocity_mm_s(
+        decomposed_axis_velocity_limit_m_s(WHEEL_VY_ANGLE, wheel_vel_limit));
+
+    SpiTx.xy_max_acc[0] = encode_accel_mm_s2(xy_max_acc[0]);
+    SpiTx.xy_max_acc[1] = encode_accel_mm_s2(xy_max_acc[1]);
+    SpiTx.xy_max_jerk[0] = encode_linear_jerk_deci_m_s3(xy_max_jerk[0]);
+    SpiTx.xy_max_jerk[1] = encode_linear_jerk_deci_m_s3(xy_max_jerk[1]);
+    SpiTx.xy_max_dec[0] = encode_accel_mm_s2(xy_max_dec[0]);
+    SpiTx.xy_max_dec[1] = encode_accel_mm_s2(xy_max_dec[1]);
+
+    SpiTx.yaw_max_vel = encode_angular_centi(yaw_max_vel);
+    SpiTx.yaw_max_acc = encode_angular_centi(yaw_max_acc);
+    SpiTx.yaw_max_jerk = encode_angular_centi(yaw_max_jerk);
+    SpiTx.reserved = 0;
+
     // Encode IMU data
     for (uint8_t i = 0; i < 9; i++) {
         SpiTx.imu_data[i] = static_cast<int16_t>(imu_data[i] * 100);
@@ -390,8 +440,10 @@ void Robot::motion_planner(const double _dt) {
         // S-curve uses the larger limit for timing; directional clamp enforces per-phase limits.
         // This handles zero-crossing correctly: AccMax limits the speeding-up phase,
         // DecMax limits the slowing-down phase, regardless of sign.
-        const float a_max = fmaxf(ACC_LIMITS[i][0], ACC_LIMITS[i][1]);
-        const float j_max = JERK_LIMIT[i];
+        const float a_acc = (i == 0) ? xy_max_acc[0] : (i == 1) ? xy_max_acc[1] : yaw_max_acc;
+        const float a_dec = (i == 0) ? xy_max_dec[0] : (i == 1) ? xy_max_dec[1] : yaw_max_acc;
+        const float a_max = fmaxf(a_acc, a_dec);
+        const float j_max = (i == 0) ? xy_max_jerk[0] : (i == 1) ? xy_max_jerk[1] : yaw_max_jerk;
 
         const bool target_changed = fabsf(v_target - plan.v_target) > kPlannerReplanEps;
         const bool plan_finished = plan.active && (plan.elapsed >= plan.t_total - 1e-8f);
@@ -410,8 +462,6 @@ void Robot::motion_planner(const double _dt) {
         const float max_da = j_max * dt_s;
         const float da = std::clamp(a_profile - robot_acc[i], -max_da, max_da);
         // Direction-aware clamp: AccMax limits speed-up, DecMax limits slow-down
-        const float a_acc = ACC_LIMITS[i][0];
-        const float a_dec = ACC_LIMITS[i][1];
         const float a_hi = (v_now > kPlannerVelEps) ? a_acc
                          : (v_now < -kPlannerVelEps) ? a_dec
                          : fmaxf(a_acc, a_dec);

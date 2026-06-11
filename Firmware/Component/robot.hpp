@@ -18,6 +18,12 @@ struct __attribute__((packed)) CM4_to_stm32_spi
     uint16_t kick_discharge_time;
     int16_t drib_velocity;  // turns/s * 100
     int16_t drib_torque_ff; // Nm * 1000
+    int16_t xy_max_acc[2];   // vx, vy acceleration limits in mm/s^2
+    int16_t xy_max_jerk[2];  // vx, vy jerk limits in (m/s^3) * 10
+    int16_t xy_max_dec[2];   // vx, vy deceleration limits in mm/s^2
+    int16_t yaw_max_vel;     // rad/s * 100
+    int16_t yaw_max_acc;     // rad/s^2 * 100
+    int16_t yaw_max_jerk;    // rad/s^3 * 100
 };
 
 static_assert(sizeof(CM4_to_stm32_spi) <= SPI_LENGTH, "CM4_to_stm32_spi exceeds SPI_LENGTH");
@@ -32,6 +38,14 @@ struct __attribute__((packed)) stm32_to_CM4_spi
     int16_t cap_vol;
     int16_t wheel[4];
     int16_t odom_vel[2]; // vx, vy in mm/s
+    int16_t xy_max_vel[2];   // vx, vy axis limits in mm/s
+    int16_t xy_max_acc[2];   // vx, vy acceleration limits in mm/s^2
+    int16_t xy_max_jerk[2];  // vx, vy jerk limits in (m/s^3) * 10
+    int16_t xy_max_dec[2];   // vx, vy deceleration limits in mm/s^2
+    int16_t yaw_max_vel;     // rad/s * 100
+    int16_t yaw_max_acc;     // rad/s^2 * 100
+    int16_t yaw_max_jerk;    // rad/s^3 * 100
+    int16_t reserved;
 };
 
 static_assert(sizeof(CM4_to_stm32_spi) <= SPI_LENGTH, "CM4_to_stm32_spi exceeds SPI buffer length");
@@ -95,6 +109,12 @@ public:
     bool use_imu = false;
     float yaw_target_rad = 0.0f;
     YawSCurve yaw_s_curve_{{0.0f, 0.0f, 0.0f}};
+    float xy_max_acc[2] = {7.0f, 7.0f};
+    float xy_max_jerk[2] = {1000.0f, 1000.0f};
+    float xy_max_dec[2] = {10.0f, 10.0f};
+    float yaw_max_vel = 25.0f;
+    float yaw_max_acc = 40.0f;
+    float yaw_max_jerk = 200.0f;
 
     // m/s
     float robot_vel[3] = {0};
