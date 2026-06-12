@@ -14,6 +14,7 @@ volatile float wheel_vel_debug = 0;
 volatile float robot_real_vx_debug = 0;
 volatile uint16_t kick_pulse_debug = 0;
 volatile float dribble_power_debug = 0;
+volatile uint8_t dribbler_mode_debug = 0;
 volatile int use_imu_debug = 0;
 volatile float dribble_velocity_debug = 0;
 volatile float dribble_torque_ff_debug = 0;
@@ -230,11 +231,21 @@ void Robot::pi_decode_spi() {
     }
     robot_vel[2] = SpiRx.vel[2] / 100.0f;
 
-    dribble_power = (SpiRx.drib_power != 0) ? 1.0f : 0.0f;
+    // drib_power as mode flag: 0=off, 10=torque, 20=speed, 30=hybrid
+    {
+        const uint8_t prev_mode = dribbler_mode;
+        dribbler_mode = SpiRx.drib_power;
+        dribble_power = (dribbler_mode != 0) ? -1.0f : 0.0f;  // backward compat: enable flag
+
+        // Reset hybrid state machine on mode change to 30 (or from 0→non-zero entering hybrid)
+        if (dribbler_mode == control_config::kDribblerModeHybrid &&
+            prev_mode != control_config::kDribblerModeHybrid) {
+            dribbler_hybrid_phase = kDribblerHybridTorquePhase;
+            dribbler_ball_hold_count = 0;
+        }
+    }
     dribble_velocity = SpiRx.drib_velocity / 100.0f;
     dribble_torque_ff = SpiRx.drib_torque_ff / 1000.0f;
-
-    dribble_power = SpiRx.drib_power / 50.0f * -1.0f;
 
     kick_mode = SpiRx.kick_mode ? false : true;
     kick_discharge_time = SpiRx.kick_discharge_time;
@@ -259,6 +270,7 @@ void Robot::pi_decode_spi() {
     target_vy_debug = robot_vel[1];
     target_vw_debug = robot_vel[2];
     dribble_power_debug = dribble_power;
+    dribbler_mode_debug = dribbler_mode;
     dribble_velocity_debug = dribble_velocity;
     dribble_torque_ff_debug = dribble_torque_ff;
 }
@@ -347,6 +359,8 @@ void Robot::pi_encode_spi() {
     for (uint8_t i = 0; i < 9; i++) {
         SpiTx.imu_data[i] = static_cast<int16_t>(imu_data[i] * 100);
     }
+
+    SpiTx.infrare_flag = infrare_flag;
 
     memcpy(spi_tx_data, &SpiTx, sizeof(SpiTx));
 }

@@ -58,9 +58,19 @@ public:
     bool watchdog_check();
 
     float infra_voltage = 0;
+    bool infrare_flag = false;
     float dribble_power = 0;
     float dribble_velocity = -50.0f;
-    float dribble_torque_ff = -0.01f;
+    float dribble_torque_ff = -0.15f;
+
+    // Dribbler runtime mode (from CM4 drib_power byte: 0/10/20/30)
+    uint8_t dribbler_mode = 0;
+    enum DribblerHybridPhase : uint8_t {
+        kDribblerHybridTorquePhase = 0,
+        kDribblerHybridSpeedPhase = 1,
+    };
+    DribblerHybridPhase dribbler_hybrid_phase = kDribblerHybridTorquePhase;
+    uint32_t dribbler_ball_hold_count = 0;
 
     DribblerZfoc dribbler;
 

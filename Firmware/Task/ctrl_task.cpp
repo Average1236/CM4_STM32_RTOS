@@ -117,6 +117,24 @@ bool build_wheel_command(Robot& robot, uint8_t index, bool safe_output, can_Mess
     return false;
 }
 
+// Dribbler speed feedforward compensation: when chassis moves backward (vx < 0),
+// the dribbler must spin faster to pull the ball against chassis motion.
+// chassis_vx: chassis velocity (m/s), backward is negative
+// base_speed: base dribbler speed (turns/s), negative
+// returns: compensated speed clamped to [kDribblerSpeedSafetyClamp, 0]
+float calc_dribbler_speed_with_compensation(float base_speed, float chassis_vx) {
+    float cmd = base_speed;
+    if (chassis_vx < control_config::kDribblerSpeedDeadZone) {
+        float compensate_turns = chassis_vx * control_config::kDribblerSpeedCompensateGain
+                                 * control_config::kDribblerSpeedSlipMargin;
+        cmd += compensate_turns;
+    }
+    if (cmd < control_config::kDribblerSpeedSafetyClamp) {
+        cmd = control_config::kDribblerSpeedSafetyClamp;
+    }
+    return cmd;
+}
+
 } // namespace
 
 // Debug variables
@@ -206,6 +224,11 @@ void StartCrtlTask(void *argument) {
     MotorRecoverState motor_recover_state[4] = {kMotorNormal, kMotorNormal, kMotorNormal, kMotorNormal};
     uint32_t motor_recover_tick[4] = {0};
 
+    // Dribbler runtime state tracking
+    uint32_t last_heartbeat_count = 0;
+    uint8_t last_dribbler_mode = 0;
+    bool last_active_torque_mode = false;
+
     for(;;) {
         if (osSemaphoreAcquire(sem_ctrl_triggerHandle, osWaitForever) == osOK) {
             ctrl_start_tick = TIM2->CNT;
@@ -240,37 +263,132 @@ void StartCrtlTask(void *argument) {
                     robot.robot_vel[2] = 0.0f;
                 }
 
-                // Dribbler: sync raw voltage from heartbeat
+                // ============ Dribbler: Stage A – Sensor Input ============
                 robot.infra_voltage = robot.dribbler.infra_voltage_raw;
-                // Dribbler: filter infra voltage (asymmetric LPF)
-                robot.dribbler.filter_voltage();
-                // Dribbler: state machine (builds pending CAN messages)
-                robot.dribbler.process_state_machine(control_config::kDribblerTorqueMode);
+                robot.dribbler.filter_voltage();  // asymmetric LPF
 
-                // Dribbler: build command message based on control mode
-                const bool dribbler_enabled = (robot.SpiRx.drib_power != 0);
+                // ============ Stage B – Mode Dispatch & ZFOC State Machine ============
+                // B1: determine ZFOC torque/velocity mode, run startup state machine
+                const bool need_torque_mode =
+                    (robot.dribbler_mode == control_config::kDribblerModeTorque) ||
+                    (robot.dribbler_mode == control_config::kDribblerModeHybrid &&
+                     robot.dribbler_hybrid_phase == Robot::kDribblerHybridTorquePhase);
+                robot.dribbler.process_state_machine(need_torque_mode);
+
+                // B2: CM4 mode change → queue hot switch (safe-append, never clears pending)
+                if (robot.dribbler_mode != 0 && robot.dribbler_mode != last_dribbler_mode) {
+                    if (robot.dribbler.current_state == DribblerZfoc::kAxisStateClosedLoopControl) {
+                        if (robot.dribbler_mode == control_config::kDribblerModeTorque) {
+                            robot.dribbler.queue_controller_mode_switch(true);
+                        } else if (robot.dribbler_mode == control_config::kDribblerModeSpeed) {
+                            robot.dribbler.queue_controller_mode_switch(false);
+                        } else if (robot.dribbler_mode == control_config::kDribblerModeHybrid) {
+                            robot.dribbler.queue_controller_mode_switch(true);  // enter hybrid: start torque
+                        }
+                    }
+                }
+                last_dribbler_mode = robot.dribbler_mode;
+
+                // ============ Stage C – Hybrid (30) Anti-Bounce State Machine ============
+                if (robot.dribbler_mode == control_config::kDribblerModeHybrid) {
+                    // Only count on new heartbeat frames (200 Hz, every 5 ms)
+                    if (robot.dribbler.heartbeat_count != last_heartbeat_count) {
+                        last_heartbeat_count = robot.dribbler.heartbeat_count;
+                        const bool has_ball = (robot.dribbler.infra_voltage_filt > INFRARED_THRESHOLD);
+
+                        if (robot.dribbler_hybrid_phase == Robot::kDribblerHybridTorquePhase) {
+                            // ---- Torque phase: count consecutive ball-hold frames ----
+                            if (has_ball) {
+                                robot.dribbler_ball_hold_count++;
+                                if (robot.dribbler_ball_hold_count >= control_config::kDribblerHybridBallHoldFrames) {
+                                    // Confirmed ball hold → switch to speed phase
+                                    robot.dribbler_hybrid_phase = Robot::kDribblerHybridSpeedPhase;
+                                    robot.dribbler_ball_hold_count = 0;  // reuse for lost-ball counting
+                                    if (robot.dribbler.current_state == DribblerZfoc::kAxisStateClosedLoopControl) {
+                                        robot.dribbler.queue_controller_mode_switch(false);
+                                    }
+                                }
+                            } else {
+                                // Anti-bounce: fast-decrement, never reset-to-zero on a single frame
+                                if (robot.dribbler_ball_hold_count > control_config::kDribblerHybridDebounceStep) {
+                                    robot.dribbler_ball_hold_count -= control_config::kDribblerHybridDebounceStep;
+                                } else {
+                                    robot.dribbler_ball_hold_count = 0;
+                                }
+                            }
+                        } else {
+                            // ---- Speed phase: count consecutive lost-ball frames for fallback ----
+                            if (!has_ball) {
+                                robot.dribbler_ball_hold_count++;
+                                if (robot.dribbler_ball_hold_count >= control_config::kDribblerHybridBallLostFrames) {
+                                    // Confirmed ball lost → fall back to torque phase
+                                    robot.dribbler_hybrid_phase = Robot::kDribblerHybridTorquePhase;
+                                    robot.dribbler_ball_hold_count = 0;
+                                    if (robot.dribbler.current_state == DribblerZfoc::kAxisStateClosedLoopControl) {
+                                        robot.dribbler.queue_controller_mode_switch(true);
+                                    }
+                                }
+                            } else {
+                                // Ball reappeared → reduce lost-ball suspicion
+                                if (robot.dribbler_ball_hold_count > 0) {
+                                    robot.dribbler_ball_hold_count--;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // ============ Stage D – Build CAN Command (Explicit 4-Branch Dispatch) ============
+                const bool dribbler_enabled = (robot.dribble_power != 0);
+                const float chassis_vx = robot.robot_real_vel[0];  // backward is negative
                 can_Message_t dribbler_cmd_msg;
                 can_Message_t dribbler_stop_msg;
-                {
-                    if (control_config::kDribblerTorqueMode) {
-                        // Torque control: CAN ID 0xAD
-                        // bytes 0..3 = torque (Nm), bytes 4..7 = CM4 velocity command vx (m/s)
-                        robot.dribbler.build_torque_msg(
-                            dribbler_cmd_msg,
-                            robot.dribble_torque_ff,
-                            robot.robot_vel[0]
-                        );
+
+                if (robot.dribbler_mode == control_config::kDribblerModeTorque) {
+                    // ── Branch 1: Pure Torque (10) ──
+                    if (dribbler_enabled) {
+                        last_active_torque_mode = true;
+                        robot.dribbler.build_torque_msg(dribbler_cmd_msg, robot.dribble_torque_ff, 0.0f);
+                    }
+                    robot.dribbler.build_torque_msg(dribbler_stop_msg, 0.0f, 0.0f);
+
+                } else if (robot.dribbler_mode == control_config::kDribblerModeSpeed) {
+                    // ── Branch 2: Pure Speed (20) ──
+                    if (dribbler_enabled) {
+                        last_active_torque_mode = false;
+                        const float compensated = calc_dribbler_speed_with_compensation(
+                            robot.dribble_velocity, chassis_vx);
+                        robot.dribbler.build_velocity_msg(dribbler_cmd_msg, compensated, robot.dribble_torque_ff);
+                    }
+                    robot.dribbler.build_velocity_msg(dribbler_stop_msg, 0.0f, 0.0f);
+
+                } else if (robot.dribbler_mode == control_config::kDribblerModeHybrid) {
+                    // ── Branch 3: Hybrid (30) ──
+                    if (robot.dribbler_hybrid_phase == Robot::kDribblerHybridTorquePhase) {
+                        // Torque phase: fixed torque -0.07 Nm
+                        if (dribbler_enabled) {
+                            last_active_torque_mode = true;
+                            robot.dribbler.build_torque_msg(dribbler_cmd_msg,
+                                control_config::kDribblerHybridTorqueNm, 0.0f);
+                        }
                         robot.dribbler.build_torque_msg(dribbler_stop_msg, 0.0f, 0.0f);
                     } else {
-                        // Velocity control: CAN ID 0xAC
-                        // bytes 0..3 = velocity (turns/s), bytes 4..7 = torque_ff (Nm)
-                        robot.dribbler.build_velocity_msg(
-                            dribbler_cmd_msg,
-                            robot.dribble_velocity,
-                            robot.dribble_torque_ff
-                        );
+                        // Speed phase: fixed speed -100 rps + chassis compensation
+                        if (dribbler_enabled) {
+                            last_active_torque_mode = false;
+                            const float compensated = calc_dribbler_speed_with_compensation(
+                                control_config::kDribblerHybridSpeedRps, chassis_vx);
+                            robot.dribbler.build_velocity_msg(dribbler_cmd_msg, compensated,
+                                control_config::kDribblerHybridTorqueLimitNm);
+                        }
                         robot.dribbler.build_velocity_msg(dribbler_stop_msg, 0.0f, 0.0f);
                     }
+
+                } else {
+                    // ── Branch 4: Off or Unknown ──
+                    // Do not update last_active_torque_mode; keep last format for stop message
+                    robot.dribbler.build_torque_msg(dribbler_stop_msg, 0.0f, 0.0f);
+                    robot.dribbler.build_velocity_msg(dribbler_stop_msg, 0.0f, 0.0f);
                 }
 
                 // Kick trigger
@@ -284,7 +402,10 @@ void StartCrtlTask(void *argument) {
                 } else {
                     // Normal mode: require infrared ball detection
                     if (robot.dribbler.infra_voltage_filt > INFRARED_THRESHOLD) {
+                        robot.infrare_flag = true;
                         robot.request_kick_from_spi();
+                    } else {
+                        robot.infrare_flag = false;
                     }
                 }
 

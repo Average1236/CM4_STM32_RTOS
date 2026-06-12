@@ -5,8 +5,27 @@
 
 namespace control_config {
 
-// Dribbler control mode: true = torque control (CAN ID 0xAD), false = velocity control (CAN ID 0xAC)
-inline constexpr bool kDribblerTorqueMode = true;
+// Dribbler control mode flags (from CM4 drib_power byte over SPI)
+// 10 = torque control, 20 = velocity control, 30 = hybrid (torque → speed on ball-hold)
+inline constexpr uint8_t kDribblerModeTorque = 1;
+inline constexpr uint8_t kDribblerModeSpeed = 2;
+inline constexpr uint8_t kDribblerModeHybrid = 3;
+
+// Hybrid mode parameters
+inline constexpr float kDribblerHybridTorqueNm = -0.05f;        // torque command in torque phase (Nm)
+inline constexpr float kDribblerHybridSpeedRps = -100.0f;       // velocity command in speed phase (turns/s)
+inline constexpr float kDribblerHybridTorqueLimitNm = -0.15f;   // torque_ff sent in speed phase (Nm)
+inline constexpr uint32_t kDribblerHybridBallHoldFrames = 100;  // consecutive heartbeat frames for transition (200 Hz → 500 ms)
+inline constexpr uint32_t kDribblerHybridBallLostFrames = 40;   // consecutive lost-ball frames to fall back to torque (200 Hz → 200 ms)
+inline constexpr uint32_t kDribblerHybridDebounceStep  = 2;     // decrement step per frame without ball, filters 20~30 Hz bounce
+
+// Chassis-speed feedforward compensation for dribbler speed commands
+// Coordinate convention: backward velocity is negative, dribbler spin is negative
+inline constexpr float kDribblerSpeedBaseRps = -50.0f;        // base speed command (turns/s)
+inline constexpr float kDribblerSpeedCompensateGain = 23.0f;  // compensation gain (turns/s per m/s)
+inline constexpr float kDribblerSpeedSlipMargin = 1.3f;       // slip margin
+inline constexpr float kDribblerSpeedDeadZone = -0.05f;       // dead zone (m/s), only compensate below this
+inline constexpr float kDribblerSpeedSafetyClamp = -100.0f;   // safety clamp (turns/s)
 
 inline constexpr float kControlDtSec = static_cast<float>(TIM2_PERIOD_CLOCKS) / 1000000.0f;
 inline constexpr float kImuDtSec = static_cast<float>(TIM7_PERIOD_CLOCKS) / 1000000.0f;
@@ -56,9 +75,9 @@ inline constexpr float kAngleControllerBandwidth = 50.0f;
 inline constexpr float kAngleControllerBandwidthMin = 50.0f;
 
 // S-curve yaw target planner
-inline constexpr float kYawSCurveVmax = 25.0f;   // rad/s
-inline constexpr float kYawSCurveAmax = 40.0f;  // rad/s²
-inline constexpr float kYawSCurveJmax = 200.0f; // rad/s³
+inline constexpr float kYawSCurveVmax = 3.0f;   // rad/s
+inline constexpr float kYawSCurveAmax = 5.0f;  // rad/s²
+inline constexpr float kYawSCurveJmax = 20.0f; // rad/s³
 inline constexpr float kYawVyCoupling = 0.0f;
 
 inline constexpr float kWheelTorqueFfLimitNm = 0.7f;

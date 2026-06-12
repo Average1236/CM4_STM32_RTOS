@@ -50,13 +50,21 @@ public:
     // Called in ctrl_task: if no error and idle, queue state transition messages
     void process_state_machine(bool torque_mode);
 
+    // Called in ctrl_task: queue a hot mode switch while in ClosedLoopControl
+    // (used for hybrid torque→speed transition)
+    void queue_controller_mode_switch(bool to_torque_mode);
+
     // Build CAN messages (does NOT send — ctrl_task sends under semaphore)
     void build_velocity_msg(can_Message_t& msg, float velocity, float torque_ff = 0.0f) const;
     void build_torque_msg(can_Message_t& msg, float torque, float velocity = 0.0f) const;
 
     // Pending messages populated by process_state_machine, sent by ctrl_task
     uint8_t pending_count = 0;
-    can_Message_t pending_msgs[2];
+    can_Message_t pending_msgs[3];  // capacity: startup(2) + hot-switch(1)
+
+    // Heartbeat frame counter: incremented in ISR, read by ctrl_task
+    // to detect new frames for ball-hold counting
+    volatile uint32_t heartbeat_count = 0;
 
     // State (ISR writes raw, ctrl_task reads/filters)
     float infra_voltage_raw = 0.0f;

@@ -9,8 +9,14 @@ volatile int current_state_debug = 0;
 volatile int has_error_debug = 0;
 volatile uint32_t axis_error_debug = 0;
 volatile uint8_t error_flags_debug = 0;
+volatile uint32_t dribbler_can_cmd_id_debug = 0;
+volatile float dribbler_can_torque_debug = 0.0f;
+volatile float dribbler_can_velocity_debug = 0.0f;
 
 void DribblerZfoc::parse_heartbeat(const can_Message_t& msg) {
+    // Increment frame counter for ball-hold counting in ctrl_task
+    heartbeat_count++;
+
     // Bytes [0:3]: axis.error_
     axis_error = static_cast<uint32_t>(msg.buf[0]) | (static_cast<uint32_t>(msg.buf[1]) << 8) | (static_cast<uint32_t>(msg.buf[2]) << 16) | (static_cast<uint32_t>(msg.buf[3]) << 24);
     axis_error_debug = axis_error;
@@ -43,8 +49,6 @@ void DribblerZfoc::filter_voltage() {
 }
 
 void DribblerZfoc::process_state_machine(bool torque_mode) {
-    pending_count = 0;
-
     // Idle confirmation gate: wait until heartbeat has reported Idle (buf[4]==1)
     // for at least kIdleConfirmDelayMs continuously before sending any CAN commands.
     if (!idle_confirmed_) {
@@ -60,11 +64,23 @@ void DribblerZfoc::process_state_machine(bool torque_mode) {
         return;
     }
 
+    // Only queue startup transition when ZFOC is still in Idle.
+    // Clear pending only HERE, not at function top — this preserves
+    // hot-switch messages queued by queue_controller_mode_switch() in B2/C.
+    // When already in ClosedLoopControl, do NOT touch pending_count.
     if (!has_error && current_state == kAxisStateIdle) {
+        pending_count = 0;
         build_set_requested_state_msg(pending_msgs[pending_count++], kAxisStateClosedLoopControl);
         const int32_t ctrl_mode = torque_mode ? kControlModeTorque : kControlModeVelocity;
         build_set_controller_modes_msg(pending_msgs[pending_count++], ctrl_mode, kInputModePassthrough);
     }
+}
+
+void DribblerZfoc::queue_controller_mode_switch(bool to_torque_mode) {
+    // Safe append: never clear pending_count — preserves messages from process_state_machine
+    if (pending_count >= sizeof(pending_msgs) / sizeof(pending_msgs[0])) return;
+    const int32_t ctrl_mode = to_torque_mode ? kControlModeTorque : kControlModeVelocity;
+    build_set_controller_modes_msg(pending_msgs[pending_count++], ctrl_mode, kInputModePassthrough);
 }
 
 void DribblerZfoc::build_set_requested_state_msg(can_Message_t& msg, int32_t state) const {
@@ -94,6 +110,9 @@ void DribblerZfoc::build_torque_msg(can_Message_t& msg, float torque, float velo
     msg.len = 8;
     memcpy(&msg.buf[0], &torque, sizeof(torque));
     memcpy(&msg.buf[4], &velocity, sizeof(velocity));
+    dribbler_can_cmd_id_debug = kCanIdSetInputTorque;
+    dribbler_can_torque_debug = torque;
+    dribbler_can_velocity_debug = velocity;
 }
 
 void DribblerZfoc::build_velocity_msg(can_Message_t& msg, float velocity, float torque_ff) const {
@@ -104,4 +123,7 @@ void DribblerZfoc::build_velocity_msg(can_Message_t& msg, float velocity, float 
     msg.len = 8;
     memcpy(&msg.buf[0], &velocity, sizeof(velocity));
     memcpy(&msg.buf[4], &torque_ff, sizeof(torque_ff));
+    dribbler_can_cmd_id_debug = kCanIdSetInputVelocity;
+    dribbler_can_torque_debug = torque_ff;
+    dribbler_can_velocity_debug = velocity;
 }
