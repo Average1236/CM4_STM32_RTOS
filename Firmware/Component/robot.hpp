@@ -38,6 +38,10 @@ struct __attribute__((packed)) stm32_to_CM4_spi
     int16_t cap_vol;
     int16_t wheel[4];
     int16_t odom_vel[2]; // vx, vy in mm/s
+    int16_t optflow_body_vel[2]; // raw body vx, vy before optflow Kalman in mm/s
+    int16_t optflow_kf_vel[2];   // optflow Kalman vx, vy in mm/s
+    int16_t wheel_chassis_vel[2]; // wheel-only chassis vx, vy in mm/s
+    int16_t fused_chassis_vel[2]; // wheel + optflow Kalman fused vx, vy in mm/s
     int16_t xy_max_vel[2];   // vx, vy axis limits in mm/s
     int16_t xy_max_acc[2];   // vx, vy acceleration limits in mm/s^2
     int16_t xy_max_jerk[2];  // vx, vy jerk limits in (m/s^3) * 10
@@ -137,6 +141,11 @@ public:
 
 private:
     void start_kick_pulse(bool chip_mode, uint16_t pulse_us);
+
+    OutputPort<float>* optflow_body_vx_port_ = nullptr;
+    OutputPort<float>* optflow_body_vy_port_ = nullptr;
+    OutputPort<float>* optflow_kf_vx_port_ = nullptr;
+    OutputPort<float>* optflow_kf_vy_port_ = nullptr;
 
     bool kick_active_ = false;
     uint32_t last_kick_tick_ = 0;

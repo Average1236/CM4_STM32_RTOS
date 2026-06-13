@@ -24,20 +24,24 @@ inline constexpr float kJerkLimitYaw = 600.0f;
 
 inline constexpr float kRobotMassKg = 3.0f;
 inline constexpr float kRobotInertiaKgM2 = 8e-3f;
-inline constexpr float kWheelRadiusM = 0.03f;
+inline constexpr float kWheelRadiusM = 0.033f;
 inline constexpr float kWheelCenterDistanceM = 0.07956f;
 inline constexpr float kCenterToComDistanceM = 0.0f;
 inline constexpr float kWheelAlphaRad = 30.0f / 180.0f * kPi;
 inline constexpr float kWheelBetaRad = 45.0f / 180.0f * kPi;
 
-inline constexpr float kLesoVelObserverBandwidth = 150.0f;
+inline constexpr float kLesoVelObserverBandwidthX = 30.0f;
+inline constexpr float kLesoVelObserverBandwidthY = 30.0f;
 inline constexpr float kLesoAngleObserverBandwidth = 150.0f;
 
 // Velocity-scheduled LESO bandwidth limits — high when moving (ground),
 // low when near-zero speed (airborne oscillation suppression).
-inline constexpr float kLesoVelBandwidthMin = 80.0f;
+inline constexpr float kLesoVelBandwidthMinX = 10.0f;
+inline constexpr float kLesoVelBandwidthMinY = 10.0f;
 inline constexpr float kLesoAngleBandwidthMin = 50.0f;
-inline constexpr float kLesoScheduleVelocityThreshold = 0.01f;  // m/s
+inline constexpr float kLesoScheduleVelocityThresholdX = 0.1f;  // m/s
+inline constexpr float kLesoScheduleVelocityThresholdY = 0.25f; // m/s
+inline constexpr float kLesoScheduleVelocityThreshold = kLesoScheduleVelocityThresholdX;
 inline constexpr float kLesoScheduleOmegaThreshold = 0.01f;    // rad/s
 inline constexpr float kImuOmegaButterworthCutoffHz = 350.0f;
 inline constexpr float kChassisOmegaZFilterCutoffHz = 0.0f;
@@ -45,10 +49,10 @@ inline constexpr float kImuOmegaBiasZ = 1.0f;
 
 // Velocity feedback gains — scheduled with LESO bandwidth via alpha_v.
 // Kv = ω_c for 1st-order velocity loop pole placement.
-inline constexpr float kVelFeedbackGainX = 35.0f;
-inline constexpr float kVelFeedbackGainY = 20.0f;
-inline constexpr float kVelFeedbackGainMinX = 15.0f;
-inline constexpr float kVelFeedbackGainMinY = 8.0f;
+inline constexpr float kVelFeedbackGainX = 2.0f;
+inline constexpr float kVelFeedbackGainY = 2.0f;
+inline constexpr float kVelFeedbackGainMinX = 1.0f;
+inline constexpr float kVelFeedbackGainMinY = 0.35f;
 inline constexpr float kVelFeedbackGainYaw = 0.0f;
 // PD controller bandwidth — scheduled together with LESO bandwidth.
 // max when moving (stiff angle tracking), min when stationary (stable).
@@ -109,7 +113,7 @@ inline constexpr float kMotorRecoverDelayMs = 1000.0f;
 inline constexpr float kMotorClearErrorToEnableDelayMs = 10.0f;
 
 // ---- Optical Flow PLL ----
-inline constexpr float kOptFlowPllBandwidthHz = 40.0f;
+inline constexpr float kOptFlowPllBandwidthHz = 60.0f;
 inline constexpr float kOptFlowPllZeroSnapMmPerS = 1.0f;
 inline constexpr float kOptFlowPllMaxJumpMm = 100.0f;
 inline constexpr uint8_t kOptFlowPllJumpConfirmFrames = 3;
@@ -134,14 +138,14 @@ inline constexpr uint8_t kChassisVelocitySource = 2;
 
 // ---- Fusion Kalman (source==2) ----
 // Process noise
-inline constexpr float kFusionKalmanQX = 0.001f;
-inline constexpr float kFusionKalmanQY = 0.001f;
+inline constexpr float kFusionKalmanQX = 0.01f;
+inline constexpr float kFusionKalmanQY = 0.01f;
 
 // Wheel measurement noise: high at low speed, low at high speed
 inline constexpr float kFusionKalmanRWheelMinX = 0.1f;
-inline constexpr float kFusionKalmanRWheelMaxX = 1.5f;
-inline constexpr float kFusionKalmanRWheelMinY = 0.01f;
-inline constexpr float kFusionKalmanRWheelMaxY = 0.5f;
+inline constexpr float kFusionKalmanRWheelMaxX = 5.0f;
+inline constexpr float kFusionKalmanRWheelMinY = 0.1f;
+inline constexpr float kFusionKalmanRWheelMaxY = 5.0f;
 
 // Optflow measurement noise: low at low speed, high at high speed
 inline constexpr float kFusionKalmanROptflowMinX = 0.01f;
@@ -150,12 +154,25 @@ inline constexpr float kFusionKalmanROptflowMinY = 0.01f;
 inline constexpr float kFusionKalmanROptflowMaxY = 0.01f;
 
 // Speed transition point (m/s)
-inline constexpr float kFusionSpeedTransitionX = 5.0f;
-inline constexpr float kFusionSpeedTransitionY = 5.0f;
+inline constexpr float kFusionSpeedTransitionX = 6.0f;
+inline constexpr float kFusionSpeedTransitionY = 6.0f;
 
 // Tilt penalty gain (per deg/s)
 inline constexpr float kFusionTiltPenaltyGainX = 10.0f;
 inline constexpr float kFusionTiltPenaltyGainY = 10.0f;
+
+// Wheel slip suppression: increase wheel velocity measurement noise when the
+// planner asks for large acceleration or wheel/optflow residuals diverge.
+inline constexpr float kFusionWheelAccelThresholdX = 1.5f; // m/s^2
+inline constexpr float kFusionWheelAccelThresholdY = 1.5f; // m/s^2
+inline constexpr float kFusionWheelAccelPenaltyGainX = 0.8f;
+inline constexpr float kFusionWheelAccelPenaltyGainY = 0.8f;
+inline constexpr float kFusionWheelSlipAccelThresholdX = 3.0f; // m/s^2
+inline constexpr float kFusionWheelSlipAccelThresholdY = 3.0f; // m/s^2
+inline constexpr float kFusionWheelOptflowResidualThresholdX = 1.0f; // m/s
+inline constexpr float kFusionWheelOptflowResidualThresholdY = 1.0f; // m/s
+inline constexpr float kFusionWheelSlipResidualPenaltyGainX = 0.0f;
+inline constexpr float kFusionWheelSlipResidualPenaltyGainY = 0.0f;
 
 // ---- Test Kick ----
 // true:  bypass infrared sensor, rising-edge trigger on kick_discharge_time

@@ -41,6 +41,15 @@ public:
     OutputPort<float>* chassis_vy_output_port() { return &chassis_vy_output_port_; }
     OutputPort<float>* chassis_yaw_output_port() { return &chassis_yaw_output_port_; }
     OutputPort<float>* chassis_omega_z_output_port() { return &chassis_omega_z_output_port_; }
+    OutputPort<float>* wheel_chassis_vx_output_port() { return &wheel_chassis_vx_output_port_; }
+    OutputPort<float>* wheel_chassis_vy_output_port() { return &wheel_chassis_vy_output_port_; }
+    OutputPort<float>* fused_chassis_vx_output_port() { return &fused_chassis_vx_output_port_; }
+    OutputPort<float>* fused_chassis_vy_output_port() { return &fused_chassis_vy_output_port_; }
+
+    void set_reference_accel(const float acc_ref[3]) {
+        acc_ref_m_s2_[0] = acc_ref[0];
+        acc_ref_m_s2_[1] = acc_ref[1];
+    }
 
     void step(float dt_s);
     void reset();
@@ -64,8 +73,13 @@ private:
     OutputPort<float> chassis_vy_output_port_{0.0f};
     OutputPort<float> chassis_yaw_output_port_{0.0f};
     OutputPort<float> chassis_omega_z_output_port_{0.0f};
+    OutputPort<float> wheel_chassis_vx_output_port_{0.0f};
+    OutputPort<float> wheel_chassis_vy_output_port_{0.0f};
+    OutputPort<float> fused_chassis_vx_output_port_{0.0f};
+    OutputPort<float> fused_chassis_vy_output_port_{0.0f};
 
     float j2_pinv_[3][4] = {{0.0f}};
+    float acc_ref_m_s2_[2] = {0.0f, 0.0f};
 
     float last_wheel_vel_rpm_[4] = {0.0f, 0.0f, 0.0f, 0.0f};
     bool has_last_raw_yaw_rad_ = false;

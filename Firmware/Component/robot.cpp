@@ -376,6 +376,24 @@ void Robot::pi_encode_spi() {
     SpiTx.odom_vel[0] = encode_velocity_mm_s(chassis_vx.has_value() ? *chassis_vx : 0.0f);
     SpiTx.odom_vel[1] = encode_velocity_mm_s(chassis_vy.has_value() ? *chassis_vy : 0.0f);
 
+    const auto optflow_body_vx = (optflow_body_vx_port_ != nullptr) ? optflow_body_vx_port_->any() : std::optional<float>{};
+    const auto optflow_body_vy = (optflow_body_vy_port_ != nullptr) ? optflow_body_vy_port_->any() : std::optional<float>{};
+    const auto optflow_kf_vx = (optflow_kf_vx_port_ != nullptr) ? optflow_kf_vx_port_->any() : std::optional<float>{};
+    const auto optflow_kf_vy = (optflow_kf_vy_port_ != nullptr) ? optflow_kf_vy_port_->any() : std::optional<float>{};
+    const auto wheel_chassis_vx = chassis_estimator.wheel_chassis_vx_output_port()->any();
+    const auto wheel_chassis_vy = chassis_estimator.wheel_chassis_vy_output_port()->any();
+    const auto fused_chassis_vx = chassis_estimator.fused_chassis_vx_output_port()->any();
+    const auto fused_chassis_vy = chassis_estimator.fused_chassis_vy_output_port()->any();
+
+    SpiTx.optflow_body_vel[0] = encode_i16(optflow_body_vx.has_value() ? *optflow_body_vx : 0.0f);
+    SpiTx.optflow_body_vel[1] = encode_i16(optflow_body_vy.has_value() ? *optflow_body_vy : 0.0f);
+    SpiTx.optflow_kf_vel[0] = encode_i16(optflow_kf_vx.has_value() ? *optflow_kf_vx : 0.0f);
+    SpiTx.optflow_kf_vel[1] = encode_i16(optflow_kf_vy.has_value() ? *optflow_kf_vy : 0.0f);
+    SpiTx.wheel_chassis_vel[0] = encode_velocity_mm_s(wheel_chassis_vx.has_value() ? *wheel_chassis_vx : 0.0f);
+    SpiTx.wheel_chassis_vel[1] = encode_velocity_mm_s(wheel_chassis_vy.has_value() ? *wheel_chassis_vy : 0.0f);
+    SpiTx.fused_chassis_vel[0] = encode_velocity_mm_s(fused_chassis_vx.has_value() ? *fused_chassis_vx : 0.0f);
+    SpiTx.fused_chassis_vel[1] = encode_velocity_mm_s(fused_chassis_vy.has_value() ? *fused_chassis_vy : 0.0f);
+
     SpiTx.xy_max_vel[0] = encode_velocity_mm_s(
         decomposed_axis_velocity_limit_m_s(WHEEL_VX_ANGLE, wheel_vel_limit));
     SpiTx.xy_max_vel[1] = encode_velocity_mm_s(
@@ -502,8 +520,13 @@ void Robot::bind_estimator_imu_ports(IMU& imu_ref) {
 }
 
 void Robot::bind_estimator_optflow_ports(OptFlow& optflow_ref) {
-    chassis_estimator.optflow_vx_input_port()->connect_to(optflow_ref.kf_vx_output());
-    chassis_estimator.optflow_vy_input_port()->connect_to(optflow_ref.kf_vy_output());
+    optflow_body_vx_port_ = optflow_ref.body_vx_output();
+    optflow_body_vy_port_ = optflow_ref.body_vy_output();
+    optflow_kf_vx_port_ = optflow_ref.kf_vx_output();
+    optflow_kf_vy_port_ = optflow_ref.kf_vy_output();
+
+    chassis_estimator.optflow_vx_input_port()->connect_to(optflow_kf_vx_port_);
+    chassis_estimator.optflow_vy_input_port()->connect_to(optflow_kf_vy_port_);
 }
 
 void Robot::update_torque_feedforward(const double _dt) {
@@ -517,6 +540,7 @@ void Robot::update_torque_feedforward(const double _dt) {
     if (use_imu) {
         chassis_controller.set_yaw_target(yaw_s_curve_.position(), yaw_s_curve_.velocity());
     }
+    chassis_estimator.set_reference_accel(robot_acc);
     chassis_estimator.step(dt_s);
     chassis_controller.step(dt_s);
 

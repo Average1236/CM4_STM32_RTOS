@@ -13,12 +13,36 @@ volatile float wheel_vx_debug = 0;
 volatile float wheel_vy_debug = 0;
 volatile float of_vx_debug = 0;
 volatile float of_vy_debug = 0;
+volatile float fusion_r_wheel_x_debug = 0;
+volatile float fusion_r_wheel_y_debug = 0;
+volatile float fusion_wheel_residual_x_debug = 0;
+volatile float fusion_wheel_residual_y_debug = 0;
+volatile float fusion_acc_penalty_x_debug = 0;
+volatile float fusion_acc_penalty_y_debug = 0;
 
 namespace {
 
 constexpr float kDegToRad = 3.1415926535f / 180.0f;
 constexpr float kRadToDeg = 180.0f / 3.1415926535f;
 constexpr float kRpmToRadPerSec = 2.0f * 3.1415926535f / 60.0f;
+
+float accel_penalty_multiplier(float acc_abs, float threshold, float gain) {
+    return 1.0f + gain * fmaxf(0.0f, acc_abs - threshold);
+}
+
+float slip_residual_penalty_multiplier(
+    float residual_abs,
+    float acc_abs,
+    float residual_threshold,
+    float accel_threshold,
+    float gain
+) {
+    if (acc_abs <= accel_threshold || residual_abs <= residual_threshold) {
+        return 1.0f;
+    }
+
+    return 1.0f + gain * (residual_abs - residual_threshold);
+}
 
 } // namespace
 
@@ -48,6 +72,8 @@ void ChassisEstimator::step(float dt_s) {
         wheel_vx += j2_pinv_[0][col] * wheel_vel_rad_s[col];
         wheel_vy += j2_pinv_[1][col] * wheel_vel_rad_s[col];
     }
+    wheel_chassis_vx_output_port_ = wheel_vx;
+    wheel_chassis_vy_output_port_ = wheel_vy;
 
     if (control_config::kChassisVelocitySource == 2) {
         // --- Fused: adaptive Kalman (wheel + optflow), per-axis params ---
@@ -79,6 +105,26 @@ void ChassisEstimator::step(float dt_s) {
                          * alpha_x;
             R_of_x *= (1.0f + control_config::kFusionTiltPenaltyGainX * tilt_rate);
 
+            const float acc_abs_x = fabsf(acc_ref_m_s2_[0]);
+            const float wheel_flow_residual_x = of_vx.has_value() ? fabsf(wheel_vx - flow_vx) : 0.0f;
+            const float acc_penalty_x = accel_penalty_multiplier(
+                acc_abs_x,
+                control_config::kFusionWheelAccelThresholdX,
+                control_config::kFusionWheelAccelPenaltyGainX);
+            const float slip_penalty_x = of_vx.has_value()
+                ? slip_residual_penalty_multiplier(
+                    wheel_flow_residual_x,
+                    acc_abs_x,
+                    control_config::kFusionWheelOptflowResidualThresholdX,
+                    control_config::kFusionWheelSlipAccelThresholdX,
+                    control_config::kFusionWheelSlipResidualPenaltyGainX)
+                : 1.0f;
+            R_w_x *= acc_penalty_x * slip_penalty_x;
+
+            fusion_r_wheel_x_debug = R_w_x;
+            fusion_wheel_residual_x_debug = wheel_flow_residual_x;
+            fusion_acc_penalty_x_debug = acc_penalty_x;
+
             kf_vx_.predict(control_config::kFusionKalmanQX);
             kf_vx_.update(wheel_vx, R_w_x);
             kf_vx_.update(flow_vx, R_of_x);
@@ -95,6 +141,26 @@ void ChassisEstimator::step(float dt_s) {
                          * alpha_y;
             R_of_y *= (1.0f + control_config::kFusionTiltPenaltyGainY * tilt_rate);
 
+            const float acc_abs_y = fabsf(acc_ref_m_s2_[1]);
+            const float wheel_flow_residual_y = of_vy.has_value() ? fabsf(wheel_vy - flow_vy) : 0.0f;
+            const float acc_penalty_y = accel_penalty_multiplier(
+                acc_abs_y,
+                control_config::kFusionWheelAccelThresholdY,
+                control_config::kFusionWheelAccelPenaltyGainY);
+            const float slip_penalty_y = of_vy.has_value()
+                ? slip_residual_penalty_multiplier(
+                    wheel_flow_residual_y,
+                    acc_abs_y,
+                    control_config::kFusionWheelOptflowResidualThresholdY,
+                    control_config::kFusionWheelSlipAccelThresholdY,
+                    control_config::kFusionWheelSlipResidualPenaltyGainY)
+                : 1.0f;
+            R_w_y *= acc_penalty_y * slip_penalty_y;
+
+            fusion_r_wheel_y_debug = R_w_y;
+            fusion_wheel_residual_y_debug = wheel_flow_residual_y;
+            fusion_acc_penalty_y_debug = acc_penalty_y;
+
             kf_vy_.predict(control_config::kFusionKalmanQY);
             kf_vy_.update(wheel_vy, R_w_y);
             kf_vy_.update(flow_vy, R_of_y);
@@ -102,6 +168,8 @@ void ChassisEstimator::step(float dt_s) {
 
         chassis_vel_meas[0] = kf_vx_.v_est;
         chassis_vel_meas[1] = kf_vy_.v_est;
+        fused_chassis_vx_output_port_ = kf_vx_.v_est;
+        fused_chassis_vy_output_port_ = kf_vy_.v_est;
 
     } else if (control_config::kChassisVelocitySource == 1) {
         // Optical-flow-only velocity
@@ -168,11 +236,17 @@ void ChassisEstimator::reset() {
     accumulated_yaw_rad_ = 0.0f;
     last_yaw_rad_ = 0.0f;
     last_omega_z_rad_s_ = 0.0f;
+    acc_ref_m_s2_[0] = 0.0f;
+    acc_ref_m_s2_[1] = 0.0f;
 
     chassis_vx_output_port_ = 0.0f;
     chassis_vy_output_port_ = 0.0f;
     chassis_yaw_output_port_ = 0.0f;
     chassis_omega_z_output_port_ = 0.0f;
+    wheel_chassis_vx_output_port_ = 0.0f;
+    wheel_chassis_vy_output_port_ = 0.0f;
+    fused_chassis_vx_output_port_ = 0.0f;
+    fused_chassis_vy_output_port_ = 0.0f;
 }
 
 bool ChassisEstimator::inverse3x3(const float in[3][3], float out[3][3]) const {

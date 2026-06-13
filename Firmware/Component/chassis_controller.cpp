@@ -25,6 +25,7 @@ volatile float err_psi_vel_debug = 0;
 volatile float err_wz_debug = 0;
 volatile float yaw_rad_debug = 0;
 volatile float wo_vel_eff_debug = 0;
+volatile float wo_vy_eff_debug = 0;
 volatile float wo_psi_eff_debug = 0;
 volatile float omega_z_filt_debug = 0;
 volatile float yaw_target_pos_debug = 0;
@@ -111,29 +112,33 @@ void MixedLesoChassisController::step(float dt_s) {
     // ---- Velocity-scheduled observer bandwidth ----
     // High when moving (ground, model accurate), low when near-zero speed
     // (airborne oscillation suppression where plant model is wrong ~400x).
-    const float v_norm = sqrtf(vx_m_s * vx_m_s + vy_m_s * vy_m_s);
-    const float alpha_v = std::clamp(v_norm / control_config::kLesoScheduleVelocityThreshold, 0.0f, 1.0f);
-    const float wo_vel_eff = control_config::kLesoVelBandwidthMin
-                           + (control_config::kLesoVelObserverBandwidth - control_config::kLesoVelBandwidthMin) * alpha_v;
+    const float alpha_vx = std::clamp(fabsf(vx_m_s) / control_config::kLesoScheduleVelocityThresholdX, 0.0f, 1.0f);
+    const float alpha_vy = std::clamp(fabsf(vy_m_s) / control_config::kLesoScheduleVelocityThresholdY, 0.0f, 1.0f);
+    const float wo_vx_eff = control_config::kLesoVelBandwidthMinX
+                          + (control_config::kLesoVelObserverBandwidthX - control_config::kLesoVelBandwidthMinX) * alpha_vx;
+    const float wo_vy_eff = control_config::kLesoVelBandwidthMinY
+                          + (control_config::kLesoVelObserverBandwidthY - control_config::kLesoVelBandwidthMinY) * alpha_vy;
 
     // Yaw controller suppresses disturbance torque from translational motion —
     // bandwidth ramps with any motion (vx, vy, or omega_z).
+    const float v_norm = sqrtf(vx_m_s * vx_m_s + vy_m_s * vy_m_s);
+    const float alpha_v = std::clamp(v_norm / control_config::kLesoScheduleVelocityThreshold, 0.0f, 1.0f);
     const float alpha_omega = std::clamp(fabsf(omega_z_rad_s) / control_config::kLesoScheduleOmegaThreshold, 0.0f, 1.0f);
     const float alpha_psi = fmaxf(alpha_v, alpha_omega);
     const float wo_psi_eff = control_config::kLesoAngleBandwidthMin
                            + (control_config::kLesoAngleObserverBandwidth - control_config::kLesoAngleBandwidthMin) * alpha_psi;
 
-    wo_vel_eff_debug = wo_vel_eff;
+    wo_vel_eff_debug = wo_vx_eff;
+    wo_vy_eff_debug = wo_vy_eff;
     wo_psi_eff_debug = wo_psi_eff;
 
     // ---- 2nd-order LESO: vx axis ----
-    const float wo_vel = wo_vel_eff;
-    const float L1_vel = 2.0f * wo_vel;
-    const float L2_vel = wo_vel * wo_vel;
+    const float L1_vx = 2.0f * wo_vx_eff;
+    const float L2_vx = wo_vx_eff * wo_vx_eff;
 
     const float err_vx = vx_m_s - leso2_[0][0];
-    const float dz1_vx = leso2_[0][1] + L1_vel * err_vx + u_vx;
-    const float dz2_vx = L2_vel * err_vx;
+    const float dz1_vx = leso2_[0][1] + L1_vx * err_vx + u_vx;
+    const float dz2_vx = L2_vx * err_vx;
     leso2_[0][0] += dt_s * dz1_vx;
     leso2_[0][1] += dt_s * dz2_vx;
 
@@ -141,9 +146,11 @@ void MixedLesoChassisController::step(float dt_s) {
     vx_leso_z2_debug = leso2_[0][1];
 
     // ---- 2nd-order LESO: vy axis ----
+    const float L1_vy = 2.0f * wo_vy_eff;
+    const float L2_vy = wo_vy_eff * wo_vy_eff;
     const float err_vy = vy_m_s - leso2_[1][0];
-    const float dz1_vy = leso2_[1][1] + L1_vel * err_vy + u_vy;
-    const float dz2_vy = L2_vel * err_vy;
+    const float dz1_vy = leso2_[1][1] + L1_vy * err_vy + u_vy;
+    const float dz2_vy = L2_vy * err_vy;
     leso2_[1][0] += dt_s * dz1_vy;
     leso2_[1][1] += dt_s * dz2_vy;
 
@@ -189,11 +196,11 @@ void MixedLesoChassisController::step(float dt_s) {
         F_task_psi = control_config::kRobotInertiaKgM2 * (acc_ref_[2] + fb_psi - leso2_[2][1]);
     }
 
-    // Velocity feedback gains track observer bandwidth (same alpha_v).
+    // Velocity feedback gains track each axis' own scheduled bandwidth.
     const float Kv_x = control_config::kVelFeedbackGainMinX
-                     + (control_config::kVelFeedbackGainX - control_config::kVelFeedbackGainMinX) * alpha_v;
+                     + (control_config::kVelFeedbackGainX - control_config::kVelFeedbackGainMinX) * alpha_vx;
     const float Kv_y = control_config::kVelFeedbackGainMinY
-                     + (control_config::kVelFeedbackGainY - control_config::kVelFeedbackGainMinY) * alpha_v;
+                     + (control_config::kVelFeedbackGainY - control_config::kVelFeedbackGainMinY) * alpha_vy;
     const float fb_vx = Kv_x * (vel_ref_[0] - leso2_[0][0]);
     const float fb_vy = Kv_y * (vel_ref_[1] - leso2_[1][0]);
 
@@ -203,8 +210,10 @@ void MixedLesoChassisController::step(float dt_s) {
     fb_vy_debug = fb_vy;
 
     const float F_task[3] = {
-        control_config::kRobotMassKg * (acc_ref_[0] + fb_vx),
-        control_config::kRobotMassKg * (acc_ref_[1] + fb_vy),
+        // control_config::kRobotMassKg * (acc_ref_[0] + fb_vx - leso2_[0][1]),
+        // control_config::kRobotMassKg * (acc_ref_[1] + fb_vy - leso2_[1][1]),
+        control_config::kRobotMassKg * (fb_vx - leso2_[0][1]),
+        control_config::kRobotMassKg * (fb_vy - leso2_[1][1]),
         F_task_psi,
     };
 
