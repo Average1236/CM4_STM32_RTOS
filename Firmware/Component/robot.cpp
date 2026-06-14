@@ -12,25 +12,14 @@ volatile float target_vw_debug = 0;
 volatile float robot_ay_debug = 0;
 volatile float wheel_vel_debug = 0;
 volatile float robot_real_vx_debug = 0;
-volatile float planner_measured_vx_debug = 0;
-volatile float planner_measured_vy_debug = 0;
-volatile float planner_start_vx_debug = 0;
-volatile float planner_start_vy_debug = 0;
-volatile float planner_output_vx_debug = 0;
-volatile float planner_output_vy_debug = 0;
-volatile float planner_acc_x_debug = 0;
-volatile float planner_acc_y_debug = 0;
-volatile float planner_elapsed_x_debug = 0;
-volatile float planner_elapsed_y_debug = 0;
-volatile float planner_total_x_debug = 0;
-volatile float planner_total_y_debug = 0;
-volatile int planner_replan_x_debug = 0;
-volatile int planner_replan_y_debug = 0;
 volatile uint16_t kick_pulse_debug = 0;
 volatile float dribble_power_debug = 0;
 volatile int use_imu_debug = 0;
 volatile float dribble_velocity_debug = 0;
 volatile float dribble_torque_ff_debug = 0;
+volatile float yaw_vel_max_debug = 0;
+volatile float yaw_acc_max_debug = 0;
+volatile float yaw_jerk_max_debug = 0;
 
 // Wheel geometry
 static constexpr float WHEEL_ANGLE_FORWARD = control_config::kWheelAlphaRad;
@@ -227,7 +216,8 @@ static const WheelMotorBase::Config_t WHEEL_MOTOR_PARAMS[4] = {
 };
 
 Robot::Robot() {
-    yaw_s_curve_.set_config({yaw_max_vel, yaw_max_acc, yaw_max_jerk});
+    yaw_s_curve_.set_config({yaw_max_vel, yaw_max_acc,
+                             control_config::kYawAngleLinearFallbackMinTimeSec});
     planner_start_vx_filter_.set_parameter({control_config::kPlannerStartVelocityLpfCutoffHz,
                                              control_config::kControlDtSec});
     planner_start_vy_filter_.set_parameter({control_config::kPlannerStartVelocityLpfCutoffHz,
@@ -282,7 +272,11 @@ void Robot::pi_decode_spi() {
     if (yaw_vel_cmd > 0.0f) yaw_max_vel = yaw_vel_cmd;
     if (yaw_acc_cmd > 0.0f) yaw_max_acc = yaw_acc_cmd;
     if (yaw_jerk_cmd > 0.0f) yaw_max_jerk = yaw_jerk_cmd;
-    yaw_s_curve_.set_config({yaw_max_vel, yaw_max_acc, yaw_max_jerk});
+    yaw_vel_max_debug = yaw_max_vel;
+    yaw_acc_max_debug = yaw_max_acc;
+    yaw_jerk_max_debug = yaw_max_jerk;
+    yaw_s_curve_.set_config({yaw_max_vel, yaw_max_acc,
+                             control_config::kYawAngleLinearFallbackMinTimeSec});
     robot_vel[2] = std::clamp(robot_vel[2], -yaw_max_vel, yaw_max_vel);
 
     dribble_power = SpiRx.drib_power / 50.0f * -1.0f;
@@ -299,9 +293,10 @@ void Robot::pi_decode_spi() {
         if (fabsf(wrap_to_pi(new_target - yaw_target_rad)) > 1e-6f) {
             yaw_target_rad = new_target;
             const auto yaw = chassis_estimator.chassis_yaw_output_port()->any();
+            const auto omega_z = chassis_estimator.chassis_omega_z_output_port()->any();
             yaw_s_curve_.set_target(yaw_target_rad,
                                     yaw.has_value() ? *yaw : 0.0f,
-                                    0.0f);
+                                    omega_z.has_value() ? *omega_z : robot_real_vel[2]);
         }
     }
 
@@ -477,12 +472,6 @@ void Robot::motion_planner(const double _dt) {
         planner_start_vx_filter_.filter(measured_vel[0]),
         planner_start_vy_filter_.filter(measured_vel[1]),
     };
-    planner_measured_vx_debug = measured_vel[0];
-    planner_measured_vy_debug = measured_vel[1];
-    planner_start_vx_debug = planner_start_vel[0];
-    planner_start_vy_debug = planner_start_vel[1];
-    planner_replan_x_debug = 0;
-    planner_replan_y_debug = 0;
 
     for (uint8_t i = 0; i < 3; i++) {
         if (use_imu && i == 2) continue;  // yaw angle control bypasses planner
@@ -505,11 +494,6 @@ void Robot::motion_planner(const double _dt) {
             init_axis_plan(plan, v_plan_start, v_target, a_max, j_max);
             if (linear_axis) {
                 last_robot_real_vel[i] = v_plan_start;
-                if (i == 0) {
-                    planner_replan_x_debug = 1;
-                } else {
-                    planner_replan_y_debug = 1;
-                }
             }
         }
         const float v_now = last_robot_real_vel[i];
@@ -550,17 +534,6 @@ void Robot::motion_planner(const double _dt) {
         }
 
         last_robot_real_vel[i] = robot_real_vel[i];
-        if (i == 0) {
-            planner_output_vx_debug = robot_real_vel[i];
-            planner_acc_x_debug = robot_acc[i];
-            planner_elapsed_x_debug = plan.elapsed;
-            planner_total_x_debug = plan.t_total;
-        } else if (i == 1) {
-            planner_output_vy_debug = robot_real_vel[i];
-            planner_acc_y_debug = robot_acc[i];
-            planner_elapsed_y_debug = plan.elapsed;
-            planner_total_y_debug = plan.t_total;
-        }
     }
     robot_ay_debug = robot_acc[1];
 

@@ -1,17 +1,23 @@
 #ifndef __YAW_S_CURVE_HPP
 #define __YAW_S_CURVE_HPP
 
+#include <algorithm>
 #include <cmath>
 
-/// S-curve (jerk-limited) trajectory planner for yaw angle.
-/// Computes a 7-phase plan on target change, samples position/velocity each cycle.
-/// Handles cyclic angle wrapping — plans the shortest path.
+/// Trapezoidal yaw angle planner.
+///
+/// The class name is kept for call-site compatibility. The implementation uses
+/// the measured yaw/omega as the initial state. If the current omega is moving
+/// away from the target, or cannot stop before the target, the planner first
+/// brakes to zero and allows the yaw reference to overshoot, then plans a normal
+/// trapezoid back to the target. Linear interpolation is kept only for invalid
+/// parameter or numeric fallback cases.
 class YawSCurve {
 public:
     struct Config {
-        float vmax;  // max angular velocity  (rad/s)
-        float amax;  // max angular acceleration (rad/s²)
-        float jmax;  // max angular jerk (rad/s³)
+        float vmax;               // max angular velocity (rad/s)
+        float amax;               // max angular acceleration (rad/s^2)
+        float fallback_min_time;  // minimum linear fallback duration (s)
     };
 
     explicit YawSCurve(const Config& cfg) : cfg_(cfg) {}
@@ -21,56 +27,102 @@ public:
     /// Call when target changes. current_rad = measured yaw (unwrapped, rad).
     /// current_vel = measured angular velocity (rad/s).
     void set_target(float target_rad, float current_rad, float current_vel) {
+        start_pos_ = current_rad;
         const float dq = wrap_pm_pi(target_rad - current_rad);
-        if (fabsf(dq) < 1e-9f) {
-            active_ = false;
+        target_pos_ = current_rad + dq;
+        elapsed_ = 0.0f;
+        mode_ = Mode::Idle;
+        has_brake_ = false;
+        has_trapezoid_ = false;
+
+        if (!try_build_plan(dq, current_rad, current_vel)) {
+            build_linear_fallback(dq);
+            mode_ = Mode::LinearFallback;
             return;
         }
 
-        sign_ = (dq >= 0.0f) ? 1.0f : -1.0f;
-        const float q0 = 0.0f;
-        const float q1 = sign_ * dq;
-        start_pos_ = current_rad;
-        start_vel_ = sign_ * current_vel;  // signed for positive-direction plan
-        compute_plan(q0, q1, start_vel_);
-        elapsed_ = 0.0f;
-        active_ = (total_time_ > 1e-9f);
+        if (total_time_ > kTimeEps) {
+            mode_ = Mode::Trapezoid;
+        }
     }
 
     void step(float dt_s) {
-        if (!active_) return;
+        if (!active() || dt_s <= 0.0f) {
+            return;
+        }
+
         elapsed_ += dt_s;
         if (elapsed_ >= total_time_) {
             elapsed_ = total_time_;
-            active_ = false;
+            mode_ = Mode::Idle;
         }
     }
 
     float position() const {
-        if (!active_) return start_pos_ + sign_ * q1_;
-        return start_pos_ + sign_ * sample_pos(elapsed_);
+        if (mode_ == Mode::Trapezoid) {
+            return sample_plan_pos(elapsed_);
+        }
+        if (mode_ == Mode::LinearFallback) {
+            return start_pos_ + fallback_vel_ * elapsed_;
+        }
+        return target_pos_;
     }
 
     float velocity() const {
-        if (!active_) return 0.0f;
-        return sign_ * sample_vel(elapsed_);
+        if (mode_ == Mode::Trapezoid) {
+            return sample_plan_vel(elapsed_);
+        }
+        if (mode_ == Mode::LinearFallback) {
+            return fallback_vel_;
+        }
+        return 0.0f;
     }
 
-    bool active() const { return active_; }
+    bool active() const { return mode_ != Mode::Idle; }
 
 private:
+    enum class Mode {
+        Idle,
+        Trapezoid,
+        LinearFallback,
+    };
+
+    struct TrapSegment {
+        float start_pos = 0.0f;
+        float direction = 1.0f;
+        float distance = 0.0f;
+        float start_vel = 0.0f;
+        float peak_vel = 0.0f;
+        float t_acc = 0.0f;
+        float t_flat = 0.0f;
+        float t_dec = 0.0f;
+        float total_time = 0.0f;
+        float q_acc_end = 0.0f;
+        float q_flat_end = 0.0f;
+    };
+
     Config cfg_;
-    bool active_ = false;
-    float sign_ = 1.0f;
+    Mode mode_ = Mode::Idle;
+
     float start_pos_ = 0.0f;
-    float start_vel_ = 0.0f;
+    float target_pos_ = 0.0f;
     float elapsed_ = 0.0f;
     float total_time_ = 0.0f;
 
-    float q1_ = 0.0f;
-    float Tj1_ = 0.0f, Ta_ = 0.0f, Tv_ = 0.0f, Td_ = 0.0f, Tj2_ = 0.0f;
-    float vlim_ = 0.0f, alima_ = 0.0f, alimd_ = 0.0f;
-    float j_max_ = 0.0f;
+    bool has_brake_ = false;
+    float brake_start_pos_ = 0.0f;
+    float brake_start_vel_ = 0.0f;
+    float brake_acc_ = 0.0f;
+    float brake_time_ = 0.0f;
+
+    bool has_trapezoid_ = false;
+    TrapSegment trapezoid_;
+
+    float fallback_vel_ = 0.0f;
+
+    static constexpr float kPositionEps = 1e-6f;
+    static constexpr float kVelocityEps = 1e-5f;
+    static constexpr float kTimeEps = 1e-6f;
 
     static float wrap_pm_pi(float x) {
         while (x > 3.1415926535f)  x -= 6.283185307f;
@@ -78,147 +130,187 @@ private:
         return x;
     }
 
-    void compute_plan(float q0, float q1, float v0) {
-        q1_ = q1;
-        const float vmax = cfg_.vmax;
-        float amax = cfg_.amax;
-        const float jmax = cfg_.jmax;
-        const float v1 = 0.0f;
-        j_max_ = jmax;
-
-        if (try_max_speed(q0, q1, v0, v1, vmax, amax, jmax)) return;
-        if (try_full_amax(q0, q1, v0, v1, amax, jmax)) return;
-
-        for (int i = 0; i < 200 && amax > 1e-8f; ++i) {
-            amax *= 0.99f;
-            if (try_full_amax(q0, q1, v0, v1, amax, jmax)) return;
-        }
-        fallback(q0, q1, amax);
+    static float sign_nonzero(float x) {
+        return (x >= 0.0f) ? 1.0f : -1.0f;
     }
 
-    bool try_max_speed(float q0, float q1, float v0, float v1,
-                       float vmax, float amax, float jmax) {
-        float Tj1, Ta_acc, a_lima;
-        if ((vmax - v0) * jmax < amax * amax) {
-            Tj1 = sqrtf(fmaxf((vmax - v0) / jmax, 0.0f));
-            Ta_acc = 2.0f * Tj1;
-            a_lima = jmax * Tj1;
-        } else {
-            Tj1 = amax / jmax;
-            Ta_acc = Tj1 + (vmax - v0) / amax;
-            a_lima = amax;
+    bool try_build_plan(float dq, float current_rad, float current_vel) {
+        const float vmax = fabsf(cfg_.vmax);
+        const float amax = fabsf(cfg_.amax);
+        if (vmax <= kVelocityEps || amax <= kVelocityEps || !std::isfinite(current_vel)) {
+            return false;
         }
-        float Tj2, Td_dec, a_limd;
-        if ((vmax - v1) * jmax < amax * amax) {
-            Tj2 = sqrtf(fmaxf((vmax - v1) / jmax, 0.0f));
-            Td_dec = 2.0f * Tj2;
-            a_limd = -jmax * Tj2;
-        } else {
-            Tj2 = amax / jmax;
-            Td_dec = Tj2 + (vmax - v1) / amax;
-            a_limd = -amax;
-        }
-        float Tv;
-        if (fabsf(vmax) < 1e-12f) {
-            Tv = -1.0f;
-        } else {
-            Tv = (q1 - q0) / vmax
-               - (Ta_acc / 2.0f) * (1.0f + v0 / vmax)
-               - (Td_dec / 2.0f) * (1.0f + v1 / vmax);
-        }
-        if (Tv > 0.0f) {
-            Tj1_ = Tj1; Tj2_ = Tj2;
-            Ta_ = Ta_acc; Tv_ = Tv; Td_ = Td_dec;
-            vlim_ = vmax; alima_ = a_lima; alimd_ = a_limd;
-            total_time_ = Ta_ + Tv_ + Td_;
+
+        const float current_vel_limited = std::clamp(current_vel, -vmax, vmax);
+        if (fabsf(dq) < kPositionEps && fabsf(current_vel_limited) < kVelocityEps) {
+            total_time_ = 0.0f;
             return true;
         }
-        return false;
-    }
 
-    bool try_full_amax(float q0, float q1, float v0, float v1,
-                       float amax, float jmax) {
-        const float Tj = amax / jmax;
-        const float delta = (amax * amax * amax * amax) / (jmax * jmax)
-                          + 2.0f * (v0 * v0 + v1 * v1)
-                          + amax * (4.0f * (q1 - q0) - 2.0f * (amax / jmax) * (v0 + v1));
-        if (delta < 0.0f) return false;
-        const float sqrt_d = sqrtf(delta);
-        float Ta = ((amax * amax / jmax) - 2.0f * v0 + sqrt_d) / (2.0f * amax);
-        float Td = ((amax * amax / jmax) - 2.0f * v1 + sqrt_d) / (2.0f * amax);
-        if (Ta < 0.0f || Td < 0.0f) return false;
-        if (Ta < 2.0f * Tj || Td < 2.0f * Tj) return false;
-        Tj1_ = Tj2_ = Tj;
-        Ta_ = Ta; Tv_ = 0.0f; Td_ = Td;
-        alima_ = amax; alimd_ = -amax;
-        vlim_ = v0 + alima_ * (Ta - Tj);
-        total_time_ = Ta_ + Tv_ + Td_;
+        float plan_start_pos = current_rad;
+        float plan_start_vel = current_vel_limited;
+        const float target_direction =
+            (fabsf(dq) >= kPositionEps) ? sign_nonzero(dq) : sign_nonzero(current_vel_limited);
+        const float start_vel_to_target = target_direction * current_vel_limited;
+        const float stop_distance =
+            (start_vel_to_target > 0.0f) ? (start_vel_to_target * start_vel_to_target) / (2.0f * amax) : 0.0f;
+        const bool moving_away = start_vel_to_target < -kVelocityEps;
+        const bool cannot_stop_before_target = stop_distance > fabsf(dq) + kPositionEps;
+
+        if (moving_away || cannot_stop_before_target) {
+            build_brake_segment(current_rad, current_vel_limited, amax);
+            plan_start_pos = sample_brake_pos(brake_time_);
+            plan_start_vel = 0.0f;
+        }
+
+        if (fabsf(target_pos_ - plan_start_pos) >= kPositionEps) {
+            if (!build_trapezoid_segment(plan_start_pos, target_pos_, plan_start_vel, vmax, amax, trapezoid_)) {
+                return false;
+            }
+            has_trapezoid_ = true;
+        }
+
+        total_time_ = brake_time_ + (has_trapezoid_ ? trapezoid_.total_time : 0.0f);
         return true;
     }
 
-    void fallback(float q0, float q1, float amax) {
-        const float t_total = 2.0f * sqrtf(fabsf(q1 - q0) / (0.5f * amax));
-        Tj1_ = Tj2_ = 0.0f;
-        Ta_ = Td_ = t_total * 0.5f;
-        Tv_ = 0.0f;
-        alima_ = amax; alimd_ = -amax;
-        vlim_ = 0.5f * amax * Ta_;
-        total_time_ = t_total;
+    void build_brake_segment(float current_rad, float current_vel, float amax) {
+        if (fabsf(current_vel) < kVelocityEps) {
+            return;
+        }
+
+        has_brake_ = true;
+        brake_start_pos_ = current_rad;
+        brake_start_vel_ = current_vel;
+        brake_acc_ = -sign_nonzero(current_vel) * amax;
+        brake_time_ = fabsf(current_vel) / amax;
     }
 
-    float sample_pos(float t) const {
-        const float T = total_time_;
-        if (t <= 0.0f) return 0.0f;
-        const float q_acc_end = (vlim_ + start_vel_) * Ta_ / 2.0f;
-        const float q_dec_start = q1_ - vlim_ * Td_ / 2.0f;  // v1=0
-        if (t < Tj1_) {
-            return start_vel_ * t + j_max_ * (t * t * t) / 6.0f;
-        } else if (t < Ta_ - Tj1_) {
-            return start_vel_ * t + (alima_ / 6.0f) * (3.0f * t * t - 3.0f * Tj1_ * t + Tj1_ * Tj1_);
-        } else if (t < Ta_) {
-            const float tr = Ta_ - t;
-            return q_acc_end - vlim_ * tr + j_max_ * (tr * tr * tr) / 6.0f;
-        } else if (t <= Ta_ + Tv_) {
-            return q_acc_end + vlim_ * (t - Ta_);
-        } else {
-            const float tt = t - Ta_ - Tv_;
-            if (tt < Tj2_) {
-                return q_dec_start + vlim_ * tt - j_max_ * (tt * tt * tt) / 6.0f;
-            } else if (tt < Td_ - Tj2_) {
-                return q_dec_start + vlim_ * tt
-                     + (alimd_ / 6.0f) * (3.0f * tt * tt - 3.0f * Tj2_ * tt + Tj2_ * Tj2_);
-            } else if (t <= T) {
-                const float tr = T - t;
-                return q1_ - j_max_ * (tr * tr * tr) / 6.0f;
-            }
+    bool build_trapezoid_segment(
+        float from_pos,
+        float to_pos,
+        float start_vel,
+        float vmax,
+        float amax,
+        TrapSegment& segment
+    ) const {
+        const float dq = to_pos - from_pos;
+        const float distance = fabsf(dq);
+        if (distance < kPositionEps) {
+            return false;
         }
-        return q1_;
+
+        segment = {};
+        segment.start_pos = from_pos;
+        segment.direction = sign_nonzero(dq);
+        segment.distance = distance;
+        segment.start_vel = std::clamp(segment.direction * start_vel, 0.0f, vmax);
+
+        const float d_acc_to_vmax =
+            (vmax * vmax - segment.start_vel * segment.start_vel) / (2.0f * amax);
+        const float d_dec_from_vmax = (vmax * vmax) / (2.0f * amax);
+
+        if (d_acc_to_vmax + d_dec_from_vmax <= distance) {
+            segment.peak_vel = vmax;
+            segment.t_acc = (segment.peak_vel - segment.start_vel) / amax;
+            segment.t_flat = (distance - d_acc_to_vmax - d_dec_from_vmax) / segment.peak_vel;
+        } else {
+            segment.peak_vel = sqrtf(fmaxf(amax * distance + 0.5f * segment.start_vel * segment.start_vel, 0.0f));
+            segment.peak_vel = std::min(segment.peak_vel, vmax);
+            if (segment.peak_vel + kVelocityEps < segment.start_vel) {
+                return false;
+            }
+            segment.t_acc = (segment.peak_vel - segment.start_vel) / amax;
+            segment.t_flat = 0.0f;
+        }
+
+        segment.t_acc = fmaxf(segment.t_acc, 0.0f);
+        segment.t_dec = segment.peak_vel / amax;
+        segment.total_time = segment.t_acc + segment.t_flat + segment.t_dec;
+        if (segment.total_time <= kTimeEps || !std::isfinite(segment.total_time)) {
+            return false;
+        }
+
+        segment.q_acc_end =
+            segment.start_vel * segment.t_acc + 0.5f * amax * segment.t_acc * segment.t_acc;
+        segment.q_flat_end = segment.q_acc_end + segment.peak_vel * segment.t_flat;
+        return true;
     }
 
-    float sample_vel(float t) const {
-        const float T = total_time_;
-        if (t <= 0.0f) return start_vel_;
-        if (t < Tj1_) {
-            return start_vel_ + j_max_ * t * t / 2.0f;
-        } else if (t < Ta_ - Tj1_) {
-            return start_vel_ + alima_ * (t - Tj1_ / 2.0f);
-        } else if (t < Ta_) {
-            const float tr = Ta_ - t;
-            return vlim_ - j_max_ * (tr * tr) / 2.0f;
-        } else if (t < Ta_ + Tv_) {
-            return vlim_;
+    void build_linear_fallback(float dq) {
+        const float vmax = fabsf(cfg_.vmax);
+        const float min_time = fmaxf(cfg_.fallback_min_time, kTimeEps);
+        if (vmax <= kVelocityEps) {
+            total_time_ = min_time;
         } else {
-            const float tt = t - Ta_ - Tv_;
-            if (tt < Tj2_) {
-                return vlim_ - j_max_ * (tt * tt) / 2.0f;
-            } else if (tt < Td_ - Tj2_) {
-                return vlim_ + alimd_ * (tt - Tj2_ / 2.0f);
-            } else if (t <= T) {
-                const float tr = T - t;
-                return j_max_ * (tr * tr) / 2.0f;
-            }
+            total_time_ = fmaxf(fabsf(dq) / vmax, min_time);
         }
+        fallback_vel_ = dq / total_time_;
+    }
+
+    float sample_plan_pos(float t) const {
+        const float tc = std::clamp(t, 0.0f, total_time_);
+        if (has_brake_ && tc < brake_time_) {
+            return sample_brake_pos(tc);
+        }
+
+        if (has_trapezoid_) {
+            return sample_trapezoid_pos(trapezoid_, tc - brake_time_);
+        }
+
+        return target_pos_;
+    }
+
+    float sample_plan_vel(float t) const {
+        const float tc = std::clamp(t, 0.0f, total_time_);
+        if (has_brake_ && tc < brake_time_) {
+            return brake_start_vel_ + brake_acc_ * tc;
+        }
+
+        if (has_trapezoid_) {
+            return sample_trapezoid_vel(trapezoid_, tc - brake_time_);
+        }
+
         return 0.0f;
+    }
+
+    float sample_brake_pos(float t) const {
+        const float tc = std::clamp(t, 0.0f, brake_time_);
+        return brake_start_pos_ + brake_start_vel_ * tc + 0.5f * brake_acc_ * tc * tc;
+    }
+
+    float sample_trapezoid_pos(const TrapSegment& segment, float t) const {
+        const float tc = std::clamp(t, 0.0f, segment.total_time);
+        const float amax = fabsf(cfg_.amax);
+        float q = 0.0f;
+
+        if (tc < segment.t_acc) {
+            q = segment.start_vel * tc + 0.5f * amax * tc * tc;
+        } else if (tc < segment.t_acc + segment.t_flat) {
+            q = segment.q_acc_end + segment.peak_vel * (tc - segment.t_acc);
+        } else {
+            const float td = tc - segment.t_acc - segment.t_flat;
+            q = segment.q_flat_end + segment.peak_vel * td - 0.5f * amax * td * td;
+        }
+
+        return segment.start_pos + segment.direction * q;
+    }
+
+    float sample_trapezoid_vel(const TrapSegment& segment, float t) const {
+        const float tc = std::clamp(t, 0.0f, segment.total_time);
+        const float amax = fabsf(cfg_.amax);
+        float vel = 0.0f;
+
+        if (tc < segment.t_acc) {
+            vel = segment.start_vel + amax * tc;
+        } else if (tc < segment.t_acc + segment.t_flat) {
+            vel = segment.peak_vel;
+        } else {
+            const float td = tc - segment.t_acc - segment.t_flat;
+            vel = fmaxf(segment.peak_vel - amax * td, 0.0f);
+        }
+
+        return segment.direction * vel;
     }
 };
 

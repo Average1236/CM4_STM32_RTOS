@@ -64,6 +64,7 @@ inline constexpr float kAngleControllerBandwidthMin = 50.0f;
 inline constexpr float kYawSCurveVmax = 25.0f;   // rad/s
 inline constexpr float kYawSCurveAmax = 40.0f;  // rad/s²
 inline constexpr float kYawSCurveJmax = 200.0f; // rad/s³
+inline constexpr float kYawAngleLinearFallbackMinTimeSec = 0.05f;
 inline constexpr float kYawVyCoupling = 0.0f;
 
 inline constexpr float kWheelTorqueFfLimitNm = 0.7f;
