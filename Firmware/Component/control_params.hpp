@@ -21,6 +21,7 @@ inline constexpr float kAccThresholdYaw = 40.0f;
 inline constexpr float kJerkLimitX = 1000.0f;
 inline constexpr float kJerkLimitY = 1000.0f;
 inline constexpr float kJerkLimitYaw = 600.0f;
+inline constexpr float kPlannerStartVelocityLpfCutoffHz = 5.0f;
 
 inline constexpr float kRobotMassKg = 3.0f;
 inline constexpr float kRobotInertiaKgM2 = 8e-3f;

@@ -12,6 +12,20 @@ volatile float target_vw_debug = 0;
 volatile float robot_ay_debug = 0;
 volatile float wheel_vel_debug = 0;
 volatile float robot_real_vx_debug = 0;
+volatile float planner_measured_vx_debug = 0;
+volatile float planner_measured_vy_debug = 0;
+volatile float planner_start_vx_debug = 0;
+volatile float planner_start_vy_debug = 0;
+volatile float planner_output_vx_debug = 0;
+volatile float planner_output_vy_debug = 0;
+volatile float planner_acc_x_debug = 0;
+volatile float planner_acc_y_debug = 0;
+volatile float planner_elapsed_x_debug = 0;
+volatile float planner_elapsed_y_debug = 0;
+volatile float planner_total_x_debug = 0;
+volatile float planner_total_y_debug = 0;
+volatile int planner_replan_x_debug = 0;
+volatile int planner_replan_y_debug = 0;
 volatile uint16_t kick_pulse_debug = 0;
 volatile float dribble_power_debug = 0;
 volatile int use_imu_debug = 0;
@@ -214,6 +228,10 @@ static const WheelMotorBase::Config_t WHEEL_MOTOR_PARAMS[4] = {
 
 Robot::Robot() {
     yaw_s_curve_.set_config({yaw_max_vel, yaw_max_acc, yaw_max_jerk});
+    planner_start_vx_filter_.set_parameter({control_config::kPlannerStartVelocityLpfCutoffHz,
+                                             control_config::kControlDtSec});
+    planner_start_vy_filter_.set_parameter({control_config::kPlannerStartVelocityLpfCutoffHz,
+                                             control_config::kControlDtSec});
 
     // Initialize wheel motors
     for (int i = 0; i < 4; i++) {
@@ -449,11 +467,28 @@ void Robot::motion_planner(const double _dt) {
         return;
     }
 
+    const auto measured_chassis_vx = chassis_estimator.chassis_vx_output_port()->any();
+    const auto measured_chassis_vy = chassis_estimator.chassis_vy_output_port()->any();
+    const float measured_vel[2] = {
+        measured_chassis_vx.has_value() ? *measured_chassis_vx : last_robot_real_vel[0],
+        measured_chassis_vy.has_value() ? *measured_chassis_vy : last_robot_real_vel[1],
+    };
+    const float planner_start_vel[2] = {
+        planner_start_vx_filter_.filter(measured_vel[0]),
+        planner_start_vy_filter_.filter(measured_vel[1]),
+    };
+    planner_measured_vx_debug = measured_vel[0];
+    planner_measured_vy_debug = measured_vel[1];
+    planner_start_vx_debug = planner_start_vel[0];
+    planner_start_vy_debug = planner_start_vel[1];
+    planner_replan_x_debug = 0;
+    planner_replan_y_debug = 0;
+
     for (uint8_t i = 0; i < 3; i++) {
         if (use_imu && i == 2) continue;  // yaw angle control bypasses planner
 
         AxisMotionPlan& plan = g_axis_plans[i];
-        const float v_now = last_robot_real_vel[i];
+        const bool linear_axis = (i < 2);
         const float v_target = robot_vel[i];
         // S-curve uses the larger limit for timing; directional clamp enforces per-phase limits.
         // This handles zero-crossing correctly: AccMax limits the speeding-up phase,
@@ -464,10 +499,20 @@ void Robot::motion_planner(const double _dt) {
         const float j_max = (i == 0) ? xy_max_jerk[0] : (i == 1) ? xy_max_jerk[1] : yaw_max_jerk;
 
         const bool target_changed = fabsf(v_target - plan.v_target) > kPlannerReplanEps;
-        const bool plan_finished = plan.active && (plan.elapsed >= plan.t_total - 1e-8f);
-        if (!plan.active || target_changed || plan_finished) {
-            init_axis_plan(plan, v_now, v_target, a_max, j_max);
+        const bool should_replan = target_changed;
+        const float v_plan_start = linear_axis ? planner_start_vel[i] : last_robot_real_vel[i];
+        if (should_replan) {
+            init_axis_plan(plan, v_plan_start, v_target, a_max, j_max);
+            if (linear_axis) {
+                last_robot_real_vel[i] = v_plan_start;
+                if (i == 0) {
+                    planner_replan_x_debug = 1;
+                } else {
+                    planner_replan_y_debug = 1;
+                }
+            }
         }
+        const float v_now = last_robot_real_vel[i];
 
         float a_profile = 0.0f;
         float v_profile = v_target;
@@ -488,7 +533,7 @@ void Robot::motion_planner(const double _dt) {
                          : -fmaxf(a_acc, a_dec);
         robot_acc[i] = std::clamp(robot_acc[i] + da, a_lo, a_hi);
 
-        robot_real_vel[i] = last_robot_real_vel[i] + robot_acc[i] * dt_s;
+        robot_real_vel[i] = v_now + robot_acc[i] * dt_s;
 
         // Keep integration close to profile when jerk limit is inactive.
         const float profile_err = v_profile - robot_real_vel[i];
@@ -496,7 +541,7 @@ void Robot::motion_planner(const double _dt) {
             robot_real_vel[i] = v_profile;
         }
 
-        const float before = v_target - last_robot_real_vel[i];
+        const float before = v_target - v_now;
         const float after = v_target - robot_real_vel[i];
         if (before * after < 0.0f || fabsf(after) < kPlannerVelEps) {
             robot_real_vel[i] = v_target;
@@ -505,6 +550,17 @@ void Robot::motion_planner(const double _dt) {
         }
 
         last_robot_real_vel[i] = robot_real_vel[i];
+        if (i == 0) {
+            planner_output_vx_debug = robot_real_vel[i];
+            planner_acc_x_debug = robot_acc[i];
+            planner_elapsed_x_debug = plan.elapsed;
+            planner_total_x_debug = plan.t_total;
+        } else if (i == 1) {
+            planner_output_vy_debug = robot_real_vel[i];
+            planner_acc_y_debug = robot_acc[i];
+            planner_elapsed_y_debug = plan.elapsed;
+            planner_total_y_debug = plan.t_total;
+        }
     }
     robot_ay_debug = robot_acc[1];
 

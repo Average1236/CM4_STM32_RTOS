@@ -132,6 +132,8 @@ public:
 
     ChassisEstimator chassis_estimator;
     MixedLesoChassisController chassis_controller;
+    ButterworthLowPass2 planner_start_vx_filter_{{0.0f, 0.0f}};
+    ButterworthLowPass2 planner_start_vy_filter_{{0.0f, 0.0f}};
 
     uint32_t spi_error_count = 0;
 
