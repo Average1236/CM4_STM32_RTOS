@@ -137,6 +137,11 @@ float calc_dribbler_speed_with_compensation(float base_speed, float chassis_vx) 
 
 } // namespace
 
+// Dribbler CAN debug (defined in dribbler_zfoc.cpp)
+extern volatile uint32_t dribbler_can_cmd_id_debug;
+extern volatile float dribbler_can_torque_debug;
+extern volatile float dribbler_can_velocity_debug;
+
 // Debug variables
 float debug_pose, debug_vel;
 float debug_K, debug_D, debug_M, debug_angle_ref;
@@ -349,6 +354,9 @@ void StartCrtlTask(void *argument) {
                     if (dribbler_enabled) {
                         last_active_torque_mode = true;
                         robot.dribbler.build_torque_msg(dribbler_cmd_msg, robot.dribble_torque_ff, 0.0f);
+                        dribbler_can_cmd_id_debug = DribblerZfoc::kCanIdSetInputTorque;
+                        dribbler_can_torque_debug = robot.dribble_torque_ff;
+                        dribbler_can_velocity_debug = 0.0f;
                     }
                     robot.dribbler.build_torque_msg(dribbler_stop_msg, 0.0f, 0.0f);
 
@@ -359,6 +367,9 @@ void StartCrtlTask(void *argument) {
                         const float compensated = calc_dribbler_speed_with_compensation(
                             robot.dribble_velocity, chassis_vx);
                         robot.dribbler.build_velocity_msg(dribbler_cmd_msg, compensated, robot.dribble_torque_ff);
+                        dribbler_can_cmd_id_debug = DribblerZfoc::kCanIdSetInputVelocity;
+                        dribbler_can_torque_debug = robot.dribble_torque_ff;
+                        dribbler_can_velocity_debug = compensated;
                     }
                     robot.dribbler.build_velocity_msg(dribbler_stop_msg, 0.0f, 0.0f);
 
@@ -370,16 +381,21 @@ void StartCrtlTask(void *argument) {
                             last_active_torque_mode = true;
                             robot.dribbler.build_torque_msg(dribbler_cmd_msg,
                                 control_config::kDribblerHybridTorqueNm, 0.0f);
+                            dribbler_can_cmd_id_debug = DribblerZfoc::kCanIdSetInputTorque;
+                            dribbler_can_torque_debug = control_config::kDribblerHybridTorqueNm;
+                            dribbler_can_velocity_debug = 0.0f;
                         }
                         robot.dribbler.build_torque_msg(dribbler_stop_msg, 0.0f, 0.0f);
                     } else {
-                        // Speed phase: fixed speed -100 rps + chassis compensation
+                        // Speed phase: fixed speed -100 rps, no chassis compensation
                         if (dribbler_enabled) {
                             last_active_torque_mode = false;
-                            const float compensated = calc_dribbler_speed_with_compensation(
-                                control_config::kDribblerHybridSpeedRps, chassis_vx);
-                            robot.dribbler.build_velocity_msg(dribbler_cmd_msg, compensated,
+                            robot.dribbler.build_velocity_msg(dribbler_cmd_msg,
+                                control_config::kDribblerHybridSpeedRps,
                                 control_config::kDribblerHybridTorqueLimitNm);
+                            dribbler_can_cmd_id_debug = DribblerZfoc::kCanIdSetInputVelocity;
+                            dribbler_can_torque_debug = control_config::kDribblerHybridTorqueLimitNm;
+                            dribbler_can_velocity_debug = control_config::kDribblerHybridSpeedRps;
                         }
                         robot.dribbler.build_velocity_msg(dribbler_stop_msg, 0.0f, 0.0f);
                     }
@@ -459,6 +475,7 @@ void StartCrtlTask(void *argument) {
                             can1_bus.send_message(robot.dribbler.pending_msgs[i]);
                         }
                     }
+                    robot.dribbler.pending_count = 0;  // clear after send, prevent stale re-transmit
                     // Send dribbler command (only when in closed-loop control)
                     if (robot.dribbler.current_state == DribblerZfoc::kAxisStateClosedLoopControl) {
                         can1_bus.send_message(dribbler_enabled ? dribbler_cmd_msg : dribbler_stop_msg);

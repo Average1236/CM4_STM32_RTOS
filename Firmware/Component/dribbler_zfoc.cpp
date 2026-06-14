@@ -110,9 +110,6 @@ void DribblerZfoc::build_torque_msg(can_Message_t& msg, float torque, float velo
     msg.len = 8;
     memcpy(&msg.buf[0], &torque, sizeof(torque));
     memcpy(&msg.buf[4], &velocity, sizeof(velocity));
-    dribbler_can_cmd_id_debug = kCanIdSetInputTorque;
-    dribbler_can_torque_debug = torque;
-    dribbler_can_velocity_debug = velocity;
 }
 
 void DribblerZfoc::build_velocity_msg(can_Message_t& msg, float velocity, float torque_ff) const {
@@ -123,7 +120,4 @@ void DribblerZfoc::build_velocity_msg(can_Message_t& msg, float velocity, float 
     msg.len = 8;
     memcpy(&msg.buf[0], &velocity, sizeof(velocity));
     memcpy(&msg.buf[4], &torque_ff, sizeof(torque_ff));
-    dribbler_can_cmd_id_debug = kCanIdSetInputVelocity;
-    dribbler_can_torque_debug = torque_ff;
-    dribbler_can_velocity_debug = velocity;
 }
