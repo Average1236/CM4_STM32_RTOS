@@ -11,6 +11,7 @@ Generated outputs:
     stm32_velocity_vy_comparison.png
     stm32_velocity_fused_tracking_error.png
     stm32_velocity_xy_plane.png
+    stm32_velocity_vision_source.png, when vision_source exists
     stm32_velocity_error_summary.csv
 
 Usage:
@@ -54,6 +55,22 @@ def check_required_columns(df: pd.DataFrame) -> None:
         )
 
 
+def add_optional_derived_columns(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.copy()
+
+    # Raspberry Pi logs raw_vision_vel_x/y in mm/s; all other velocity columns
+    # in this script are m/s.
+    if {"raw_vision_vel_x", "raw_vision_vel_y"}.issubset(df.columns):
+        df["raw_vision_vx"] = df["raw_vision_vel_x"] * 0.001
+        df["raw_vision_vy"] = df["raw_vision_vel_y"] * 0.001
+
+    return df
+
+
+def optional_columns(df: pd.DataFrame, columns: list[str]) -> list[str]:
+    return [col for col in columns if col in df.columns]
+
+
 def resolve_csv_path(csv_arg: str) -> Path:
     csv_path = Path(csv_arg)
     if csv_path.exists():
@@ -72,6 +89,7 @@ def resolve_csv_path(csv_arg: str) -> Path:
 def load_and_preprocess(csv_path: Path, bin_s: float) -> tuple[pd.DataFrame, pd.DataFrame]:
     df = pd.read_csv(csv_path)
     check_required_columns(df)
+    df = add_optional_derived_columns(df)
 
     df["t_s"] = (df["time_ms"] - df["time_ms"].iloc[0]) / 1000.0
     df["t_bin"] = (df["t_s"] / bin_s).round() * bin_s
@@ -152,13 +170,17 @@ def save_line_chart(
 def plot_vx_comparison(plot_df: pd.DataFrame, output_dir: Path, interactive: bool) -> None:
     save_line_chart(
         plot_df=plot_df,
-        columns=[
+        columns=optional_columns(
+            plot_df,
+            [
             "target_vx",
             "optflow_kf_vx",
             "wheel_chassis_vx",
             "fused_chassis_vx",
             "optflow_body_vx",
-        ],
+            "raw_vision_vx",
+            ],
+        ),
         title="X-axis velocity comparison",
         ylabel="vx",
         output_path=output_dir / "stm32_velocity_vx_comparison.png",
@@ -169,13 +191,17 @@ def plot_vx_comparison(plot_df: pd.DataFrame, output_dir: Path, interactive: boo
 def plot_vy_comparison(plot_df: pd.DataFrame, output_dir: Path, interactive: bool) -> None:
     save_line_chart(
         plot_df=plot_df,
-        columns=[
+        columns=optional_columns(
+            plot_df,
+            [
             "target_vy",
             "optflow_kf_vy",
             "wheel_chassis_vy",
             "fused_chassis_vy",
             "optflow_body_vy",
-        ],
+            "raw_vision_vy",
+            ],
+        ),
         title="Y-axis velocity comparison",
         ylabel="vy",
         output_path=output_dir / "stm32_velocity_vy_comparison.png",
@@ -192,27 +218,48 @@ def plot_fused_tracking_error(
 
     df["fused_error_vx"] = df["fused_chassis_vx"] - df["target_vx"]
     df["fused_error_vy"] = df["fused_chassis_vy"] - df["target_vy"]
+    if {"raw_vision_vx", "raw_vision_vy"}.issubset(df.columns):
+        df["raw_vision_error_vx"] = df["raw_vision_vx"] - df["target_vx"]
+        df["raw_vision_error_vy"] = df["raw_vision_vy"] - df["target_vy"]
 
     err_df = df.groupby("t_bin", as_index=False).mean(numeric_only=True)
 
     fig, ax = plt.subplots(figsize=(12, 5))
+    artists = []
     (line_vx,) = ax.plot(
         err_df["t_bin"],
         err_df["fused_error_vx"],
         label="fused_chassis_vx - target_vx",
     )
+    artists.append(line_vx)
     (line_vy,) = ax.plot(
         err_df["t_bin"],
         err_df["fused_error_vy"],
         label="fused_chassis_vy - target_vy",
     )
+    artists.append(line_vy)
+    if {"raw_vision_error_vx", "raw_vision_error_vy"}.issubset(err_df.columns):
+        (line_raw_vx,) = ax.plot(
+            err_df["t_bin"],
+            err_df["raw_vision_error_vx"],
+            label="raw_vision_vx - target_vx",
+            alpha=0.75,
+        )
+        artists.append(line_raw_vx)
+        (line_raw_vy,) = ax.plot(
+            err_df["t_bin"],
+            err_df["raw_vision_error_vy"],
+            label="raw_vision_vy - target_vy",
+            alpha=0.75,
+        )
+        artists.append(line_raw_vy)
 
     ax.axhline(0, linestyle="--", linewidth=1)
-    ax.set_title("Fused velocity tracking error")
+    ax.set_title("Velocity tracking error")
     ax.set_xlabel("Elapsed time (s)")
     ax.set_ylabel("Error")
     ax.grid(True, alpha=0.3)
-    add_interactive_legend(ax, [line_vx, line_vy])
+    add_interactive_legend(ax, artists)
 
     fig.tight_layout()
     fig.savefig(output_dir / "stm32_velocity_fused_tracking_error.png", dpi=180)
@@ -239,12 +286,22 @@ def plot_xy_plane(plot_df: pd.DataFrame, output_dir: Path, interactive: bool) ->
         s=18,
         alpha=0.75,
     )
+    artists = [target_scatter, fused_scatter]
+    if {"raw_vision_vx", "raw_vision_vy"}.issubset(sample.columns):
+        raw_vision_scatter = ax.scatter(
+            sample["raw_vision_vx"],
+            sample["raw_vision_vy"],
+            label="raw_vision",
+            s=18,
+            alpha=0.55,
+        )
+        artists.append(raw_vision_scatter)
 
-    ax.set_title("Velocity command and fused estimate in vx-vy plane")
+    ax.set_title("Velocity command and estimates in vx-vy plane")
     ax.set_xlabel("vx")
     ax.set_ylabel("vy")
     ax.grid(True, alpha=0.3)
-    add_interactive_legend(ax, [target_scatter, fused_scatter])
+    add_interactive_legend(ax, artists)
     ax.axis("equal")
 
     fig.tight_layout()
@@ -264,7 +321,10 @@ def export_error_summary(df: pd.DataFrame, output_dir: Path) -> pd.DataFrame:
             f"wheel_chassis_{axis}",
             f"fused_chassis_{axis}",
             f"optflow_body_{axis}",
+            f"raw_vision_{axis}",
         ]:
+            if col not in df.columns:
+                continue
             error = df[col] - target
 
             summary_rows.append(
@@ -282,6 +342,32 @@ def export_error_summary(df: pd.DataFrame, output_dir: Path) -> pd.DataFrame:
     return summary
 
 
+def plot_vision_source(plot_df: pd.DataFrame, output_dir: Path, interactive: bool) -> bool:
+    if "vision_source" not in plot_df.columns:
+        return False
+
+    fig, ax = plt.subplots(figsize=(12, 3.5))
+    (line,) = ax.step(
+        plot_df["t_bin"],
+        plot_df["vision_source"],
+        where="post",
+        label="vision_source",
+    )
+    ax.set_title("Vision source selector")
+    ax.set_xlabel("Elapsed time (s)")
+    ax.set_ylabel("source")
+    ax.set_yticks(sorted(plot_df["vision_source"].dropna().unique()))
+    ax.grid(True, alpha=0.3)
+    add_interactive_legend(ax, [line])
+
+    fig.tight_layout()
+    fig.savefig(output_dir / "stm32_velocity_vision_source.png", dpi=180)
+    if not interactive:
+        plt.close(fig)
+
+    return True
+
+
 def print_basic_info(df: pd.DataFrame, csv_path: Path) -> None:
     duration_s = df["t_s"].iloc[-1] - df["t_s"].iloc[0]
     median_dt_ms = df["time_ms"].diff().median()
@@ -291,6 +377,11 @@ def print_basic_info(df: pd.DataFrame, csv_path: Path) -> None:
     print(f"Columns: {len(df.columns)}")
     print(f"Duration: {duration_s:.3f} s")
     print(f"Median sample interval: {median_dt_ms:.3f} ms")
+    if "vision_source" in df.columns:
+        counts = df["vision_source"].value_counts(dropna=False).sort_index()
+        print("vision_source counts:")
+        for source, count in counts.items():
+            print(f"  {source}: {count}")
 
 
 def main() -> None:
@@ -298,7 +389,7 @@ def main() -> None:
     parser.add_argument(
         "--csv",
         type=str,
-        default="stm32_velocity_log_12.csv",
+        default="stm32_velocity_log_13.csv",
         help="Path to input CSV file.",
     )
     parser.add_argument(
@@ -334,6 +425,7 @@ def main() -> None:
     plot_vy_comparison(plot_df, output_dir, interactive)
     plot_fused_tracking_error(df, output_dir, interactive)
     plot_xy_plane(plot_df, output_dir, interactive)
+    has_vision_source_plot = plot_vision_source(plot_df, output_dir, interactive)
     summary = export_error_summary(df, output_dir)
 
     print("\nError summary:")
@@ -344,6 +436,8 @@ def main() -> None:
     print(output_dir / "stm32_velocity_vy_comparison.png")
     print(output_dir / "stm32_velocity_fused_tracking_error.png")
     print(output_dir / "stm32_velocity_xy_plane.png")
+    if has_vision_source_plot:
+        print(output_dir / "stm32_velocity_vision_source.png")
     print(output_dir / "stm32_velocity_error_summary.csv")
 
     if interactive:

@@ -19,6 +19,9 @@ volatile float fusion_wheel_residual_x_debug = 0;
 volatile float fusion_wheel_residual_y_debug = 0;
 volatile float fusion_acc_penalty_x_debug = 0;
 volatile float fusion_acc_penalty_y_debug = 0;
+volatile float vision_vx_debug = 0;
+volatile float vision_vy_debug = 0;
+volatile float velocity_source_debug = 0;
 
 namespace {
 
@@ -75,7 +78,54 @@ void ChassisEstimator::step(float dt_s) {
     wheel_chassis_vx_output_port_ = wheel_vx;
     wheel_chassis_vy_output_port_ = wheel_vy;
 
-    if (control_config::kChassisVelocitySource == 2) {
+    const auto vision_source_opt = vision_source_input_port_.any();
+    uint8_t velocity_source = control_config::kChassisVelocitySource;
+    if (vision_source_opt.has_value() && *vision_source_opt > 0.5f) {
+        velocity_source = static_cast<uint8_t>(*vision_source_opt);
+    }
+    velocity_source_debug = static_cast<float>(velocity_source);
+
+    if (velocity_source == 3) {
+        // --- Fused: optflow velocity + raw vision velocity.
+        // Vision velocity is trusted more strongly via lower measurement noise.
+        const auto of_vx = optflow_vx_input_port_.any();
+        const auto of_vy = optflow_vy_input_port_.any();
+        const auto vision_vx = vision_vx_input_port_.any();
+        const auto vision_vy = vision_vy_input_port_.any();
+        const float flow_vx = of_vx.has_value() ? *of_vx * 0.001f : kf_vision_vx_.v_est;
+        const float flow_vy = of_vy.has_value() ? *of_vy * 0.001f : kf_vision_vy_.v_est;
+        const float raw_vision_vx = vision_vx.has_value() ? *vision_vx * 0.001f : kf_vision_vx_.v_est;
+        const float raw_vision_vy = vision_vy.has_value() ? *vision_vy * 0.001f : kf_vision_vy_.v_est;
+
+        wheel_vx_debug = wheel_vx;
+        wheel_vy_debug = wheel_vy;
+        of_vx_debug = flow_vx;
+        of_vy_debug = flow_vy;
+        vision_vx_debug = raw_vision_vx;
+        vision_vy_debug = raw_vision_vy;
+
+        kf_vision_vx_.predict(control_config::kVisionOptflowFusionQX);
+        if (of_vx.has_value()) {
+            kf_vision_vx_.update(flow_vx, control_config::kVisionOptflowFusionROptflowX);
+        }
+        if (vision_vx.has_value()) {
+            kf_vision_vx_.update(raw_vision_vx, control_config::kVisionOptflowFusionRVisionX);
+        }
+
+        kf_vision_vy_.predict(control_config::kVisionOptflowFusionQY);
+        if (of_vy.has_value()) {
+            kf_vision_vy_.update(flow_vy, control_config::kVisionOptflowFusionROptflowY);
+        }
+        if (vision_vy.has_value()) {
+            kf_vision_vy_.update(raw_vision_vy, control_config::kVisionOptflowFusionRVisionY);
+        }
+
+        chassis_vel_meas[0] = kf_vision_vx_.v_est;
+        chassis_vel_meas[1] = kf_vision_vy_.v_est;
+        fused_chassis_vx_output_port_ = kf_vision_vx_.v_est;
+        fused_chassis_vy_output_port_ = kf_vision_vy_.v_est;
+
+    } else if (velocity_source == 2) {
         // --- Fused: adaptive Kalman (wheel + optflow), per-axis params ---
         const auto of_vx = optflow_vx_input_port_.any();
         const auto of_vy = optflow_vy_input_port_.any();
@@ -171,7 +221,7 @@ void ChassisEstimator::step(float dt_s) {
         fused_chassis_vx_output_port_ = kf_vx_.v_est;
         fused_chassis_vy_output_port_ = kf_vy_.v_est;
 
-    } else if (control_config::kChassisVelocitySource == 1) {
+    } else if (velocity_source == 1) {
         // Optical-flow-only velocity
         const auto of_vx = optflow_vx_input_port_.any();
         const auto of_vy = optflow_vy_input_port_.any();
@@ -247,6 +297,10 @@ void ChassisEstimator::reset() {
     wheel_chassis_vy_output_port_ = 0.0f;
     fused_chassis_vx_output_port_ = 0.0f;
     fused_chassis_vy_output_port_ = 0.0f;
+    kf_vx_ = {};
+    kf_vy_ = {};
+    kf_vision_vx_ = {};
+    kf_vision_vy_ = {};
 }
 
 bool ChassisEstimator::inverse3x3(const float in[3][3], float out[3][3]) const {

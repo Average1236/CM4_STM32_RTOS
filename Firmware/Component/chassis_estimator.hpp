@@ -34,6 +34,9 @@ public:
     InputPort<float>* imu_omega_z_input_port() { return &imu_omega_z_input_port_; }
     InputPort<float>* optflow_vx_input_port() { return &optflow_vx_input_port_; }
     InputPort<float>* optflow_vy_input_port() { return &optflow_vy_input_port_; }
+    InputPort<float>* vision_vx_input_port() { return &vision_vx_input_port_; }
+    InputPort<float>* vision_vy_input_port() { return &vision_vy_input_port_; }
+    InputPort<float>* vision_source_input_port() { return &vision_source_input_port_; }
     InputPort<float>* imu_gyro_x_input_port() { return &imu_gyro_x_input_port_; }
     InputPort<float>* imu_gyro_y_input_port() { return &imu_gyro_y_input_port_; }
 
@@ -63,11 +66,16 @@ private:
     InputPort<float> imu_omega_z_input_port_;
     InputPort<float> optflow_vx_input_port_;
     InputPort<float> optflow_vy_input_port_;
+    InputPort<float> vision_vx_input_port_;
+    InputPort<float> vision_vy_input_port_;
+    InputPort<float> vision_source_input_port_;
     InputPort<float> imu_gyro_x_input_port_;
     InputPort<float> imu_gyro_y_input_port_;
 
     FusionKalman1D kf_vx_;
     FusionKalman1D kf_vy_;
+    FusionKalman1D kf_vision_vx_;
+    FusionKalman1D kf_vision_vy_;
 
     OutputPort<float> chassis_vx_output_port_{0.0f};
     OutputPort<float> chassis_vy_output_port_{0.0f};

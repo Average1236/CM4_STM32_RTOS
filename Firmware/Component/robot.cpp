@@ -237,6 +237,9 @@ Robot::Robot() {
     chassis_controller.chassis_vy_input_port()->connect_to(chassis_estimator.chassis_vy_output_port());
     chassis_controller.chassis_omega_z_input_port()->connect_to(chassis_estimator.chassis_omega_z_output_port());
     chassis_controller.chassis_yaw_input_port()->connect_to(chassis_estimator.chassis_yaw_output_port());
+    chassis_estimator.vision_vx_input_port()->connect_to(&raw_vision_vel_mm_s[0]);
+    chassis_estimator.vision_vy_input_port()->connect_to(&raw_vision_vel_mm_s[1]);
+    chassis_estimator.vision_source_input_port()->connect_to(&vision_source);
 }
 
 Robot::~Robot() {
@@ -263,7 +266,8 @@ void Robot::pi_decode_spi() {
         const float jerk_cmd = SpiRx.xy_max_jerk[i] / 10.0f;
         const float dec_cmd = SpiRx.xy_max_dec[i] / 1000.0f;
         if (acc_cmd > 0.0f) xy_max_acc[i] = acc_cmd;
-        if (jerk_cmd > 0.0f) xy_max_jerk[i] = jerk_cmd;
+        // if (jerk_cmd > 0.0f) xy_max_jerk[i] = jerk_cmd;
+        xy_max_jerk[i] = 1e6f;
         if (dec_cmd > 0.0f) xy_max_dec[i] = dec_cmd;
     }
     const float yaw_vel_cmd = SpiRx.yaw_max_vel / 100.0f;
@@ -275,6 +279,9 @@ void Robot::pi_decode_spi() {
     yaw_vel_max_debug = yaw_max_vel;
     yaw_acc_max_debug = yaw_max_acc;
     yaw_jerk_max_debug = yaw_max_jerk;
+    raw_vision_vel_mm_s[0] = static_cast<float>(SpiRx.raw_vision_vel[0]);
+    raw_vision_vel_mm_s[1] = static_cast<float>(SpiRx.raw_vision_vel[1]);
+    vision_source = static_cast<float>(SpiRx.vision_source);
     yaw_s_curve_.set_config({yaw_max_vel, yaw_max_acc,
                              control_config::kYawAngleLinearFallbackMinTimeSec});
     robot_vel[2] = std::clamp(robot_vel[2], -yaw_max_vel, yaw_max_vel);

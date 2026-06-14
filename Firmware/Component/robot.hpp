@@ -24,6 +24,8 @@ struct __attribute__((packed)) CM4_to_stm32_spi
     int16_t yaw_max_vel;     // rad/s * 100
     int16_t yaw_max_acc;     // rad/s^2 * 100
     int16_t yaw_max_jerk;    // rad/s^3 * 100
+    int16_t raw_vision_vel[2]; // vx, vy in mm/s
+    uint8_t vision_source;     // 3: optflow + vision velocity fusion
 };
 
 static_assert(sizeof(CM4_to_stm32_spi) <= SPI_LENGTH, "CM4_to_stm32_spi exceeds SPI_LENGTH");
@@ -129,6 +131,8 @@ public:
     float yaw_ref_rel_rad_ = 0.0f;
     float ik_solve_basis[3] = {0, 1, 2};
     float ik_solve_inv_b[3][3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
+    float raw_vision_vel_mm_s[2] = {0.0f, 0.0f};
+    float vision_source = 0.0f;
 
     ChassisEstimator chassis_estimator;
     MixedLesoChassisController chassis_controller;

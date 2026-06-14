@@ -12,15 +12,6 @@ inline constexpr float kControlDtSec = static_cast<float>(TIM2_PERIOD_CLOCKS) / 
 inline constexpr float kImuDtSec = static_cast<float>(TIM7_PERIOD_CLOCKS) / 1000000.0f;
 inline constexpr float kPi = 3.1415926535f;
 
-inline constexpr float kAccMaxX = 7.0f;
-inline constexpr float kDecMaxX = 10.0f;
-inline constexpr float kAccMaxY = 7.0f;
-inline constexpr float kDecMaxY = 10.0f;
-inline constexpr float kAccThresholdYaw = 40.0f;
-
-inline constexpr float kJerkLimitX = 1000.0f;
-inline constexpr float kJerkLimitY = 1000.0f;
-inline constexpr float kJerkLimitYaw = 600.0f;
 inline constexpr float kPlannerStartVelocityLpfCutoffHz = 5.0f;
 
 inline constexpr float kRobotMassKg = 3.0f;
@@ -61,9 +52,6 @@ inline constexpr float kAngleControllerBandwidth = 50.0f;
 inline constexpr float kAngleControllerBandwidthMin = 50.0f;
 
 // S-curve yaw target planner
-inline constexpr float kYawSCurveVmax = 25.0f;   // rad/s
-inline constexpr float kYawSCurveAmax = 40.0f;  // rad/s²
-inline constexpr float kYawSCurveJmax = 200.0f; // rad/s³
 inline constexpr float kYawAngleLinearFallbackMinTimeSec = 0.05f;
 inline constexpr float kYawVyCoupling = 0.0f;
 
@@ -136,6 +124,7 @@ inline constexpr float kOptFlowKfRVelFixed = 300.0f;
 // 0: wheel-based (Jacobian pseudo-inverse from motor velocities)
 // 1: optical-flow-based (kf_vx / kf_vy from OptFlow)
 // 2: fused (1-state Kalman, adaptive R per speed + tilt)
+// 3: optflow + raw vision velocity fused by 1-state Kalman
 inline constexpr uint8_t kChassisVelocitySource = 2;
 
 // ---- Fusion Kalman (source==2) ----
@@ -175,6 +164,14 @@ inline constexpr float kFusionWheelOptflowResidualThresholdX = 1.0f; // m/s
 inline constexpr float kFusionWheelOptflowResidualThresholdY = 1.0f; // m/s
 inline constexpr float kFusionWheelSlipResidualPenaltyGainX = 0.0f;
 inline constexpr float kFusionWheelSlipResidualPenaltyGainY = 0.0f;
+
+// ---- Vision + Optflow Velocity Fusion (runtime vision_source == 3) ----
+inline constexpr float kVisionOptflowFusionQX = 0.02f;
+inline constexpr float kVisionOptflowFusionQY = 0.02f;
+inline constexpr float kVisionOptflowFusionROptflowX = 0.05f;
+inline constexpr float kVisionOptflowFusionROptflowY = 0.05f;
+inline constexpr float kVisionOptflowFusionRVisionX = 0.005f;
+inline constexpr float kVisionOptflowFusionRVisionY = 0.005f;
 
 // ---- Test Kick ----
 // true:  bypass infrared sensor, rising-edge trigger on kick_discharge_time
