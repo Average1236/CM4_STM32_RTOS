@@ -275,15 +275,18 @@ void StartCrtlTask(void *argument) {
 
                 // Kick trigger
                 if (control_config::kTestKick) {
-                    // Test mode: rising-edge on kick_discharge_time (0 â†’ non-zero)
+                    // Test mode: rising-edge on kick_discharge_time (0 â†?non-zero)
                     static uint16_t prev_discharge_time = 0;
                     if (robot.kick_discharge_time > 0 && prev_discharge_time == 0) {
                         robot.request_kick_from_spi();
                     }
                     prev_discharge_time = robot.kick_discharge_time;
                 } else {
-                    // Normal mode: require infrared ball detection
-                    if (robot.dribbler.infra_voltage_filt > INFRARED_THRESHOLD) {
+                    // Normal mode: require either dribbler infrared or the CAN1 ball sensor.
+                    const bool ball_sensor_recent = (robot.ball_sensor_tick_ms != 0u) &&
+                        ((HAL_GetTick() - robot.ball_sensor_tick_ms) <= 100u);
+                    const bool ball_sensor_present = (robot.ball_sensor_valid != 0u) && ball_sensor_recent;
+                    if ((robot.dribbler.infra_voltage_filt > INFRARED_THRESHOLD) || ball_sensor_present) {
                         robot.request_kick_from_spi();
                     }
                 }

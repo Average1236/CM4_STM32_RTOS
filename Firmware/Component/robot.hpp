@@ -45,6 +45,12 @@ struct __attribute__((packed)) stm32_to_CM4_spi
     int16_t yaw_max_vel;     // rad/s * 100
     int16_t yaw_max_acc;     // rad/s^2 * 100
     int16_t yaw_max_jerk;    // rad/s^3 * 100
+    uint16_t ball_left_mm;
+    uint16_t ball_right_mm;
+    uint8_t ball_depth_mm;
+    uint8_t ball_depth_level;
+    uint8_t ball_sensor_valid;
+    uint8_t ball_sensor_seq;
     int16_t reserved;
 };
 
@@ -72,6 +78,13 @@ public:
     bool watchdog_check();
 
     float infra_voltage = 0;
+    volatile uint16_t ball_sensor_left_mm = 0xFFFFu;
+    volatile uint16_t ball_sensor_right_mm = 0xFFFFu;
+    volatile uint8_t ball_sensor_depth_mm = 0xFFu;
+    volatile uint8_t ball_sensor_depth_level = 0xFFu;
+    volatile uint8_t ball_sensor_valid = 0u;
+    volatile uint8_t ball_sensor_seq = 0u;
+    volatile uint32_t ball_sensor_tick_ms = 0u;
     float dribble_power = 0;
     float dribble_velocity = -50.0f;
     float dribble_torque_ff = -0.01f;

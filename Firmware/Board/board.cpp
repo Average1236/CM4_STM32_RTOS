@@ -71,6 +71,13 @@ bool board_init() {
     dribbler_filter.fifo = CAN_RX_FIFO0;
     can1_bus.subscribe(dribbler_filter, on_dribbler_heartbeat_rx, &robot.dribbler, nullptr);
 
+    // Subscribe to infrared matrix ball sensor (CAN1, ID 0x123)
+    MsgIdFilterSpecs ball_sensor_filter;
+    ball_sensor_filter.id = (uint16_t)kBallSensorCanId;
+    ball_sensor_filter.mask = 0x7FF;  // Match exact ID
+    ball_sensor_filter.fifo = CAN_RX_FIFO0;
+    can1_bus.subscribe(ball_sensor_filter, on_ball_sensor_rx, nullptr, nullptr);
+
     // Subscribe to motor feedback (CAN2, IDs 0x01-0x04)
     MsgIdFilterSpecs motor_filter;
     motor_filter.id = (uint16_t)0x000;  // Base ID for filtering

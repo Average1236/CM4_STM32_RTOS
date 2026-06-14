@@ -359,8 +359,11 @@ void Robot::pi_encode_spi() {
     float imu_data[9] = {0.0f};
     imu.get_data(imu_data);
 
-    // SpiTx.infrare_flag = (infra_ADC1_val > 0.5f) ? 1 : 0;
-    SpiTx.getBall = false;
+    const bool ball_sensor_recent = (ball_sensor_tick_ms != 0u) &&
+        ((HAL_GetTick() - ball_sensor_tick_ms) <= 100u);
+    const bool ball_sensor_present = (ball_sensor_valid != 0u) && ball_sensor_recent;
+    SpiTx.infrare_flag = ball_sensor_present;
+    SpiTx.getBall = ball_sensor_present;
     SpiTx.imu_online = true;
     SpiTx.battery_vol = static_cast<int16_t>(bat_ADC2_val * 5);
     SpiTx.cap_vol = static_cast<int16_t>(cap_ADC3_val * 100);
@@ -391,6 +394,20 @@ void Robot::pi_encode_spi() {
     SpiTx.yaw_max_vel = encode_angular_centi(yaw_max_vel);
     SpiTx.yaw_max_acc = encode_angular_centi(yaw_max_acc);
     SpiTx.yaw_max_jerk = encode_angular_centi(yaw_max_jerk);
+    if (ball_sensor_present) {
+        SpiTx.ball_left_mm = ball_sensor_left_mm;
+        SpiTx.ball_right_mm = ball_sensor_right_mm;
+        SpiTx.ball_depth_mm = ball_sensor_depth_mm;
+        SpiTx.ball_depth_level = ball_sensor_depth_level;
+        SpiTx.ball_sensor_valid = 1u;
+    } else {
+        SpiTx.ball_left_mm = 0xFFFFu;
+        SpiTx.ball_right_mm = 0xFFFFu;
+        SpiTx.ball_depth_mm = 0xFFu;
+        SpiTx.ball_depth_level = 0xFFu;
+        SpiTx.ball_sensor_valid = 0u;
+    }
+    SpiTx.ball_sensor_seq = ball_sensor_seq;
     SpiTx.reserved = 0;
 
     // Encode IMU data
