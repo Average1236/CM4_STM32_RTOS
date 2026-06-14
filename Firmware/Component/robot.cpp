@@ -95,7 +95,7 @@ float decomposed_axis_velocity_limit_m_s(const float wheel_axis_coeff[4], const 
     return wheel_vel_limit_rad_s * WHEEL_RADIUS / max_coeff;
 }
 
-void init_axis_plan(
+void init_axis_plan(  
     AxisMotionPlan& plan,
     const float v_start,
     const float v_target,
@@ -394,20 +394,6 @@ void Robot::pi_encode_spi() {
     SpiTx.yaw_max_vel = encode_angular_centi(yaw_max_vel);
     SpiTx.yaw_max_acc = encode_angular_centi(yaw_max_acc);
     SpiTx.yaw_max_jerk = encode_angular_centi(yaw_max_jerk);
-    if (ball_sensor_present) {
-        SpiTx.ball_left_mm = ball_sensor_left_mm;
-        SpiTx.ball_right_mm = ball_sensor_right_mm;
-        SpiTx.ball_depth_mm = ball_sensor_depth_mm;
-        SpiTx.ball_depth_level = ball_sensor_depth_level;
-        SpiTx.ball_sensor_valid = 1u;
-    } else {
-        SpiTx.ball_left_mm = 0xFFFFu;
-        SpiTx.ball_right_mm = 0xFFFFu;
-        SpiTx.ball_depth_mm = 0xFFu;
-        SpiTx.ball_depth_level = 0xFFu;
-        SpiTx.ball_sensor_valid = 0u;
-    }
-    SpiTx.ball_sensor_seq = ball_sensor_seq;
     SpiTx.reserved = 0;
 
     // Encode IMU data
@@ -423,7 +409,7 @@ void Robot::prepare_yaw_control(float dt_s) {
         return;
     }
 
-    // Step the S-curve yaw planner → use its velocity as omega reference
+    // Step the S-curve yaw planner �?use its velocity as omega reference
     yaw_s_curve_.step(dt_s);
     robot_real_vel[2] = yaw_s_curve_.velocity();
     robot_acc[2] = 0.0f;
