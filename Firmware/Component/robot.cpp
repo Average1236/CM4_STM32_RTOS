@@ -266,8 +266,7 @@ void Robot::pi_decode_spi() {
         const float jerk_cmd = SpiRx.xy_max_jerk[i] / 10.0f;
         const float dec_cmd = SpiRx.xy_max_dec[i] / 1000.0f;
         if (acc_cmd > 0.0f) xy_max_acc[i] = acc_cmd;
-        // if (jerk_cmd > 0.0f) xy_max_jerk[i] = jerk_cmd;
-        xy_max_jerk[i] = 1e6f;
+        if (jerk_cmd > 0.0f) xy_max_jerk[i] = jerk_cmd;
         if (dec_cmd > 0.0f) xy_max_dec[i] = dec_cmd;
     }
     const float yaw_vel_cmd = SpiRx.yaw_max_vel / 100.0f;
@@ -429,6 +428,8 @@ void Robot::pi_encode_spi() {
     SpiTx.yaw_max_vel = encode_angular_centi(yaw_max_vel);
     SpiTx.yaw_max_acc = encode_angular_centi(yaw_max_acc);
     SpiTx.yaw_max_jerk = encode_angular_centi(yaw_max_jerk);
+    SpiTx.planned_vel[0] = encode_velocity_mm_s(robot_real_vel[0]);
+    SpiTx.planned_vel[1] = encode_velocity_mm_s(robot_real_vel[1]);
     SpiTx.reserved = 0;
 
     // Encode IMU data
@@ -496,7 +497,9 @@ void Robot::motion_planner(const double _dt) {
 
         const bool target_changed = fabsf(v_target - plan.v_target) > kPlannerReplanEps;
         const bool should_replan = target_changed;
-        const float v_plan_start = linear_axis ? planner_start_vel[i] : last_robot_real_vel[i];
+        const float v_plan_start = (linear_axis && control_config::kPlannerStartFromMeasuredVelocity)
+            ? planner_start_vel[i]
+            : last_robot_real_vel[i];
         if (should_replan) {
             init_axis_plan(plan, v_plan_start, v_target, a_max, j_max);
             if (linear_axis) {

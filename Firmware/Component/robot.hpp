@@ -51,6 +51,7 @@ struct __attribute__((packed)) stm32_to_CM4_spi
     int16_t yaw_max_vel;     // rad/s * 100
     int16_t yaw_max_acc;     // rad/s^2 * 100
     int16_t yaw_max_jerk;    // rad/s^3 * 100
+    int16_t planned_vel[2];  // planned robot_real_vel vx, vy in mm/s
     int16_t reserved;
 };
 

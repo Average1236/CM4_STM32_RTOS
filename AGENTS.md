@@ -20,7 +20,7 @@ cmake --build build/Debug
 # Flash via J-Link (open Firmware/stm32_cm4_rtos.jdebug in J-Link debugger)
 ```
 
-**After every code change**, run `cmake --build build/Debug` from `Firmware/` and verify zero errors and zero warnings before continuing.
+**After every code change**, run `cmake --build build/Debug` from `Firmware/` and verify zero errors before continuing.
 
 CMakePresets.json defines `Debug` and `Release` presets. Both use the Ninja generator and the bundled toolchain file at `Firmware/cmake/gcc-arm-none-eabi.cmake`.
 

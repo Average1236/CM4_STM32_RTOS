@@ -174,6 +174,7 @@ def plot_vx_comparison(plot_df: pd.DataFrame, output_dir: Path, interactive: boo
             plot_df,
             [
             "target_vx",
+            "planned_vx",
             "optflow_kf_vx",
             "wheel_chassis_vx",
             "fused_chassis_vx",
@@ -195,6 +196,7 @@ def plot_vy_comparison(plot_df: pd.DataFrame, output_dir: Path, interactive: boo
             plot_df,
             [
             "target_vy",
+            "planned_vy",
             "optflow_kf_vy",
             "wheel_chassis_vy",
             "fused_chassis_vy",
@@ -218,6 +220,9 @@ def plot_fused_tracking_error(
 
     df["fused_error_vx"] = df["fused_chassis_vx"] - df["target_vx"]
     df["fused_error_vy"] = df["fused_chassis_vy"] - df["target_vy"]
+    if {"planned_vx", "planned_vy"}.issubset(df.columns):
+        df["planned_error_vx"] = df["planned_vx"] - df["target_vx"]
+        df["planned_error_vy"] = df["planned_vy"] - df["target_vy"]
     if {"raw_vision_vx", "raw_vision_vy"}.issubset(df.columns):
         df["raw_vision_error_vx"] = df["raw_vision_vx"] - df["target_vx"]
         df["raw_vision_error_vy"] = df["raw_vision_vy"] - df["target_vy"]
@@ -238,6 +243,21 @@ def plot_fused_tracking_error(
         label="fused_chassis_vy - target_vy",
     )
     artists.append(line_vy)
+    if {"planned_error_vx", "planned_error_vy"}.issubset(err_df.columns):
+        (line_planned_vx,) = ax.plot(
+            err_df["t_bin"],
+            err_df["planned_error_vx"],
+            label="planned_vx - target_vx",
+            alpha=0.75,
+        )
+        artists.append(line_planned_vx)
+        (line_planned_vy,) = ax.plot(
+            err_df["t_bin"],
+            err_df["planned_error_vy"],
+            label="planned_vy - target_vy",
+            alpha=0.75,
+        )
+        artists.append(line_planned_vy)
     if {"raw_vision_error_vx", "raw_vision_error_vy"}.issubset(err_df.columns):
         (line_raw_vx,) = ax.plot(
             err_df["t_bin"],
@@ -287,6 +307,15 @@ def plot_xy_plane(plot_df: pd.DataFrame, output_dir: Path, interactive: bool) ->
         alpha=0.75,
     )
     artists = [target_scatter, fused_scatter]
+    if {"planned_vx", "planned_vy"}.issubset(sample.columns):
+        planned_scatter = ax.scatter(
+            sample["planned_vx"],
+            sample["planned_vy"],
+            label="planned",
+            s=18,
+            alpha=0.65,
+        )
+        artists.append(planned_scatter)
     if {"raw_vision_vx", "raw_vision_vy"}.issubset(sample.columns):
         raw_vision_scatter = ax.scatter(
             sample["raw_vision_vx"],
@@ -317,6 +346,7 @@ def export_error_summary(df: pd.DataFrame, output_dir: Path) -> pd.DataFrame:
         target = df[f"target_{axis}"]
 
         for col in [
+            f"planned_{axis}",
             f"optflow_kf_{axis}",
             f"wheel_chassis_{axis}",
             f"fused_chassis_{axis}",
@@ -389,7 +419,7 @@ def main() -> None:
     parser.add_argument(
         "--csv",
         type=str,
-        default="stm32_velocity_log_13.csv",
+        default="stm32_velocity_log_18.csv",
         help="Path to input CSV file.",
     )
     parser.add_argument(
