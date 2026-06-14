@@ -547,7 +547,6 @@ void Robot::motion_planner(const double _dt) {
     }
     robot_ay_debug = robot_acc[1];
 
-    yaw_ref_rel_rad_ += robot_real_vel[2] * dt_s;
     robot_real_vx_debug = robot_real_vel[0];
 }
 
@@ -574,8 +573,8 @@ void Robot::update_torque_feedforward(const double _dt) {
         return;
     }
 
-    chassis_controller.set_reference(robot_real_vel, robot_acc, yaw_ref_rel_rad_);
-    chassis_controller.set_use_3rd_order_leso(use_imu);
+    chassis_controller.set_reference(robot_real_vel, robot_acc);
+    chassis_controller.set_use_imu_yaw(use_imu);
     if (use_imu) {
         chassis_controller.set_yaw_target(yaw_s_curve_.position(), yaw_s_curve_.velocity());
     }

@@ -69,49 +69,55 @@ class PID {
 public:
     struct Parameter_t
     {
-        float kp;
-        float ki;
-        float kd;
-        float output_limit;
-        float integ_limit;
-        float dt;
+        float kp = 0.0f;
+        float ki = 0.0f;
+        float kd = 0.0f;
+        float output_limit = 0.0f;
+        float integ_limit = 0.0f;
+        float dt = 0.0f;
         float back_calc_gain = 0.0f;
         float diff_cutoff_hz = 0.0f;  // 0 disables the derivative low-pass
     };
 
-    PID(const Parameter_t parameter) : parameter_(parameter) {};
+    PID() = default;
+    explicit PID(const Parameter_t parameter) : parameter_(parameter) {};
     ~PID() = default;
 
     float calc(float ref, float fdb) {
+        return calc(ref, fdb, parameter_);
+    }
+
+    float calc(float ref, float fdb, const Parameter_t& parameter) {
         constexpr float kEps = 1e-6f;
+        parameter_ = parameter;
 
         last_err = err;
         err = ref - fdb;
 
-        const float dt = (parameter_.dt > kEps) ? parameter_.dt : kEps;
+        const float dt = (parameter.dt > kEps) ? parameter.dt : kEps;
         const float raw_diff = (err - last_err) / dt;
 
-        if (parameter_.diff_cutoff_hz > kEps) {
+        if (parameter.diff_cutoff_hz > kEps) {
             constexpr float kTwoPi = 6.283185307f;
-            const float tf = 1.0f / (kTwoPi * parameter_.diff_cutoff_hz);
+            const float tf = 1.0f / (kTwoPi * parameter.diff_cutoff_hz);
             diff_filt_ = diff_filt_ + (raw_diff - diff_filt_) * dt / (dt + tf);
         } else {
             diff_filt_ = raw_diff;
         }
         diff = diff_filt_;
 
-        if (std::fabs(parameter_.ki) > kEps) {
-            const float integ_pre = integ + err * dt;
-            const float output_pre = parameter_.kp * err + parameter_.ki * integ_pre + parameter_.kd * diff;
-            const float output_sat = limit<float>(output_pre, parameter_.output_limit);
+        if (std::fabs(parameter.ki) > kEps) {
+            const float integ_abs_limit = parameter.integ_limit / std::fabs(parameter.ki);
+            const float integ_pre = limit<float>(integ + err * dt, integ_abs_limit);
+            const float output_pre = parameter.kp * err + parameter.ki * integ_pre + parameter.kd * diff;
+            const float output_sat = limit<float>(output_pre, parameter.output_limit);
 
             // Anti-windup by back-calculation: feed saturation residual back to integrator.
-            integ = integ_pre + parameter_.back_calc_gain * (output_sat - output_pre) * dt / parameter_.ki;
-            integ = limit<float>(integ, parameter_.integ_limit / std::fabs(parameter_.ki));
+            integ = integ_pre + parameter.back_calc_gain * (output_sat - output_pre) * dt / parameter.ki;
+            integ = limit<float>(integ, integ_abs_limit);
             output = output_sat;
         } else {
-            integ = 0.0f;
-            output = limit<float>(parameter_.kp * err + parameter_.kd * diff, parameter_.output_limit);
+            output = limit<float>(parameter.kp * err + parameter.kd * diff, parameter.output_limit);
         }
 
         return output;

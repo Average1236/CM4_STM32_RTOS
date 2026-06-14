@@ -175,7 +175,7 @@ private:
     bool wheel_speed_pid_prev_enabled_ = false;
 
     void update_wheel_speed_pll_gains();
-    void update_wheel_speed_pid_kp_ramp();
+    PID::Parameter_t wheel_speed_pid_param_with_ramp();
     void reset_wheel_speed_pll(float measured_pos_rad, bool mark_prev_enabled);
     void update_wheel_speed_pll_from_pos(float measured_pos_rad, bool enabled_now);
     static float wrap_pm_pi(float angle_rad);

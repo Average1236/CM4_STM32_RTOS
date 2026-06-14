@@ -129,14 +129,13 @@ public:
     float robot_real_vel[3] = {0};
     float last_robot_real_vel[3] = {0};
     float robot_acc[3] = {0};
-    float yaw_ref_rel_rad_ = 0.0f;
     float ik_solve_basis[3] = {0, 1, 2};
     float ik_solve_inv_b[3][3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
     float raw_vision_vel_mm_s[2] = {0.0f, 0.0f};
     float vision_source = 0.0f;
 
     ChassisEstimator chassis_estimator;
-    MixedLesoChassisController chassis_controller;
+    ChassisController chassis_controller;
     ButterworthLowPass2 planner_start_vx_filter_{{0.0f, 0.0f}};
     ButterworthLowPass2 planner_start_vy_filter_{{0.0f, 0.0f}};
 

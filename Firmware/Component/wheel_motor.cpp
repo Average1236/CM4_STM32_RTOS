@@ -108,11 +108,10 @@ void MotorDMH3510::pack_mit_data(float position, float velocity, float kp, float
     static constexpr float kMITKdMin = 0.0f;
     static constexpr float kMITKdMax = 5.0f;
 
-    update_wheel_speed_pid_kp_ramp();
-
     // velocity uses rad/s in MIT command; convert feedback from rpm to rad/s.
     const float velocity_feedback = vel_ * kPi / 30.0f;
-    const float torque_pid = wheel_speed_pid_.calc(velocity, velocity_feedback);
+    const PID::Parameter_t pid_param = wheel_speed_pid_param_with_ramp();
+    const float torque_pid = wheel_speed_pid_.calc(velocity, velocity_feedback, pid_param);
     if (config_.feedback_id == 1) {
         wheel_integ_debug = wheel_speed_pid_.get_integ();
         wheel_diff_debug = wheel_speed_pid_.get_diff();
@@ -208,7 +207,7 @@ void MotorDMH3510::pack_mit_data(float position, float velocity, float kp, float
     writing_register_ = false;
 }
 
-void MotorDMH3510::update_wheel_speed_pid_kp_ramp() {
+PID::Parameter_t MotorDMH3510::wheel_speed_pid_param_with_ramp() {
     if (!enabled_) {
         wheel_speed_pid_prev_enabled_ = false;
         wheel_speed_pid_kp_alpha_ = 0.0f;
@@ -220,7 +219,6 @@ void MotorDMH3510::update_wheel_speed_pid_kp_ramp() {
 
     PID::Parameter_t param = kWheelSpeedPidParam;
     param.kp = kWheelSpeedPidParam.kp * wheel_speed_pid_kp_alpha_;
-    wheel_speed_pid_.set_parameter(param);
 
     if (enabled_) {
         wheel_speed_pid_kp_alpha_ += kWheelSpeedPidKpRampStep;
@@ -228,6 +226,8 @@ void MotorDMH3510::update_wheel_speed_pid_kp_ramp() {
             wheel_speed_pid_kp_alpha_ = 1.0f;
         }
     }
+
+    return param;
 }
 
 float MotorDMH3510::uint_to_float(int x_int, float x_min, float x_max, int bits) {

@@ -27,18 +27,12 @@ inline constexpr float kCenterToComDistanceM = 0.0f;
 inline constexpr float kWheelAlphaRad = 30.0f / 180.0f * kPi;
 inline constexpr float kWheelBetaRad = 45.0f / 180.0f * kPi;
 
-inline constexpr float kLesoVelObserverBandwidthX = 60.0f;
-inline constexpr float kLesoVelObserverBandwidthY = 60.0f;
 inline constexpr float kLesoAngleObserverBandwidth = 150.0f;
 
 // Velocity-scheduled LESO bandwidth limits — high when moving (ground),
 // low when near-zero speed (airborne oscillation suppression).
-inline constexpr float kLesoVelBandwidthMinX = 5.0f;
-inline constexpr float kLesoVelBandwidthMinY = 5.0f;
 inline constexpr float kLesoAngleBandwidthMin = 50.0f;
-inline constexpr float kLesoScheduleVelocityThresholdX = 0.1f;  // m/s
-inline constexpr float kLesoScheduleVelocityThresholdY = 0.1f; // m/s
-inline constexpr float kLesoScheduleVelocityThreshold = kLesoScheduleVelocityThresholdX;
+inline constexpr float kLesoScheduleVelocityThreshold = 0.1f;  // m/s
 inline constexpr float kLesoScheduleOmegaThreshold = 0.01f;    // rad/s
 inline constexpr float kImuOmegaButterworthCutoffHz = 350.0f;
 inline constexpr float kChassisOmegaZFilterCutoffHz = 0.0f;
@@ -46,10 +40,20 @@ inline constexpr float kImuOmegaBiasZ = 1.0f;
 
 // Velocity feedback gains — scheduled with LESO bandwidth via alpha_v.
 // Kv = ω_c for 1st-order velocity loop pole placement.
-inline constexpr float kVelFeedbackGainX = 3.0f;
-inline constexpr float kVelFeedbackGainY = 3.0f;
-inline constexpr float kVelFeedbackGainMinX = 0.0f;
-inline constexpr float kVelFeedbackGainMinY = 0.0f;
+inline constexpr float kChassisVelPidKpX = 3.0f;
+inline constexpr float kChassisVelPidKiX = 0.5f;
+inline constexpr float kChassisVelPidKdX = 0.0f;
+inline constexpr float kChassisVelPidOutputLimitX = 8.0f;  // m/s^2
+inline constexpr float kChassisVelPidIntegLimitX = 2.0f;   // m/s^2 contribution
+inline constexpr float kChassisVelPidBackCalcGainX = 0.3f;
+inline constexpr float kChassisVelPidDiffCutoffHzX = 0.0f;
+inline constexpr float kChassisVelPidKpY = 3.0f;
+inline constexpr float kChassisVelPidKiY = 0.5f;
+inline constexpr float kChassisVelPidKdY = 0.0f;
+inline constexpr float kChassisVelPidOutputLimitY = 8.0f;  // m/s^2
+inline constexpr float kChassisVelPidIntegLimitY = 2.0f;   // m/s^2 contribution
+inline constexpr float kChassisVelPidBackCalcGainY = 0.3f;
+inline constexpr float kChassisVelPidDiffCutoffHzY = 0.0f;
 inline constexpr float kVelFeedbackGainYaw = 0.0f;
 // PD controller bandwidth — scheduled together with LESO bandwidth.
 // max when moving (stiff angle tracking), min when stationary (stable).

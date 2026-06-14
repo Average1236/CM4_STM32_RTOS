@@ -6,9 +6,9 @@
 #include <array>
 #include <cstddef>
 
-class MixedLesoChassisController {
+class ChassisController {
 public:
-    MixedLesoChassisController();
+    ChassisController();
 
     InputPort<float>* chassis_vx_input_port() { return &chassis_vx_input_port_; }
     InputPort<float>* chassis_vy_input_port() { return &chassis_vy_input_port_; }
@@ -23,8 +23,8 @@ public:
         return (index < wheel_sent_torque_input_ports_.size()) ? &wheel_sent_torque_input_ports_[index] : nullptr;
     }
 
-    void set_reference(const float vel_ref[3], const float acc_ref[3], float yaw_ref_rel_rad);
-    void set_use_3rd_order_leso(bool enable);
+    void set_reference(const float vel_ref[3], const float acc_ref[3]);
+    void set_use_imu_yaw(bool enable);
     void set_yaw_target(float target_pos, float target_vel);
     void step(float dt_s);
     void reset();
@@ -48,8 +48,11 @@ private:
     float vel_ref_[3] = {0.0f, 0.0f, 0.0f};
     float acc_ref_[3] = {0.0f, 0.0f, 0.0f};
 
-    // 2nd-order LESO states: [z1=velocity, z2=disturbance] for vx, vy, yaw
-    float leso2_[3][2] = {{0.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f}};
+    PID vx_pid_;
+    PID vy_pid_;
+
+    // 2nd-order LESO states: [z1=omega_z, z2=disturbance] for yaw
+    float yaw_leso_[2] = {0.0f, 0.0f};
 
     float yaw_target_pos_ = 0.0f;
     float yaw_target_vel_ = 0.0f;
