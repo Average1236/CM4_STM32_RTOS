@@ -10,6 +10,7 @@
 struct __attribute__((packed)) CM4_to_stm32_spi
 {
     uint8_t drib_power;
+    uint8_t drib_mode;     // 1: torque, 2: speed, 3: hybrid
     int16_t vel[3];
     int16_t angle_pid[3];
     int16_t wheel_pid[3];
@@ -18,6 +19,12 @@ struct __attribute__((packed)) CM4_to_stm32_spi
     uint16_t kick_discharge_time;
     int16_t drib_velocity;  // turns/s * 100
     int16_t drib_torque_ff; // Nm * 1000
+    int16_t xy_max_acc[2];   // vx, vy acceleration limits in mm/s^2
+    int16_t xy_max_jerk[2];  // vx, vy jerk limits in (m/s^3) * 10
+    int16_t xy_max_dec[2];   // vx, vy deceleration limits in mm/s^2
+    int16_t yaw_max_vel;     // rad/s * 100
+    int16_t yaw_max_acc;     // rad/s^2 * 100
+    int16_t yaw_max_jerk;    // rad/s^3 * 100
 };
 
 static_assert(sizeof(CM4_to_stm32_spi) <= SPI_LENGTH, "CM4_to_stm32_spi exceeds SPI_LENGTH");
@@ -32,6 +39,14 @@ struct __attribute__((packed)) stm32_to_CM4_spi
     int16_t cap_vol;
     int16_t wheel[4];
     int16_t odom_vel[2]; // vx, vy in mm/s
+    int16_t xy_max_vel[2];   // vx, vy axis limits in mm/s
+    int16_t xy_max_acc[2];   // vx, vy acceleration limits in mm/s^2
+    int16_t xy_max_jerk[2];  // vx, vy jerk limits in (m/s^3) * 10
+    int16_t xy_max_dec[2];   // vx, vy deceleration limits in mm/s^2
+    int16_t yaw_max_vel;     // rad/s * 100
+    int16_t yaw_max_acc;     // rad/s^2 * 100
+    int16_t yaw_max_jerk;    // rad/s^3 * 100
+    int16_t reserved;
 };
 
 static_assert(sizeof(CM4_to_stm32_spi) <= SPI_LENGTH, "CM4_to_stm32_spi exceeds SPI buffer length");
@@ -63,7 +78,7 @@ public:
     float dribble_velocity = -50.0f;
     float dribble_torque_ff = -0.15f;
 
-    // Dribbler runtime mode (from CM4 drib_power byte: 0/10/20/30)
+    // Dribbler runtime mode (from CM4 drib_mode byte: 1/2/3)
     uint8_t dribbler_mode = 0;
     enum DribblerHybridPhase : uint8_t {
         kDribblerHybridTorquePhase = 0,
@@ -112,6 +127,12 @@ public:
     float robot_real_vel[3] = {0};
     float last_robot_real_vel[3] = {0};
     float robot_acc[3] = {0};
+    float xy_max_acc[2] = {7.0f, 7.0f};
+    float xy_max_jerk[2] = {1000.0f, 1000.0f};
+    float xy_max_dec[2] = {10.0f, 10.0f};
+    float yaw_max_vel = 25.0f;
+    float yaw_max_acc = 40.0f;
+    float yaw_max_jerk = 200.0f;
     float yaw_ref_rel_rad_ = 0.0f;
     float ik_solve_basis[3] = {0, 1, 2};
     float ik_solve_inv_b[3][3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};

@@ -5,8 +5,8 @@
 
 namespace control_config {
 
-// Dribbler control mode flags (from CM4 drib_power byte over SPI)
-// 10 = torque control, 20 = velocity control, 30 = hybrid (torque → speed on ball-hold)
+// Dribbler control mode flags (from CM4 drib_mode byte over SPI)
+// 1 = torque control, 2 = velocity control, 3 = hybrid (torque -> speed on ball-hold)
 inline constexpr uint8_t kDribblerModeTorque = 1;
 inline constexpr uint8_t kDribblerModeSpeed = 2;
 inline constexpr uint8_t kDribblerModeHybrid = 3;
