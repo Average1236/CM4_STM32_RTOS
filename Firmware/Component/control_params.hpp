@@ -15,8 +15,8 @@ inline constexpr uint8_t kDribblerModeHybrid = 3;
 inline constexpr float kDribblerHybridTorqueNm = -0.05f;        // torque command in torque phase (Nm)
 inline constexpr float kDribblerHybridSpeedRps = -100.0f;       // velocity command in speed phase (turns/s)
 inline constexpr float kDribblerHybridTorqueLimitNm = 0.15f;   // torque_ff sent in speed phase (Nm)
-inline constexpr uint32_t kDribblerHybridBallHoldFrames = 100;  // consecutive heartbeat frames for transition (200 Hz → 500 ms)
-inline constexpr uint32_t kDribblerHybridBallLostFrames = 40;   // consecutive lost-ball frames to fall back to torque (200 Hz → 200 ms)
+inline constexpr uint32_t kDribblerHybridBallHoldFrames = 20;  // consecutive heartbeat frames for transition (200 Hz → 500 ms)
+inline constexpr uint32_t kDribblerHybridBallLostFrames = 10;   // consecutive lost-ball frames to fall back to torque (200 Hz → 200 ms)
 inline constexpr uint32_t kDribblerHybridDebounceStep  = 2;     // decrement step per frame without ball, filters 20~30 Hz bounce
 
 // Chassis-speed feedforward compensation for dribbler speed commands

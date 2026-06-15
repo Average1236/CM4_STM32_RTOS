@@ -233,6 +233,7 @@ void StartCrtlTask(void *argument) {
     uint32_t last_heartbeat_count = 0;
     uint8_t last_dribbler_mode = 0;
     bool last_active_torque_mode = false;
+    uint8_t hybrid_switch_delay = 0;   // skip cmd for 1 frame after mode switch
 
     for(;;) {
         if (osSemaphoreAcquire(sem_ctrl_triggerHandle, osWaitForever) == osOK) {
@@ -309,6 +310,7 @@ void StartCrtlTask(void *argument) {
                                     // Confirmed ball hold → switch to speed phase
                                     robot.dribbler_hybrid_phase = Robot::kDribblerHybridSpeedPhase;
                                     robot.dribbler_ball_hold_count = 0;  // reuse for lost-ball counting
+                                    hybrid_switch_delay = 1;             // skip cmd this frame
                                     if (robot.dribbler.current_state == DribblerZfoc::kAxisStateClosedLoopControl) {
                                         robot.dribbler.queue_controller_mode_switch(false);
                                     }
@@ -329,6 +331,7 @@ void StartCrtlTask(void *argument) {
                                     // Confirmed ball lost → fall back to torque phase
                                     robot.dribbler_hybrid_phase = Robot::kDribblerHybridTorquePhase;
                                     robot.dribbler_ball_hold_count = 0;
+                                    hybrid_switch_delay = 1;             // skip cmd this frame
                                     if (robot.dribbler.current_state == DribblerZfoc::kAxisStateClosedLoopControl) {
                                         robot.dribbler.queue_controller_mode_switch(true);
                                     }
@@ -471,14 +474,28 @@ void StartCrtlTask(void *argument) {
                 if (osSemaphoreAcquire(sem_can_txHandle, 10) == osOK) {
                     // Send dribbler pending messages (state transitions, only when enabled)
                     if (dribbler_enabled) {
+                        uint8_t keep = 0;
                         for (uint8_t i = 0; i < robot.dribbler.pending_count; i++) {
-                            can1_bus.send_message(robot.dribbler.pending_msgs[i]);
+                            if (can1_bus.send_message(robot.dribbler.pending_msgs[i])) {
+                                // sent OK
+                            } else {
+                                // failed — shift down for retry next iteration
+                                if (keep < i) {
+                                    robot.dribbler.pending_msgs[keep] = robot.dribbler.pending_msgs[i];
+                                }
+                                keep++;
+                            }
                         }
+                        robot.dribbler.pending_count = keep;  // only clear messages that were sent
                     }
-                    robot.dribbler.pending_count = 0;  // clear after send, prevent stale re-transmit
                     // Send dribbler command (only when in closed-loop control)
+                    // Skip cmd for 1 frame after hybrid phase switch to let ZFOC complete mode migration
                     if (robot.dribbler.current_state == DribblerZfoc::kAxisStateClosedLoopControl) {
-                        can1_bus.send_message(dribbler_enabled ? dribbler_cmd_msg : dribbler_stop_msg);
+                        if (hybrid_switch_delay > 0) {
+                            hybrid_switch_delay--;
+                        } else {
+                            can1_bus.send_message(dribbler_enabled ? dribbler_cmd_msg : dribbler_stop_msg);
+                        }
                     }
 
                     bool sent[4] = {false, false, false, false};
