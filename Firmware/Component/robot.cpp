@@ -20,6 +20,10 @@ volatile float dribble_torque_ff_debug = 0;
 volatile float yaw_vel_max_debug = 0;
 volatile float yaw_acc_max_debug = 0;
 volatile float yaw_jerk_max_debug = 0;
+volatile float yaw_target_debug = 0;
+volatile float yaw_ref_debug = 0;
+volatile float yaw_ref_vel_debug = 0;
+volatile float yaw_ref_acc_debug = 0;
 
 // Wheel geometry
 static constexpr float WHEEL_ANGLE_FORWARD = control_config::kWheelAlphaRad;
@@ -216,8 +220,6 @@ static const WheelMotorBase::Config_t WHEEL_MOTOR_PARAMS[4] = {
 };
 
 Robot::Robot() {
-    yaw_s_curve_.set_config({yaw_max_vel, yaw_max_acc,
-                             control_config::kYawAngleLinearFallbackMinTimeSec});
     planner_start_vx_filter_.set_parameter({control_config::kPlannerStartVelocityLpfCutoffHz,
                                              control_config::kControlDtSec});
     planner_start_vy_filter_.set_parameter({control_config::kPlannerStartVelocityLpfCutoffHz,
@@ -281,9 +283,11 @@ void Robot::pi_decode_spi() {
     raw_vision_vel_mm_s[0] = static_cast<float>(SpiRx.raw_vision_vel[0]);
     raw_vision_vel_mm_s[1] = static_cast<float>(SpiRx.raw_vision_vel[1]);
     vision_source = static_cast<float>(SpiRx.vision_source);
-    yaw_s_curve_.set_config({yaw_max_vel, yaw_max_acc,
-                             control_config::kYawAngleLinearFallbackMinTimeSec});
-    robot_vel[2] = std::clamp(robot_vel[2], -yaw_max_vel, yaw_max_vel);
+    // In IMU mode robot_vel[2] is a yaw angle, not a velocity — do not clamp to
+    // velocity limits here.  Velocity clamping happens in the yaw reference tracker.
+    if (!use_imu) {
+        robot_vel[2] = std::clamp(robot_vel[2], -yaw_max_vel, yaw_max_vel);
+    }
 
     dribble_power = SpiRx.drib_power / 50.0f * -1.0f;
 
@@ -295,21 +299,7 @@ void Robot::pi_decode_spi() {
     use_imu_debug = use_imu ? 1 : 0;
 
     if (use_imu) {
-        const float new_target = wrap_to_pi(robot_vel[2]);
-        if (!yaw_target_initialized
-            || fabsf(wrap_to_pi(new_target - yaw_target_rad)) > control_config::kYawTargetReplanDeadbandRad) {
-            const auto yaw = chassis_estimator.chassis_yaw_output_port()->any();
-            const auto omega_z = chassis_estimator.chassis_omega_z_output_port()->any();
-            const float start_yaw = yaw_target_initialized
-                ? yaw_s_curve_.position()
-                : (yaw.has_value() ? *yaw : 0.0f);
-            const float start_omega = yaw_target_initialized
-                ? yaw_s_curve_.velocity()
-                : (omega_z.has_value() ? *omega_z : robot_real_vel[2]);
-            yaw_target_rad = new_target;
-            yaw_target_initialized = true;
-            yaw_s_curve_.set_target(yaw_target_rad, start_yaw, start_omega);
-        }
+        yaw_target_rad = wrap_to_pi(robot_vel[2]);
     } else {
         yaw_target_initialized = false;
     }
@@ -318,6 +308,7 @@ void Robot::pi_decode_spi() {
     target_vx_debug = robot_vel[0];
     target_vy_debug = robot_vel[1];
     target_vw_debug = robot_vel[2];
+    yaw_target_debug = yaw_target_rad;
     dribble_power_debug = dribble_power;
     dribble_velocity_debug = dribble_velocity;
     dribble_torque_ff_debug = dribble_torque_ff;
@@ -450,13 +441,39 @@ void Robot::pi_encode_spi() {
 
 void Robot::prepare_yaw_control(float dt_s) {
     if (!use_imu) {
+        yaw_target_initialized = false;
         return;
     }
 
-    // Step the S-curve yaw planner → use its velocity as omega reference
+    if (dt_s <= 1e-6f) {
+        return;
+    }
+
+    yaw_s_curve_.set_config({
+        yaw_max_vel,
+        yaw_max_acc,
+        control_config::kYawTargetStopBandRad,
+        control_config::kYawTargetVelZeroEpsRadS
+    });
+
+    if (!yaw_target_initialized) {
+        const auto yaw = chassis_estimator.chassis_yaw_output_port()->any();
+        const float init_yaw = yaw.has_value() ? *yaw : 0.0f;
+        const float init_omega = 0.0f;
+        yaw_s_curve_.reset(init_yaw, init_omega, yaw_target_rad, dt_s);
+        yaw_target_initialized = true;
+    }
+
+    yaw_s_curve_.set_target_measurement(yaw_target_rad);
     yaw_s_curve_.step(dt_s);
+
     robot_real_vel[2] = yaw_s_curve_.velocity();
-    robot_acc[2] = 0.0f;
+    robot_acc[2] = yaw_s_curve_.acceleration();
+
+    // Debug
+    yaw_ref_debug     = yaw_s_curve_.position();
+    yaw_ref_vel_debug = yaw_s_curve_.velocity();
+    yaw_ref_acc_debug = yaw_s_curve_.acceleration();
 }
 
 void Robot::ik_solve() {

@@ -19,7 +19,13 @@ inline constexpr float kPi = 3.1415926535f;
 inline constexpr bool kPlannerStartFromMeasuredVelocity = false;
 inline constexpr float kPlannerStartVelocityLpfCutoffHz = 5.0f;
 
+// DEPRECATED — no longer used by the incremental yaw reference tracker.
+// Kept for reference only.
 inline constexpr float kYawTargetReplanDeadbandRad = 1e-2f;
+
+// Incremental yaw reference tracker
+inline constexpr float kYawTargetStopBandRad = 1e-3f;
+inline constexpr float kYawTargetVelZeroEpsRadS = 0.02f;
 
 inline constexpr float kRobotMassKg = 3.0f;
 inline constexpr float kRobotInertiaKgM2 = 8e-3f;
@@ -59,8 +65,8 @@ inline constexpr float kChassisVelPidDiffCutoffHzY = 0.0f;
 inline constexpr float kVelFeedbackGainYaw = 0.0f;
 // PD controller bandwidth — scheduled together with LESO bandwidth.
 // max when moving (stiff angle tracking), min when stationary (stable).
-inline constexpr float kAngleControllerBandwidth = 100.0f;
-inline constexpr float kAngleControllerBandwidthMin = 100.0f;
+inline constexpr float kAngleControllerBandwidth = 50.0f;
+inline constexpr float kAngleControllerBandwidthMin = 50.0f;
 
 // S-curve yaw target planner
 inline constexpr float kYawAngleLinearFallbackMinTimeSec = 0.05f;
@@ -157,7 +163,7 @@ inline constexpr float kFusionKalmanQY = 0.01f;
 
 // Wheel measurement noise: high at low speed, low at high speed
 inline constexpr float kFusionKalmanRWheelMinX = 0.05f;
-inline constexpr float kFusionKalmanRWheelMaxX = 1.0f;
+inline constexpr float kFusionKalmanRWheelMaxX = 0.1f;
 inline constexpr float kFusionKalmanRWheelMinY = 0.1f;
 inline constexpr float kFusionKalmanRWheelMaxY = 5.0f;
 
