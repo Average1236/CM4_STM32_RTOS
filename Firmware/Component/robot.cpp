@@ -32,18 +32,6 @@ static const float COS_WHEEL_ANGLE_BWD = cosf(WHEEL_ANGLE_BACKWARD);
 // Robot dynamics parameters
 static constexpr float ROBOT_RADIUS = control_config::kWheelCenterDistanceM;
 static constexpr float WHEEL_RADIUS = control_config::kWheelRadiusM;
-static constexpr float ACC_LIMITS[3][2] = {
-    {control_config::kAccMaxX, control_config::kDecMaxX},
-    {control_config::kAccMaxY, control_config::kDecMaxY},
-    {control_config::kAccThresholdYaw, control_config::kAccThresholdYaw},
-};
-
-static constexpr float JERK_LIMIT[3] = {
-    control_config::kJerkLimitX,
-    control_config::kJerkLimitY,
-    control_config::kJerkLimitYaw,
-};
-
 namespace {
 
 struct AxisMotionPlan {
@@ -76,6 +64,14 @@ int16_t encode_velocity_mm_s(const float velocity_m_s) {
     }
 
     return static_cast<int16_t>(std::clamp(velocity_mm_s, -32768.0f, 32767.0f));
+}
+
+int16_t encode_i16(const float value) {
+    if (!std::isfinite(value)) {
+        return 0;
+    }
+
+    return static_cast<int16_t>(std::clamp(value, -32768.0f, 32767.0f));
 }
 
 void init_axis_plan(
@@ -196,9 +192,7 @@ static const WheelMotorBase::Config_t WHEEL_MOTOR_PARAMS[4] = {
 };
 
 Robot::Robot() {
-    yaw_s_curve_.set_config({control_config::kYawSCurveVmax,
-                             control_config::kYawSCurveAmax,
-                             control_config::kYawSCurveJmax});
+    yaw_s_curve_.set_config({yaw_max_vel, yaw_max_acc, yaw_max_jerk});
 
     // Initialize wheel motors
     for (int i = 0; i < 4; i++) {
@@ -231,13 +225,18 @@ void Robot::pi_decode_spi() {
     }
     robot_vel[2] = SpiRx.vel[2] / 100.0f;
 
-    // drib_power as mode flag: 0=off, 10=torque, 20=speed, 30=hybrid
+    // drib_power carries the dribble level; drib_mode selects 1=torque, 2=speed, 3=hybrid.
     {
         const uint8_t prev_mode = dribbler_mode;
-        dribbler_mode = SpiRx.drib_power;
-        dribble_power = (dribbler_mode != 0) ? -1.0f : 0.0f;  // backward compat: enable flag
+        dribble_power = SpiRx.drib_power;
 
-        // Reset hybrid state machine on mode change to 30 (or from 0→non-zero entering hybrid)
+        dribbler_mode = SpiRx.drib_mode;
+        if (dribbler_mode < control_config::kDribblerModeTorque ||
+            dribbler_mode > control_config::kDribblerModeHybrid) {
+            dribbler_mode = control_config::kDribblerModeHybrid;
+        }
+
+        // Reset hybrid state machine when entering hybrid mode.
         if (dribbler_mode == control_config::kDribblerModeHybrid &&
             prev_mode != control_config::kDribblerModeHybrid) {
             dribbler_hybrid_phase = kDribblerHybridTorquePhase;
@@ -245,7 +244,38 @@ void Robot::pi_decode_spi() {
         }
     }
     dribble_velocity = SpiRx.drib_velocity / 100.0f;
+    if (dribbler_mode == control_config::kDribblerModeSpeed) {
+        if (SpiRx.drib_power == 10) {
+            dribble_velocity = -10.0f;
+        } else if (SpiRx.drib_power == 20) {
+            dribble_velocity = -50.0f;
+        } else if (SpiRx.drib_power == 30) {
+            dribble_velocity = -100.0f;
+        }
+    }
     dribble_torque_ff = SpiRx.drib_torque_ff / 1000.0f;
+
+    for (uint8_t i = 0; i < 2; ++i) {
+        if (SpiRx.xy_max_acc[i] > 0) {
+            xy_max_acc[i] = SpiRx.xy_max_acc[i] / 1000.0f;
+        }
+        if (SpiRx.xy_max_jerk[i] > 0) {
+            xy_max_jerk[i] = SpiRx.xy_max_jerk[i] / 10.0f;
+        }
+        if (SpiRx.xy_max_dec[i] > 0) {
+            xy_max_dec[i] = SpiRx.xy_max_dec[i] / 1000.0f;
+        }
+    }
+    if (SpiRx.yaw_max_vel > 0) {
+        yaw_max_vel = SpiRx.yaw_max_vel / 100.0f;
+    }
+    if (SpiRx.yaw_max_acc > 0) {
+        yaw_max_acc = SpiRx.yaw_max_acc / 100.0f;
+    }
+    if (SpiRx.yaw_max_jerk > 0) {
+        yaw_max_jerk = SpiRx.yaw_max_jerk / 100.0f;
+    }
+    yaw_s_curve_.set_config({yaw_max_vel, yaw_max_acc, yaw_max_jerk});
 
     kick_mode = SpiRx.kick_mode ? false : true;
     kick_discharge_time = SpiRx.kick_discharge_time;
@@ -355,6 +385,18 @@ void Robot::pi_encode_spi() {
     SpiTx.odom_vel[0] = encode_velocity_mm_s(chassis_vx.has_value() ? *chassis_vx : 0.0f);
     SpiTx.odom_vel[1] = encode_velocity_mm_s(chassis_vy.has_value() ? *chassis_vy : 0.0f);
 
+    SpiTx.xy_max_vel[0] = encode_velocity_mm_s(robot_vel[0]);
+    SpiTx.xy_max_vel[1] = encode_velocity_mm_s(robot_vel[1]);
+    for (uint8_t i = 0; i < 2; ++i) {
+        SpiTx.xy_max_acc[i] = encode_i16(xy_max_acc[i] * 1000.0f);
+        SpiTx.xy_max_jerk[i] = encode_i16(xy_max_jerk[i] * 10.0f);
+        SpiTx.xy_max_dec[i] = encode_i16(xy_max_dec[i] * 1000.0f);
+    }
+    SpiTx.yaw_max_vel = encode_i16(yaw_max_vel * 100.0f);
+    SpiTx.yaw_max_acc = encode_i16(yaw_max_acc * 100.0f);
+    SpiTx.yaw_max_jerk = encode_i16(yaw_max_jerk * 100.0f);
+    SpiTx.reserved = 0;
+
     // Encode IMU data
     for (uint8_t i = 0; i < 9; i++) {
         SpiTx.imu_data[i] = static_cast<int16_t>(imu_data[i] * 100);
@@ -404,8 +446,16 @@ void Robot::motion_planner(const double _dt) {
         // S-curve uses the larger limit for timing; directional clamp enforces per-phase limits.
         // This handles zero-crossing correctly: AccMax limits the speeding-up phase,
         // DecMax limits the slowing-down phase, regardless of sign.
-        const float a_max = fmaxf(ACC_LIMITS[i][0], ACC_LIMITS[i][1]);
-        const float j_max = JERK_LIMIT[i];
+        const float a_limit = (i == 0) ? xy_max_acc[0]
+                            : (i == 1) ? xy_max_acc[1]
+                                       : yaw_max_acc;
+        const float d_limit = (i == 0) ? xy_max_dec[0]
+                            : (i == 1) ? xy_max_dec[1]
+                                       : yaw_max_acc;
+        const float j_max = (i == 0) ? xy_max_jerk[0]
+                          : (i == 1) ? xy_max_jerk[1]
+                                     : yaw_max_jerk;
+        const float a_max = fmaxf(a_limit, d_limit);
 
         const bool target_changed = fabsf(v_target - plan.v_target) > kPlannerReplanEps;
         const bool plan_finished = plan.active && (plan.elapsed >= plan.t_total - 1e-8f);
@@ -424,8 +474,8 @@ void Robot::motion_planner(const double _dt) {
         const float max_da = j_max * dt_s;
         const float da = std::clamp(a_profile - robot_acc[i], -max_da, max_da);
         // Direction-aware clamp: AccMax limits speed-up, DecMax limits slow-down
-        const float a_acc = ACC_LIMITS[i][0];
-        const float a_dec = ACC_LIMITS[i][1];
+        const float a_acc = a_limit;
+        const float a_dec = d_limit;
         const float a_hi = (v_now > kPlannerVelEps) ? a_acc
                          : (v_now < -kPlannerVelEps) ? a_dec
                          : fmaxf(a_acc, a_dec);
