@@ -136,15 +136,17 @@ private:
         float bias_gx_dps = 0.0f;
         float bias_gy_dps = 0.0f;
         float bias_gz_dps = 0.0f;
-        uint8_t confirm_count = 0;
+        uint16_t confirm_count = 0;
     };
     ImuStationaryState imu_stat_;
     float prev_acc_norm_ = 9.81f;
     enum class ImuStatPhase { kNormal, kCollecting, kVerifying };
     ImuStatPhase imu_stat_phase_ = ImuStatPhase::kNormal;
-    uint8_t imu_stat_collect_count_ = 0;
-    float imu_stat_sum_ax_ = 0.0f, imu_stat_sum_ay_ = 0.0f;
+    uint16_t imu_stat_collect_count_ = 0;
+    float imu_stat_sum_acc_norm_ = 0.0f;
+    float imu_stat_sum_acc_norm_sq_ = 0.0f;
     float imu_stat_sum_gx_ = 0.0f, imu_stat_sum_gy_ = 0.0f, imu_stat_sum_gz_ = 0.0f;
+    float imu_stat_sum_gx_sq_ = 0.0f, imu_stat_sum_gy_sq_ = 0.0f, imu_stat_sum_gz_sq_ = 0.0f;
 };
 
 #endif // __IMU_HPP

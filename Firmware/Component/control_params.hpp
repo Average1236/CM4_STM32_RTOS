@@ -119,11 +119,20 @@ inline constexpr uint8_t kOptFlowPllJumpConfirmFrames = 3;
 
 // ---- Six-Axis Stationary Detection ----
 inline constexpr float kStationaryAccelVarThreshold = 0.15f;
-inline constexpr float kStationaryGyroThresholdDegPerS = 5.0f;
+inline constexpr float kStationaryGyroThresholdDegPerS = 1.5f;
 inline constexpr float kStationaryFlowThresholdMmPerS = 10.0f;
 inline constexpr uint8_t kStationaryConfirmFrames = 10;
 inline constexpr uint8_t kStationaryWindowFrames = 50;
 inline constexpr float kImuBiasAlpha = 0.02f;
+inline constexpr float kImuBiasAccelNormTolerance = 0.45f;       // m/s^2
+inline constexpr float kImuBiasAccelVarThreshold = 0.08f;        // m/s^2 per sample
+inline constexpr float kImuBiasAccelStdMax = 0.10f;              // m/s^2 over window
+inline constexpr float kImuBiasGyroStillThresholdDegPerS = 1.5f; // deg/s
+inline constexpr float kImuBiasGyroStdMaxDegPerS = 0.20f;        // deg/s over window
+inline constexpr float kImuBiasMaxAbsDegPerS = 3.0f;             // candidate reject
+inline constexpr float kImuBiasMaxUpdateStepDegPerS = 0.05f;     // per accepted window
+inline constexpr uint16_t kImuBiasConfirmFrames = 200;           // 0.25s at 800Hz
+inline constexpr uint16_t kImuBiasWindowFrames = 400;            // 0.50s at 800Hz
 
 // ---- Simplified Kalman ----
 inline constexpr float kOptFlowKfQVel = 20.0f;

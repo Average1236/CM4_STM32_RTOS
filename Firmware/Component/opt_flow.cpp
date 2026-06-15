@@ -463,8 +463,18 @@ void OptFlow::process(const Data_t& data) {
     state_.imu_bias_ax = flow_stat_.bias_ax();
     state_.imu_bias_ay = flow_stat_.bias_ay();
 
+    if (state_.is_stationary) {
+        state_.body_vx = 0.0f;
+        state_.body_vy = 0.0f;
+        state_.omega_z = 0.0f;
+        frame_dx_robot = 0.0f;
+        frame_dy_robot = 0.0f;
+        frame_dtheta = 0.0f;
+    }
+
     // ---- 纯光流积分位姿 ----
-    const float actual_dtheta = imu_valid ? (gz * kDegToRad * dt_s) : frame_dtheta;
+    const float actual_dtheta = state_.is_stationary ? 0.0f
+        : (imu_valid ? (gz * kDegToRad * dt_s) : frame_dtheta);
     const float theta_mid = state_.flow_yaw + 0.5f * actual_dtheta;
     const float c = cosf(theta_mid), s = sinf(theta_mid);
     state_.flow_px += frame_dx_robot * c + frame_dy_robot * s;
@@ -473,8 +483,8 @@ void OptFlow::process(const Data_t& data) {
 
     // ---- 简化卡尔曼 ----
     const bool flow_available = (data.valid_mask != 0u);
-    const float ax_mm = imu_valid ? (ax - flow_stat_.bias_ax()) * 1000.0f : 0.0f;
-    const float ay_mm = imu_valid ? (ay - flow_stat_.bias_ay()) * 1000.0f : 0.0f;
+    const float ax_mm = (imu_valid && !state_.is_stationary) ? (ax - flow_stat_.bias_ax()) * 1000.0f : 0.0f;
+    const float ay_mm = (imu_valid && !state_.is_stationary) ? (ay - flow_stat_.bias_ay()) * 1000.0f : 0.0f;
 
     if (!kf_inited_ && flow_available) {
         kf_.init(0.0f, 0.0f, state_.body_vx, state_.body_vy, 0.0f, 0.0f, 1000.0f);

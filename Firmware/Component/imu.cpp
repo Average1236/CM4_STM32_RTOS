@@ -12,6 +12,41 @@ volatile float imu_gyro_y_debug = 0.0f;
 volatile float imu_gyro_z_debug = 0.0f;
 volatile float imu_omega_z_filt_debug = 0.0f;
 volatile float imu_yaw_debug = 0.0f;
+volatile float imu_bias_gx_debug = 0.0f;
+volatile float imu_bias_gy_debug = 0.0f;
+volatile float imu_bias_gz_debug = 0.0f;
+volatile float imu_bias_window_std_debug = 0.0f;
+volatile uint32_t imu_bias_confirm_count_debug = 0;
+
+namespace {
+
+constexpr float kGravityMS2 = 9.81f;
+
+float variance_from_sums(float sum, float sum_sq, float n) {
+    if (n <= 1.0f) {
+        return 0.0f;
+    }
+    const float mean = sum / n;
+    const float variance = sum_sq / n - mean * mean;
+    return (variance > 0.0f) ? variance : 0.0f;
+}
+
+float clamp_delta(float delta, float limit_abs) {
+    if (delta > limit_abs) {
+        return limit_abs;
+    }
+    if (delta < -limit_abs) {
+        return -limit_abs;
+    }
+    return delta;
+}
+
+float update_bias_limited(float current, float measured) {
+    const float delta = control_config::kImuBiasAlpha * (measured - current);
+    return current + clamp_delta(delta, control_config::kImuBiasMaxUpdateStepDegPerS);
+}
+
+} // namespace
 
 IMU::IMU(
     Model model,
@@ -245,20 +280,39 @@ void IMU::compute_stationary_and_bias() {
     const float acc_var  = fabsf(acc_norm - prev_acc_norm_);
     prev_acc_norm_ = acc_norm;
 
-    const bool accel_stable = (acc_var < control_config::kStationaryAccelVarThreshold);
-    const bool gyro_still   = (fabsf(gx) < control_config::kStationaryGyroThresholdDegPerS)
-                           && (fabsf(gy) < control_config::kStationaryGyroThresholdDegPerS)
-                           && (fabsf(gz) < control_config::kStationaryGyroThresholdDegPerS);
-    const bool all_still    = accel_stable && gyro_still;
+    const bool accel_norm_ok = fabsf(acc_norm - kGravityMS2) < control_config::kImuBiasAccelNormTolerance;
+    const bool accel_stable = (acc_var < control_config::kImuBiasAccelVarThreshold);
+    const bool gyro_still = (fabsf(gx) < control_config::kImuBiasGyroStillThresholdDegPerS)
+                         && (fabsf(gy) < control_config::kImuBiasGyroStillThresholdDegPerS)
+                         && (fabsf(gz) < control_config::kImuBiasGyroStillThresholdDegPerS);
+    const bool all_still = accel_norm_ok && accel_stable && gyro_still;
+
+    auto reset_collect_window = [this]() {
+        imu_stat_collect_count_ = 0;
+        imu_stat_sum_acc_norm_ = 0.0f;
+        imu_stat_sum_acc_norm_sq_ = 0.0f;
+        imu_stat_sum_gx_ = 0.0f;
+        imu_stat_sum_gy_ = 0.0f;
+        imu_stat_sum_gz_ = 0.0f;
+        imu_stat_sum_gx_sq_ = 0.0f;
+        imu_stat_sum_gy_sq_ = 0.0f;
+        imu_stat_sum_gz_sq_ = 0.0f;
+    };
+
+    auto reset_to_normal = [this, &reset_collect_window]() {
+        imu_stat_phase_ = ImuStatPhase::kNormal;
+        imu_stat_.confirm_count = 0;
+        imu_stat_.trust_accel = false;
+        reset_collect_window();
+    };
 
     switch (imu_stat_phase_) {
     case ImuStatPhase::kNormal:
         if (all_still) {
             imu_stat_.confirm_count++;
-            if (imu_stat_.confirm_count >= control_config::kStationaryConfirmFrames) {
+            if (imu_stat_.confirm_count >= control_config::kImuBiasConfirmFrames) {
                 imu_stat_phase_ = ImuStatPhase::kCollecting;
-                imu_stat_collect_count_ = 0;
-                imu_stat_sum_gx_ = 0.0f; imu_stat_sum_gy_ = 0.0f; imu_stat_sum_gz_ = 0.0f;
+                reset_collect_window();
             }
         } else {
             imu_stat_.confirm_count = 0;
@@ -268,49 +322,71 @@ void IMU::compute_stationary_and_bias() {
 
     case ImuStatPhase::kCollecting:
         if (!all_still) {
-            imu_stat_phase_ = ImuStatPhase::kNormal;
-            imu_stat_.confirm_count = 0;
-            imu_stat_.trust_accel = false;
+            reset_to_normal();
             break;
         }
-        imu_stat_sum_gx_ += gx; imu_stat_sum_gy_ += gy; imu_stat_sum_gz_ += gz;
+        imu_stat_sum_acc_norm_ += acc_norm;
+        imu_stat_sum_acc_norm_sq_ += acc_norm * acc_norm;
+        imu_stat_sum_gx_ += gx;
+        imu_stat_sum_gy_ += gy;
+        imu_stat_sum_gz_ += gz;
+        imu_stat_sum_gx_sq_ += gx * gx;
+        imu_stat_sum_gy_sq_ += gy * gy;
+        imu_stat_sum_gz_sq_ += gz * gz;
         imu_stat_collect_count_++;
-        if (imu_stat_collect_count_ >= control_config::kStationaryWindowFrames) {
+        if (imu_stat_collect_count_ >= control_config::kImuBiasWindowFrames) {
             imu_stat_phase_ = ImuStatPhase::kVerifying;
         }
         imu_stat_.trust_accel = true;
         break;
 
     case ImuStatPhase::kVerifying:
-        if (all_still) {
+        if (all_still && imu_stat_collect_count_ > 0) {
             const float n = static_cast<float>(imu_stat_collect_count_);
+            const float mean_acc_norm = imu_stat_sum_acc_norm_ / n;
             const float mean_gx = imu_stat_sum_gx_ / n;
             const float mean_gy = imu_stat_sum_gy_ / n;
             const float mean_gz = imu_stat_sum_gz_ / n;
 
-            const float alpha = control_config::kImuBiasAlpha;
-            imu_stat_.bias_gx_dps = alpha * mean_gx + (1.0f - alpha) * imu_stat_.bias_gx_dps;
-            imu_stat_.bias_gy_dps = alpha * mean_gy + (1.0f - alpha) * imu_stat_.bias_gy_dps;
-            imu_stat_.bias_gz_dps = alpha * mean_gz + (1.0f - alpha) * imu_stat_.bias_gz_dps;
+            const float acc_std = sqrtf(variance_from_sums(imu_stat_sum_acc_norm_, imu_stat_sum_acc_norm_sq_, n));
+            const float gx_std = sqrtf(variance_from_sums(imu_stat_sum_gx_, imu_stat_sum_gx_sq_, n));
+            const float gy_std = sqrtf(variance_from_sums(imu_stat_sum_gy_, imu_stat_sum_gy_sq_, n));
+            const float gz_std = sqrtf(variance_from_sums(imu_stat_sum_gz_, imu_stat_sum_gz_sq_, n));
 
-            // Continue collecting next window
-            imu_stat_phase_ = ImuStatPhase::kCollecting;
-            imu_stat_collect_count_ = 0;
-            imu_stat_sum_gx_ = 0.0f; imu_stat_sum_gy_ = 0.0f; imu_stat_sum_gz_ = 0.0f;
-            imu_stat_.trust_accel = true;
+            const bool acc_window_ok = fabsf(mean_acc_norm - kGravityMS2) < control_config::kImuBiasAccelNormTolerance
+                                    && acc_std < control_config::kImuBiasAccelStdMax;
+            const bool gyro_window_ok = fabsf(mean_gx) < control_config::kImuBiasMaxAbsDegPerS
+                                      && fabsf(mean_gy) < control_config::kImuBiasMaxAbsDegPerS
+                                      && fabsf(mean_gz) < control_config::kImuBiasMaxAbsDegPerS
+                                      && gx_std < control_config::kImuBiasGyroStdMaxDegPerS
+                                      && gy_std < control_config::kImuBiasGyroStdMaxDegPerS
+                                      && gz_std < control_config::kImuBiasGyroStdMaxDegPerS;
+
+            imu_bias_window_std_debug = fmaxf(fmaxf(gx_std, gy_std), gz_std);
+            if (acc_window_ok && gyro_window_ok) {
+                imu_stat_.bias_gx_dps = update_bias_limited(imu_stat_.bias_gx_dps, mean_gx);
+                imu_stat_.bias_gy_dps = update_bias_limited(imu_stat_.bias_gy_dps, mean_gy);
+                imu_stat_.bias_gz_dps = update_bias_limited(imu_stat_.bias_gz_dps, mean_gz);
+                imu_stat_phase_ = ImuStatPhase::kCollecting;
+                reset_collect_window();
+                imu_stat_.trust_accel = true;
+            } else {
+                reset_to_normal();
+            }
         } else {
-            imu_stat_phase_ = ImuStatPhase::kNormal;
-            imu_stat_.confirm_count = 0;
-            imu_stat_.trust_accel = false;
+            reset_to_normal();
         }
         break;
     }
 
     if (!all_still && imu_stat_phase_ == ImuStatPhase::kCollecting) {
-        imu_stat_phase_ = ImuStatPhase::kNormal;
-        imu_stat_.confirm_count = 0;
-        imu_stat_.trust_accel = false;
+        reset_to_normal();
     }
+
+    imu_bias_gx_debug = imu_stat_.bias_gx_dps;
+    imu_bias_gy_debug = imu_stat_.bias_gy_dps;
+    imu_bias_gz_debug = imu_stat_.bias_gz_dps;
+    imu_bias_confirm_count_debug = imu_stat_.confirm_count;
 }
 
 void IMU::reset_ports() {
