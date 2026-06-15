@@ -141,6 +141,8 @@ inline constexpr float kImuBiasMaxAbsDegPerS = 3.0f;             // candidate re
 inline constexpr float kImuBiasMaxUpdateStepDegPerS = 0.05f;     // per accepted window
 inline constexpr uint16_t kImuBiasConfirmFrames = 200;           // 0.25s at 800Hz
 inline constexpr uint16_t kImuBiasWindowFrames = 400;            // 0.50s at 800Hz
+inline constexpr uint16_t kImuBiasStartupIgnoreFrames = 2400;     // 3.0s at 800Hz
+inline constexpr uint8_t kImuBiasValidWindows = 2;                // require stable verified windows before applying bias
 
 // ---- Simplified Kalman ----
 inline constexpr float kOptFlowKfQVel = 20.0f;

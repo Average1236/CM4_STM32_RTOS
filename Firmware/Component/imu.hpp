@@ -142,6 +142,9 @@ private:
     float prev_acc_norm_ = 9.81f;
     enum class ImuStatPhase { kNormal, kCollecting, kVerifying };
     ImuStatPhase imu_stat_phase_ = ImuStatPhase::kNormal;
+    bool imu_bias_valid_ = false;
+    uint8_t imu_bias_valid_window_count_ = 0;
+    uint32_t imu_stat_sample_count_ = 0;
     uint16_t imu_stat_collect_count_ = 0;
     float imu_stat_sum_acc_norm_ = 0.0f;
     float imu_stat_sum_acc_norm_sq_ = 0.0f;

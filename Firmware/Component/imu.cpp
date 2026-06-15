@@ -215,7 +215,8 @@ void IMU::get_data(float out_data[9]) const
 
 void IMU::update_integrated_yaw(float dt_s) {
     // 使用动态估计的陀螺 Z 偏置（静止窗口 EMA 更新）
-    const float omega_z_corrected = data_[kOmegaZ] - imu_stat_.bias_gz_dps;
+    const float dynamic_bias_gz = imu_bias_valid_ ? imu_stat_.bias_gz_dps : 0.0f;
+    const float omega_z_corrected = data_[kOmegaZ] - dynamic_bias_gz;
     const float omega_z_filt = omega_filter_.filter(omega_z_corrected);
     imu_omega_z_filt_debug = omega_z_filt * (3.1415926535f / 180.0f);
     omega_z_port_ = omega_z_filt;
@@ -239,8 +240,10 @@ void IMU::update_roll_pitch(float dt_s) {
     static uint8_t anchor_frame_count = 0;
 
     // 1. 去偏后陀螺积分（使用内部估计的 bias）
-    const float omega_x = data_[kOmegaX] - imu_stat_.bias_gx_dps;
-    const float omega_y = data_[kOmegaY] - imu_stat_.bias_gy_dps;
+    const float dynamic_bias_gx = imu_bias_valid_ ? imu_stat_.bias_gx_dps : 0.0f;
+    const float dynamic_bias_gy = imu_bias_valid_ ? imu_stat_.bias_gy_dps : 0.0f;
+    const float omega_x = data_[kOmegaX] - dynamic_bias_gx;
+    const float omega_y = data_[kOmegaY] - dynamic_bias_gy;
     integrated_roll_deg_  += dt_s * omega_x;
     integrated_pitch_deg_ += dt_s * omega_y;
 
@@ -273,6 +276,8 @@ void IMU::update_roll_pitch(float dt_s) {
 }
 
 void IMU::compute_stationary_and_bias() {
+    imu_stat_sample_count_++;
+
     const float ax = data_[kAccX], ay = data_[kAccY], az = data_[kAccZ];
     const float gx = data_[kOmegaX], gy = data_[kOmegaY], gz = data_[kOmegaZ];
 
@@ -303,8 +308,20 @@ void IMU::compute_stationary_and_bias() {
         imu_stat_phase_ = ImuStatPhase::kNormal;
         imu_stat_.confirm_count = 0;
         imu_stat_.trust_accel = false;
+        if (!imu_bias_valid_) {
+            imu_bias_valid_window_count_ = 0;
+        }
         reset_collect_window();
     };
+
+    if (imu_stat_sample_count_ < control_config::kImuBiasStartupIgnoreFrames) {
+        reset_to_normal();
+        imu_bias_gx_debug = imu_stat_.bias_gx_dps;
+        imu_bias_gy_debug = imu_stat_.bias_gy_dps;
+        imu_bias_gz_debug = imu_stat_.bias_gz_dps;
+        imu_bias_confirm_count_debug = imu_stat_.confirm_count;
+        return;
+    }
 
     switch (imu_stat_phase_) {
     case ImuStatPhase::kNormal:
@@ -364,13 +381,28 @@ void IMU::compute_stationary_and_bias() {
 
             imu_bias_window_std_debug = fmaxf(fmaxf(gx_std, gy_std), gz_std);
             if (acc_window_ok && gyro_window_ok) {
-                imu_stat_.bias_gx_dps = update_bias_limited(imu_stat_.bias_gx_dps, mean_gx);
-                imu_stat_.bias_gy_dps = update_bias_limited(imu_stat_.bias_gy_dps, mean_gy);
-                imu_stat_.bias_gz_dps = update_bias_limited(imu_stat_.bias_gz_dps, mean_gz);
+                if (imu_bias_valid_) {
+                    imu_stat_.bias_gx_dps = update_bias_limited(imu_stat_.bias_gx_dps, mean_gx);
+                    imu_stat_.bias_gy_dps = update_bias_limited(imu_stat_.bias_gy_dps, mean_gy);
+                    imu_stat_.bias_gz_dps = update_bias_limited(imu_stat_.bias_gz_dps, mean_gz);
+                } else {
+                    if (imu_bias_valid_window_count_ < control_config::kImuBiasValidWindows) {
+                        imu_bias_valid_window_count_++;
+                    }
+                    if (imu_bias_valid_window_count_ >= control_config::kImuBiasValidWindows) {
+                        imu_stat_.bias_gx_dps = mean_gx;
+                        imu_stat_.bias_gy_dps = mean_gy;
+                        imu_stat_.bias_gz_dps = mean_gz;
+                        imu_bias_valid_ = true;
+                    }
+                }
                 imu_stat_phase_ = ImuStatPhase::kCollecting;
                 reset_collect_window();
                 imu_stat_.trust_accel = true;
             } else {
+                if (!imu_bias_valid_) {
+                    imu_bias_valid_window_count_ = 0;
+                }
                 reset_to_normal();
             }
         } else {
