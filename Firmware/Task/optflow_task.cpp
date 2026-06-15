@@ -39,10 +39,12 @@ void StartOptFlowRxTask(void *argument) {
     osDelay(100);  // Wait for initialization
 
     DualOptFlowSnapshot_t snapshot;
+    bool have_snapshot = false;
 
     for(;;) {
         // Poll with timeout so we can maintain explicit offline state.
         if (osMessageQueueGet(q_optflow_dataHandle, &snapshot, NULL, kOptFlowQueueWaitMs) == osOK) {
+            have_snapshot = true;
 
             // --- Mirror raw snapshot to global vars (debug) ---
             dual_flow_left_x   = snapshot.left_x;
@@ -93,6 +95,18 @@ void StartOptFlowRxTask(void *argument) {
             const uint32_t now_ms = HAL_GetTick();
             if ((now_ms - g_optflow_last_update_ms) > kOptFlowOfflineTimeoutMs) {
                 g_optflow_available = false;
+            }
+            if (have_snapshot) {
+                OptFlow::Data_t data;
+                data.left_x        = snapshot.left_x;
+                data.left_y        = snapshot.left_y;
+                data.right_x       = snapshot.right_x;
+                data.right_y       = snapshot.right_y;
+                data.tick_ms       = now_ms;
+                data.left_tick_ms  = snapshot.left_tick_ms;
+                data.right_tick_ms = snapshot.right_tick_ms;
+                data.valid_mask    = 0u;
+                opt_flow.process(data);
             }
         }
     }

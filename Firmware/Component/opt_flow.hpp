@@ -171,11 +171,15 @@ private:
     float        left_last_x_, left_last_y_;
     float        right_last_x_, right_last_y_;
     unsigned int last_time_ms_;
+    unsigned int last_process_time_ms_;
     bool         left_initialized_, right_initialized_;
 
     Kalman2DPosVel kf_;
     bool kf_inited_;
     bool prev_stationary_;
+    bool body_limiter_initialized_;
+    float limited_body_vx_;
+    float limited_body_vy_;
 
     // IMU input ports (connected to IMU OutputPorts)
     InputPort<float> imu_acc_x_input_;

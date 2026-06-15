@@ -47,6 +47,13 @@ float slip_residual_penalty_multiplier(
     return 1.0f + gain * (residual_abs - residual_threshold);
 }
 
+float limit_velocity_axis(float target, float last, float dt_s,
+                          float max_velocity, float max_accel) {
+    target = std::clamp(target, -max_velocity, max_velocity);
+    const float max_delta = max_accel * dt_s;
+    return last + std::clamp(target - last, -max_delta, max_delta);
+}
+
 } // namespace
 
 ChassisEstimator::ChassisEstimator() {
@@ -75,6 +82,28 @@ void ChassisEstimator::step(float dt_s) {
         wheel_vx += j2_pinv_[0][col] * wheel_vel_rad_s[col];
         wheel_vy += j2_pinv_[1][col] * wheel_vel_rad_s[col];
     }
+
+    if (!wheel_chassis_limiter_initialized_) {
+        limited_wheel_chassis_vx_ = std::clamp(wheel_vx,
+                                               -control_config::kWheelChassisVelocityLimitMS,
+                                               control_config::kWheelChassisVelocityLimitMS);
+        limited_wheel_chassis_vy_ = std::clamp(wheel_vy,
+                                               -control_config::kWheelChassisVelocityLimitMS,
+                                               control_config::kWheelChassisVelocityLimitMS);
+        wheel_chassis_limiter_initialized_ = true;
+    } else {
+        limited_wheel_chassis_vx_ = limit_velocity_axis(
+            wheel_vx, limited_wheel_chassis_vx_, dt_s,
+            control_config::kWheelChassisVelocityLimitMS,
+            control_config::kWheelChassisAccelLimitMS2);
+        limited_wheel_chassis_vy_ = limit_velocity_axis(
+            wheel_vy, limited_wheel_chassis_vy_, dt_s,
+            control_config::kWheelChassisVelocityLimitMS,
+            control_config::kWheelChassisAccelLimitMS2);
+    }
+    wheel_vx = limited_wheel_chassis_vx_;
+    wheel_vy = limited_wheel_chassis_vy_;
+
     wheel_chassis_vx_output_port_ = wheel_vx;
     wheel_chassis_vy_output_port_ = wheel_vy;
 
@@ -301,6 +330,9 @@ void ChassisEstimator::reset() {
     kf_vy_ = {};
     kf_vision_vx_ = {};
     kf_vision_vy_ = {};
+    wheel_chassis_limiter_initialized_ = false;
+    limited_wheel_chassis_vx_ = 0.0f;
+    limited_wheel_chassis_vy_ = 0.0f;
 }
 
 bool ChassisEstimator::inverse3x3(const float in[3][3], float out[3][3]) const {

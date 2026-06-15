@@ -95,6 +95,9 @@ private:
     float accumulated_yaw_rad_ = 0.0f;
     float last_yaw_rad_ = 0.0f;
     float last_omega_z_rad_s_ = 0.0f;
+    bool wheel_chassis_limiter_initialized_ = false;
+    float limited_wheel_chassis_vx_ = 0.0f;
+    float limited_wheel_chassis_vy_ = 0.0f;
 
 };
 

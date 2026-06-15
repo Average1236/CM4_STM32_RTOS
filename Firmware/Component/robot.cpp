@@ -296,14 +296,22 @@ void Robot::pi_decode_spi() {
 
     if (use_imu) {
         const float new_target = wrap_to_pi(robot_vel[2]);
-        if (fabsf(wrap_to_pi(new_target - yaw_target_rad)) > 1e-6f) {
-            yaw_target_rad = new_target;
+        if (!yaw_target_initialized
+            || fabsf(wrap_to_pi(new_target - yaw_target_rad)) > control_config::kYawTargetReplanDeadbandRad) {
             const auto yaw = chassis_estimator.chassis_yaw_output_port()->any();
             const auto omega_z = chassis_estimator.chassis_omega_z_output_port()->any();
-            yaw_s_curve_.set_target(yaw_target_rad,
-                                    yaw.has_value() ? *yaw : 0.0f,
-                                    omega_z.has_value() ? *omega_z : robot_real_vel[2]);
+            const float start_yaw = yaw_target_initialized
+                ? yaw_s_curve_.position()
+                : (yaw.has_value() ? *yaw : 0.0f);
+            const float start_omega = yaw_target_initialized
+                ? yaw_s_curve_.velocity()
+                : (omega_z.has_value() ? *omega_z : robot_real_vel[2]);
+            yaw_target_rad = new_target;
+            yaw_target_initialized = true;
+            yaw_s_curve_.set_target(yaw_target_rad, start_yaw, start_omega);
         }
+    } else {
+        yaw_target_initialized = false;
     }
 
     // Debug
@@ -496,7 +504,8 @@ void Robot::motion_planner(const double _dt) {
         const float j_max = (i == 0) ? xy_max_jerk[0] : (i == 1) ? xy_max_jerk[1] : yaw_max_jerk;
 
         const bool target_changed = fabsf(v_target - plan.v_target) > kPlannerReplanEps;
-        const bool should_replan = target_changed;
+        const bool current_off_target = fabsf(v_target - last_robot_real_vel[i]) > kPlannerVelEps;
+        const bool should_replan = target_changed || (!plan.active && current_off_target);
         const float v_plan_start = (linear_axis && control_config::kPlannerStartFromMeasuredVelocity)
             ? planner_start_vel[i]
             : last_robot_real_vel[i];
@@ -506,41 +515,31 @@ void Robot::motion_planner(const double _dt) {
                 last_robot_real_vel[i] = v_plan_start;
             }
         }
-        const float v_now = last_robot_real_vel[i];
+
+        if (!plan.active && fabsf(v_target - last_robot_real_vel[i]) <= kPlannerVelEps) {
+            robot_real_vel[i] = v_target;
+            robot_acc[i] = 0.0f;
+            last_robot_real_vel[i] = v_target;
+            continue;
+        }
 
         float a_profile = 0.0f;
         float v_profile = v_target;
         if (plan.active) {
             plan.elapsed = std::min(plan.elapsed + dt_s, plan.t_total);
             sample_axis_plan(plan, j_max, a_max, plan.elapsed, a_profile, v_profile);
-        }
 
-        // Track planned acceleration while enforcing per-step jerk and acceleration limits.
-        const float max_da = j_max * dt_s;
-        const float da = std::clamp(a_profile - robot_acc[i], -max_da, max_da);
-        // Direction-aware clamp: AccMax limits speed-up, DecMax limits slow-down
-        const float a_hi = (v_now > kPlannerVelEps) ? a_acc
-                         : (v_now < -kPlannerVelEps) ? a_dec
-                         : fmaxf(a_acc, a_dec);
-        const float a_lo = (v_now > kPlannerVelEps) ? -a_dec
-                         : (v_now < -kPlannerVelEps) ? -a_acc
-                         : -fmaxf(a_acc, a_dec);
-        robot_acc[i] = std::clamp(robot_acc[i] + da, a_lo, a_hi);
-
-        robot_real_vel[i] = v_now + robot_acc[i] * dt_s;
-
-        // Keep integration close to profile when jerk limit is inactive.
-        const float profile_err = v_profile - robot_real_vel[i];
-        if (fabsf(profile_err) < kPlannerReplanEps) {
+            robot_acc[i] = a_profile;
             robot_real_vel[i] = v_profile;
-        }
 
-        const float before = v_target - v_now;
-        const float after = v_target - robot_real_vel[i];
-        if (before * after < 0.0f || fabsf(after) < kPlannerVelEps) {
+            if (plan.elapsed >= plan.t_total) {
+                robot_real_vel[i] = v_target;
+                robot_acc[i] = 0.0f;
+                plan.active = false;
+            }
+        } else {
             robot_real_vel[i] = v_target;
             robot_acc[i] = 0.0f;
-            plan.active = false;
         }
 
         last_robot_real_vel[i] = robot_real_vel[i];

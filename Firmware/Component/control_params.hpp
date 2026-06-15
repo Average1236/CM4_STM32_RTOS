@@ -19,46 +19,48 @@ inline constexpr float kPi = 3.1415926535f;
 inline constexpr bool kPlannerStartFromMeasuredVelocity = false;
 inline constexpr float kPlannerStartVelocityLpfCutoffHz = 5.0f;
 
+inline constexpr float kYawTargetReplanDeadbandRad = 1e-2f;
+
 inline constexpr float kRobotMassKg = 3.0f;
 inline constexpr float kRobotInertiaKgM2 = 8e-3f;
-inline constexpr float kWheelRadiusM = 0.033f;
+inline constexpr float kWheelRadiusM = 0.032f;
 inline constexpr float kWheelCenterDistanceM = 0.07956f;
 inline constexpr float kCenterToComDistanceM = 0.0f;
 inline constexpr float kWheelAlphaRad = 30.0f / 180.0f * kPi;
 inline constexpr float kWheelBetaRad = 45.0f / 180.0f * kPi;
 
-inline constexpr float kLesoAngleObserverBandwidth = 150.0f;
+inline constexpr float kLesoAngleObserverBandwidth = 200.0f;
 
 // Velocity-scheduled LESO bandwidth limits — high when moving (ground),
 // low when near-zero speed (airborne oscillation suppression).
-inline constexpr float kLesoAngleBandwidthMin = 50.0f;
-inline constexpr float kLesoScheduleVelocityThreshold = 0.1f;  // m/s
+inline constexpr float kLesoAngleBandwidthMin = 100.0f;
+inline constexpr float kLesoScheduleVelocityThreshold = 0.01f;  // m/s
 inline constexpr float kLesoScheduleOmegaThreshold = 0.01f;    // rad/s
-inline constexpr float kImuOmegaButterworthCutoffHz = 350.0f;
+inline constexpr float kImuOmegaButterworthCutoffHz = 0.0f;
 inline constexpr float kChassisOmegaZFilterCutoffHz = 0.0f;
 inline constexpr float kImuOmegaBiasZ = 1.0f;
 
 // Velocity feedback gains — scheduled with LESO bandwidth via alpha_v.
 // Kv = ω_c for 1st-order velocity loop pole placement.
-inline constexpr float kChassisVelPidKpX = 3.0f;
-inline constexpr float kChassisVelPidKiX = 0.5f;
+inline constexpr float kChassisVelPidKpX = 30.0f;
+inline constexpr float kChassisVelPidKiX = 300.0f;
 inline constexpr float kChassisVelPidKdX = 0.0f;
-inline constexpr float kChassisVelPidOutputLimitX = 8.0f;  // m/s^2
-inline constexpr float kChassisVelPidIntegLimitX = 2.0f;   // m/s^2 contribution
+inline constexpr float kChassisVelPidOutputLimitX = 10.0f;  // m/s^2
+inline constexpr float kChassisVelPidIntegLimitX = 5.0f;   // m/s^2 contribution
 inline constexpr float kChassisVelPidBackCalcGainX = 0.3f;
 inline constexpr float kChassisVelPidDiffCutoffHzX = 0.0f;
-inline constexpr float kChassisVelPidKpY = 3.0f;
-inline constexpr float kChassisVelPidKiY = 0.5f;
+inline constexpr float kChassisVelPidKpY = 20.0f;
+inline constexpr float kChassisVelPidKiY = 200.0f;
 inline constexpr float kChassisVelPidKdY = 0.0f;
-inline constexpr float kChassisVelPidOutputLimitY = 8.0f;  // m/s^2
-inline constexpr float kChassisVelPidIntegLimitY = 2.0f;   // m/s^2 contribution
+inline constexpr float kChassisVelPidOutputLimitY = 10.0f;  // m/s^2
+inline constexpr float kChassisVelPidIntegLimitY = 5.0f;   // m/s^2 contribution
 inline constexpr float kChassisVelPidBackCalcGainY = 0.3f;
 inline constexpr float kChassisVelPidDiffCutoffHzY = 0.0f;
 inline constexpr float kVelFeedbackGainYaw = 0.0f;
 // PD controller bandwidth — scheduled together with LESO bandwidth.
 // max when moving (stiff angle tracking), min when stationary (stable).
-inline constexpr float kAngleControllerBandwidth = 50.0f;
-inline constexpr float kAngleControllerBandwidthMin = 50.0f;
+inline constexpr float kAngleControllerBandwidth = 100.0f;
+inline constexpr float kAngleControllerBandwidthMin = 100.0f;
 
 // S-curve yaw target planner
 inline constexpr float kYawAngleLinearFallbackMinTimeSec = 0.05f;
@@ -112,7 +114,7 @@ inline constexpr float kMotorRecoverDelayMs = 1000.0f;
 inline constexpr float kMotorClearErrorToEnableDelayMs = 10.0f;
 
 // ---- Optical Flow PLL ----
-inline constexpr float kOptFlowPllBandwidthHz = 60.0f;
+inline constexpr float kOptFlowPllBandwidthHz = 300.0f;
 inline constexpr float kOptFlowPllZeroSnapMmPerS = 1.0f;
 inline constexpr float kOptFlowPllMaxJumpMm = 100.0f;
 inline constexpr uint8_t kOptFlowPllJumpConfirmFrames = 3;
@@ -137,6 +139,9 @@ inline constexpr uint16_t kImuBiasWindowFrames = 400;            // 0.50s at 800
 // ---- Simplified Kalman ----
 inline constexpr float kOptFlowKfQVel = 20.0f;
 inline constexpr float kOptFlowKfRVelFixed = 300.0f;
+inline constexpr float kOptFlowVelocityLimitMS = 5.0f;
+inline constexpr float kOptFlowAccelLimitMS2 = 10.0f;
+inline constexpr uint32_t kOptFlowSensorStaleTimeoutMs = 100;
 
 // ---- Chassis Velocity Source ----
 // 0: wheel-based (Jacobian pseudo-inverse from motor velocities)
@@ -151,8 +156,8 @@ inline constexpr float kFusionKalmanQX = 0.01f;
 inline constexpr float kFusionKalmanQY = 0.01f;
 
 // Wheel measurement noise: high at low speed, low at high speed
-inline constexpr float kFusionKalmanRWheelMinX = 0.1f;
-inline constexpr float kFusionKalmanRWheelMaxX = 5.0f;
+inline constexpr float kFusionKalmanRWheelMinX = 0.05f;
+inline constexpr float kFusionKalmanRWheelMaxX = 1.0f;
 inline constexpr float kFusionKalmanRWheelMinY = 0.1f;
 inline constexpr float kFusionKalmanRWheelMaxY = 5.0f;
 
@@ -182,6 +187,8 @@ inline constexpr float kFusionWheelOptflowResidualThresholdX = 1.0f; // m/s
 inline constexpr float kFusionWheelOptflowResidualThresholdY = 1.0f; // m/s
 inline constexpr float kFusionWheelSlipResidualPenaltyGainX = 0.0f;
 inline constexpr float kFusionWheelSlipResidualPenaltyGainY = 0.0f;
+inline constexpr float kWheelChassisVelocityLimitMS = 5.0f;
+inline constexpr float kWheelChassisAccelLimitMS2 = 10.0f;
 
 // ---- Vision + Optflow Velocity Fusion (runtime vision_source == 3) ----
 inline constexpr float kVisionOptflowFusionQX = 0.02f;

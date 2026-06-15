@@ -4,6 +4,7 @@
 
 #include "opt_flow.hpp"
 #include "control_params.hpp"
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 #include "stm32f4xx_hal.h"
@@ -76,6 +77,21 @@ void PositionPLL::update(float measured_pos_mm, float dt_s) {
 namespace {
 constexpr float kGravityMS2 = 9.81f;
 constexpr float kDegToRad   = 3.1415926535f / 180.0f;
+
+uint32_t elapsed_ms(uint32_t now, uint32_t then) {
+    return (now >= then) ? (now - then) : (now + (0xFFFFFFFFu - then) + 1u);
+}
+
+bool tick_is_fresh(uint32_t now, uint32_t tick, uint32_t timeout_ms) {
+    return tick != 0u && elapsed_ms(now, tick) <= timeout_ms;
+}
+
+float limit_velocity_axis(float target, float last, float dt_s,
+                          float max_velocity, float max_accel) {
+    target = std::clamp(target, -max_velocity, max_velocity);
+    const float max_delta = max_accel * dt_s;
+    return last + std::clamp(target - last, -max_delta, max_delta);
+}
 }
 
 FlowStationaryDetector::FlowStationaryDetector()
@@ -328,9 +344,13 @@ OptFlow::OptFlow()
       left_last_x_(0.0f), left_last_y_(0.0f),
       right_last_x_(0.0f), right_last_y_(0.0f),
       last_time_ms_(0),
+      last_process_time_ms_(0),
       left_initialized_(false), right_initialized_(false),
       kf_inited_(false),
-      prev_stationary_(false)
+      prev_stationary_(false),
+      body_limiter_initialized_(false),
+      limited_body_vx_(0.0f),
+      limited_body_vy_(0.0f)
 {
     memset(&state_, 0, sizeof(state_));
     kf_.setNoise(kQPos, control_config::kOptFlowKfQVel,
@@ -347,8 +367,12 @@ void OptFlow::reset() {
     right_last_x_ = 0.0f;
     right_last_y_ = 0.0f;
     last_time_ms_ = 0;
+    last_process_time_ms_ = 0;
     kf_inited_   = false;
     prev_stationary_ = false;
+    body_limiter_initialized_ = false;
+    limited_body_vx_ = 0.0f;
+    limited_body_vy_ = 0.0f;
 
     pll_lx_.reset(0.0f); pll_ly_.reset(0.0f);
     pll_rx_.reset(0.0f); pll_ry_.reset(0.0f);
@@ -366,8 +390,13 @@ void OptFlow::reset() {
 void OptFlow::process(const Data_t& data) {
     state_.time_ms = data.tick_ms;
 
-    const bool have_left  = (data.valid_mask & OPTFLOW_MASK_LEFT)  != 0u;
-    const bool have_right = (data.valid_mask & OPTFLOW_MASK_RIGHT) != 0u;
+    const bool have_left  = ((data.valid_mask & OPTFLOW_MASK_LEFT)  != 0u)
+        && tick_is_fresh(data.tick_ms, data.left_tick_ms,
+                         control_config::kOptFlowSensorStaleTimeoutMs);
+    const bool have_right = ((data.valid_mask & OPTFLOW_MASK_RIGHT) != 0u)
+        && tick_is_fresh(data.tick_ms, data.right_tick_ms,
+                         control_config::kOptFlowSensorStaleTimeoutMs);
+    const bool flow_available = have_left || have_right;
 
     // --- 读取 IMU 数据（通过 Port） ---
     auto ax_opt = imu_acc_x_input_.any(), ay_opt = imu_acc_y_input_.any(), az_opt = imu_acc_z_input_.any();
@@ -396,26 +425,45 @@ void OptFlow::process(const Data_t& data) {
     }
 
     if (!left_initialized_ && !right_initialized_) {
-        last_time_ms_ = data.tick_ms; state_.last_time_ms = data.tick_ms; return;
+        last_time_ms_ = data.tick_ms;
+        last_process_time_ms_ = data.tick_ms;
+        state_.last_time_ms = data.tick_ms;
+        return;
     }
     if (left_just_inited || right_just_inited) {
-        last_time_ms_ = data.tick_ms; state_.last_time_ms = data.tick_ms; return;
+        last_time_ms_ = data.tick_ms;
+        last_process_time_ms_ = data.tick_ms;
+        state_.last_time_ms = data.tick_ms;
+        return;
     }
 
-    unsigned int t0 = last_time_ms_;
-    unsigned int t1 = data.tick_ms;
-    unsigned int dt_ms = (t1 >= t0) ? (t1 - t0) : (t1 + (0xFFFFFFFFu - t0) + 1u);
-    float dt_s = static_cast<float>(dt_ms) / 1000.0f;
+    const unsigned int process_t0 = (last_process_time_ms_ != 0u) ? last_process_time_ms_ : last_time_ms_;
+    const unsigned int process_dt_ms = elapsed_ms(data.tick_ms, process_t0);
+    float dt_s = static_cast<float>(process_dt_ms) / 1000.0f;
 
     if (dt_s < MIN_DT || dt_s > MAX_DT) {
-        last_time_ms_ = data.tick_ms; state_.last_time_ms = data.tick_ms; return;
+        last_process_time_ms_ = data.tick_ms;
+        state_.last_time_ms = data.tick_ms;
+        return;
+    }
+
+    float flow_dt_s = dt_s;
+    if (flow_available) {
+        const unsigned int flow_dt_ms = elapsed_ms(data.tick_ms, last_time_ms_);
+        flow_dt_s = static_cast<float>(flow_dt_ms) / 1000.0f;
+        if (flow_dt_s < MIN_DT || flow_dt_s > MAX_DT) {
+            last_time_ms_ = data.tick_ms;
+            last_process_time_ms_ = data.tick_ms;
+            state_.last_time_ms = data.tick_ms;
+            return;
+        }
     }
     state_.dt_s = dt_s;
     state_.last_time_ms = last_time_ms_;
 
     // ---- PLL 更新 ----
-    if (have_left)  { pll_lx_.update(data.left_x, dt_s);  pll_ly_.update(data.left_y, dt_s); }
-    if (have_right) { pll_rx_.update(data.right_x, dt_s); pll_ry_.update(data.right_y, dt_s); }
+    if (have_left)  { pll_lx_.update(data.left_x, flow_dt_s);  pll_ly_.update(data.left_y, flow_dt_s); }
+    if (have_right) { pll_rx_.update(data.right_x, flow_dt_s); pll_ry_.update(data.right_y, flow_dt_s); }
 
     state_.pll_l_vx = have_left  ? pll_lx_.vel() : 0.0f;
     state_.pll_l_vy = have_left  ? pll_ly_.vel() : 0.0f;
@@ -435,7 +483,7 @@ void OptFlow::process(const Data_t& data) {
         state_.raw_dtheta = dtheta;
         state_.body_vx = 0.5f * (state_.pll_l_vx + state_.pll_r_vx);
         state_.body_vy = 0.5f * (state_.pll_l_vy + state_.pll_r_vy);
-        state_.omega_z = dtheta / dt_s;
+        state_.omega_z = dtheta / flow_dt_s;
         frame_dx_robot = dx_robot; frame_dy_robot = dy_robot; frame_dtheta = dtheta;
     } else if (have_left) {
         float dx1 = data.left_x - left_last_x_, dy1 = data.left_y - left_last_y_;
@@ -452,9 +500,12 @@ void OptFlow::process(const Data_t& data) {
         state_.omega_z = 0.0f; state_.raw_dtheta = 0.0f;
     }
 
+    const float raw_body_vx = state_.body_vx;
+    const float raw_body_vy = state_.body_vy;
+
     // ---- 静止检测 + accel偏置估计（光流+IMU联合） ----
-    const float flow_speed_norm = sqrtf(state_.body_vx * state_.body_vx
-                                      + state_.body_vy * state_.body_vy);
+    const float flow_speed_norm = sqrtf(raw_body_vx * raw_body_vx
+                                      + raw_body_vy * raw_body_vy);
     if (imu_valid) {
         flow_stat_.update(ax, ay, az, gx, gy, gz, flow_speed_norm);
     }
@@ -470,6 +521,24 @@ void OptFlow::process(const Data_t& data) {
         frame_dx_robot = 0.0f;
         frame_dy_robot = 0.0f;
         frame_dtheta = 0.0f;
+        limited_body_vx_ = 0.0f;
+        limited_body_vy_ = 0.0f;
+        body_limiter_initialized_ = true;
+    } else {
+        const float max_vel_mm_s = control_config::kOptFlowVelocityLimitMS * 1000.0f;
+        const float max_acc_mm_s2 = control_config::kOptFlowAccelLimitMS2 * 1000.0f;
+        if (!body_limiter_initialized_) {
+            limited_body_vx_ = std::clamp(raw_body_vx, -max_vel_mm_s, max_vel_mm_s);
+            limited_body_vy_ = std::clamp(raw_body_vy, -max_vel_mm_s, max_vel_mm_s);
+            body_limiter_initialized_ = true;
+        } else {
+            limited_body_vx_ = limit_velocity_axis(raw_body_vx, limited_body_vx_, dt_s,
+                                                   max_vel_mm_s, max_acc_mm_s2);
+            limited_body_vy_ = limit_velocity_axis(raw_body_vy, limited_body_vy_, dt_s,
+                                                   max_vel_mm_s, max_acc_mm_s2);
+        }
+        state_.body_vx = limited_body_vx_;
+        state_.body_vy = limited_body_vy_;
     }
 
     // ---- 纯光流积分位姿 ----
@@ -482,7 +551,6 @@ void OptFlow::process(const Data_t& data) {
     state_.flow_yaw += actual_dtheta;
 
     // ---- 简化卡尔曼 ----
-    const bool flow_available = (data.valid_mask != 0u);
     const float ax_mm = (imu_valid && !state_.is_stationary) ? (ax - flow_stat_.bias_ax()) * 1000.0f : 0.0f;
     const float ay_mm = (imu_valid && !state_.is_stationary) ? (ay - flow_stat_.bias_ay()) * 1000.0f : 0.0f;
 
@@ -510,7 +578,7 @@ void OptFlow::process(const Data_t& data) {
         kf_.predict(ax_mm, ay_mm, dt_s);
     }
 
-    if (kf_inited_ && flow_available) {
+    if (kf_inited_) {
         if (state_.is_stationary) {
             kf_.updateVel(0.0f, 0.0f);
         } else {
@@ -536,5 +604,8 @@ void OptFlow::process(const Data_t& data) {
     // 更新 last 值
     if (have_left)  { left_last_x_ = data.left_x;   left_last_y_ = data.left_y; }
     if (have_right) { right_last_x_ = data.right_x; right_last_y_ = data.right_y; }
-    last_time_ms_ = data.tick_ms;
+    if (flow_available) {
+        last_time_ms_ = data.tick_ms;
+    }
+    last_process_time_ms_ = data.tick_ms;
 }

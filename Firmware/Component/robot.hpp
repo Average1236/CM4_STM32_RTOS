@@ -115,6 +115,7 @@ public:
 
     bool use_imu = false;
     float yaw_target_rad = 0.0f;
+    bool yaw_target_initialized = false;
     YawSCurve yaw_s_curve_{{0.0f, 0.0f, 0.0f}};
     float xy_max_acc[2] = {7.0f, 7.0f};
     float xy_max_jerk[2] = {1000.0f, 1000.0f};
