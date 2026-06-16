@@ -156,6 +156,7 @@ inline constexpr uint32_t kOptFlowSensorStaleTimeoutMs = 100;
 // 1: optical-flow-based (kf_vx / kf_vy from OptFlow)
 // 2: fused (1-state Kalman, adaptive R per speed + tilt)
 // 3: optflow + raw vision velocity fused by 1-state Kalman
+// 4: wheel + raw vision velocity fused by 1-state Kalman
 inline constexpr uint8_t kChassisVelocitySource = 2;
 
 // ---- Fusion Kalman (source==2) ----
@@ -166,8 +167,8 @@ inline constexpr float kFusionKalmanQY = 0.01f;
 // Wheel measurement noise: high at low speed, low at high speed
 inline constexpr float kFusionKalmanRWheelMinX = 0.05f;
 inline constexpr float kFusionKalmanRWheelMaxX = 0.1f;
-inline constexpr float kFusionKalmanRWheelMinY = 0.1f;
-inline constexpr float kFusionKalmanRWheelMaxY = 5.0f;
+inline constexpr float kFusionKalmanRWheelMinY = 0.05f;
+inline constexpr float kFusionKalmanRWheelMaxY = 0.2f;
 
 // Optflow measurement noise: low at low speed, high at high speed
 inline constexpr float kFusionKalmanROptflowMinX = 0.01f;
@@ -198,13 +199,21 @@ inline constexpr float kFusionWheelSlipResidualPenaltyGainY = 0.0f;
 inline constexpr float kWheelChassisVelocityLimitMS = 5.0f;
 inline constexpr float kWheelChassisAccelLimitMS2 = 10.0f;
 
-// ---- Vision + Optflow Velocity Fusion (runtime vision_source == 3) ----
+// ---- Optflow + Vision Velocity Fusion (runtime vision_source == 3) ----
 inline constexpr float kVisionOptflowFusionQX = 0.02f;
 inline constexpr float kVisionOptflowFusionQY = 0.02f;
 inline constexpr float kVisionOptflowFusionROptflowX = 0.05f;
 inline constexpr float kVisionOptflowFusionROptflowY = 0.05f;
 inline constexpr float kVisionOptflowFusionRVisionX = 0.005f;
 inline constexpr float kVisionOptflowFusionRVisionY = 0.005f;
+
+// ---- Wheel + Vision Velocity Fusion (runtime vision_source == 4) ----
+inline constexpr float kVisionWheelFusionQX = 0.02f;
+inline constexpr float kVisionWheelFusionQY = 0.02f;
+inline constexpr float kVisionWheelFusionRWheelX = 0.02f;
+inline constexpr float kVisionWheelFusionRWheelY = 0.02f;
+inline constexpr float kVisionWheelFusionRVisionX = 0.02f;
+inline constexpr float kVisionWheelFusionRVisionY = 0.02f;
 
 // ---- Test Kick ----
 // true:  bypass infrared sensor, rising-edge trigger on kick_discharge_time

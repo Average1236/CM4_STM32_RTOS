@@ -154,6 +154,37 @@ void ChassisEstimator::step(float dt_s) {
         fused_chassis_vx_output_port_ = kf_vision_vx_.v_est;
         fused_chassis_vy_output_port_ = kf_vision_vy_.v_est;
 
+    } else if (velocity_source == 4) {
+        // --- Fused: wheel velocity + raw vision velocity with equal confidence.
+        const auto vision_vx = vision_vx_input_port_.any();
+        const auto vision_vy = vision_vy_input_port_.any();
+        const float raw_vision_vx = vision_vx.has_value() ? *vision_vx * 0.001f : kf_wheel_vision_vx_.v_est;
+        const float raw_vision_vy = vision_vy.has_value() ? *vision_vy * 0.001f : kf_wheel_vision_vy_.v_est;
+
+        wheel_vx_debug = wheel_vx;
+        wheel_vy_debug = wheel_vy;
+        of_vx_debug = 0.0f;
+        of_vy_debug = 0.0f;
+        vision_vx_debug = raw_vision_vx;
+        vision_vy_debug = raw_vision_vy;
+
+        kf_wheel_vision_vx_.predict(control_config::kVisionWheelFusionQX);
+        kf_wheel_vision_vx_.update(wheel_vx, control_config::kVisionWheelFusionRWheelX);
+        if (vision_vx.has_value()) {
+            kf_wheel_vision_vx_.update(raw_vision_vx, control_config::kVisionWheelFusionRVisionX);
+        }
+
+        kf_wheel_vision_vy_.predict(control_config::kVisionWheelFusionQY);
+        kf_wheel_vision_vy_.update(wheel_vy, control_config::kVisionWheelFusionRWheelY);
+        if (vision_vy.has_value()) {
+            kf_wheel_vision_vy_.update(raw_vision_vy, control_config::kVisionWheelFusionRVisionY);
+        }
+
+        chassis_vel_meas[0] = kf_wheel_vision_vx_.v_est;
+        chassis_vel_meas[1] = kf_wheel_vision_vy_.v_est;
+        fused_chassis_vx_output_port_ = kf_wheel_vision_vx_.v_est;
+        fused_chassis_vy_output_port_ = kf_wheel_vision_vy_.v_est;
+
     } else if (velocity_source == 2) {
         // --- Fused: adaptive Kalman (wheel + optflow), per-axis params ---
         const auto of_vx = optflow_vx_input_port_.any();
@@ -330,6 +361,8 @@ void ChassisEstimator::reset() {
     kf_vy_ = {};
     kf_vision_vx_ = {};
     kf_vision_vy_ = {};
+    kf_wheel_vision_vx_ = {};
+    kf_wheel_vision_vy_ = {};
     wheel_chassis_limiter_initialized_ = false;
     limited_wheel_chassis_vx_ = 0.0f;
     limited_wheel_chassis_vy_ = 0.0f;

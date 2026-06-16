@@ -76,6 +76,8 @@ private:
     FusionKalman1D kf_vy_;
     FusionKalman1D kf_vision_vx_;
     FusionKalman1D kf_vision_vy_;
+    FusionKalman1D kf_wheel_vision_vx_;
+    FusionKalman1D kf_wheel_vision_vy_;
 
     OutputPort<float> chassis_vx_output_port_{0.0f};
     OutputPort<float> chassis_vy_output_port_{0.0f};

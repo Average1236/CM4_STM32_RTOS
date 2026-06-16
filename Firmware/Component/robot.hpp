@@ -25,7 +25,7 @@ struct __attribute__((packed)) CM4_to_stm32_spi
     int16_t yaw_max_acc;     // rad/s^2 * 100
     int16_t yaw_max_jerk;    // rad/s^3 * 100
     int16_t raw_vision_vel[2]; // vx, vy in mm/s
-    uint8_t vision_source;     // 3: optflow + vision velocity fusion
+    uint8_t vision_source;     // 3: optflow + vision, 4: wheel + vision
 };
 
 static_assert(sizeof(CM4_to_stm32_spi) <= SPI_LENGTH, "CM4_to_stm32_spi exceeds SPI_LENGTH");
