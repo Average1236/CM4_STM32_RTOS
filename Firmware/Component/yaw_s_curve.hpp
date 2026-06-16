@@ -40,8 +40,8 @@ public:
         target_meas_ = wrap_pm_pi(target_wrapped);
 
         TD::Parameter_t td_param{};
-        td_param.r  = 50.0f;
-        td_param.h  = 0.08f;
+        td_param.r  = 200.0f;
+        td_param.h  = 0.06f;
         td_param.dt = kYawControlDtSec;
         td_param.is_cycle   = true;
         td_param.cycle_low  = -kPi;

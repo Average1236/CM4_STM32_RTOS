@@ -117,6 +117,7 @@ public:
     float yaw_target_rad = 0.0f;
     bool yaw_target_initialized = false;
     YawSCurve yaw_s_curve_{{0.0f, 0.0f, 0.0f, 0.0f}};
+    TD* td_vxvy_[3] = {nullptr, nullptr, nullptr};
     float xy_max_acc[2] = {7.0f, 7.0f};
     float xy_max_jerk[2] = {1000.0f, 1000.0f};
     float xy_max_dec[2] = {10.0f, 10.0f};
@@ -137,8 +138,6 @@ public:
 
     ChassisEstimator chassis_estimator;
     ChassisController chassis_controller;
-    ButterworthLowPass2 planner_start_vx_filter_{{0.0f, 0.0f}};
-    ButterworthLowPass2 planner_start_vy_filter_{{0.0f, 0.0f}};
 
     uint32_t spi_error_count = 0;
 

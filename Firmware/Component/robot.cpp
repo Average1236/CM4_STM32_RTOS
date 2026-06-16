@@ -9,9 +9,11 @@
 volatile float target_vx_debug = 0;
 volatile float target_vy_debug = 0;
 volatile float target_vw_debug = 0;
-volatile float robot_ay_debug = 0;
+volatile float a_des_x_debug = 0;
+volatile float a_des_y_debug = 0;
 volatile float wheel_vel_debug = 0;
-volatile float robot_real_vx_debug = 0;
+volatile float v_des_x_debug = 0;
+volatile float v_des_y_debug = 0;
 volatile uint16_t kick_pulse_debug = 0;
 volatile float dribble_power_debug = 0;
 volatile int use_imu_debug = 0;
@@ -41,28 +43,8 @@ static constexpr float WHEEL_RADIUS = control_config::kWheelRadiusM;
 
 namespace {
 
-struct AxisMotionPlan {
-    float v_start = 0.0f;
-    float v_target = 0.0f;
-    float sign = 1.0f;
-    float t_jerk = 0.0f;
-    float t_const_acc = 0.0f;
-    float t_total = 0.0f;
-    float elapsed = 0.0f;
-    bool has_const_acc = false;
-    bool active = false;
-};
-
-AxisMotionPlan g_axis_plans[3];
-
-constexpr float kPlannerVelEps = 1e-5f;
-constexpr float kPlannerReplanEps = 1e-4f;
 constexpr uint16_t kKickPulseMaxUs = 15000;
 constexpr uint32_t kKickIntervalMs = 300;
-
-inline float signf_nonzero(const float x) {
-    return (x >= 0.0f) ? 1.0f : -1.0f;
-}
 
 int16_t encode_i16(const float value) {
     if (!std::isfinite(value)) {
@@ -102,98 +84,6 @@ float decomposed_axis_velocity_limit_m_s(const float wheel_axis_coeff[4], const 
     return wheel_vel_limit_rad_s * WHEEL_RADIUS / max_coeff;
 }
 
-void init_axis_plan(
-    AxisMotionPlan& plan,
-    const float v_start,
-    const float v_target,
-    const float a_max,
-    const float j_max
-) {
-    plan.v_start = v_start;
-    plan.v_target = v_target;
-    plan.elapsed = 0.0f;
-    plan.active = false;
-    plan.has_const_acc = false;
-    plan.t_jerk = 0.0f;
-    plan.t_const_acc = 0.0f;
-    plan.t_total = 0.0f;
-
-    if (a_max <= 1e-8f || j_max <= 1e-8f) {
-        return;
-    }
-
-    const float delta_v = v_target - v_start;
-    const float delta = fabsf(delta_v);
-    if (delta < kPlannerVelEps) {
-        return;
-    }
-
-    plan.sign = signf_nonzero(delta_v);
-
-    const float threshold = (a_max * a_max) / j_max;
-    if (delta >= threshold) {
-        plan.has_const_acc = true;
-        plan.t_jerk = a_max / j_max;
-        plan.t_const_acc = (delta / a_max) - plan.t_jerk;
-        plan.t_total = 2.0f * plan.t_jerk + plan.t_const_acc;
-    } else {
-        plan.has_const_acc = false;
-        plan.t_jerk = sqrtf(delta / j_max);
-        plan.t_const_acc = 0.0f;
-        plan.t_total = 2.0f * plan.t_jerk;
-    }
-
-    plan.active = plan.t_total > 1e-8f;
-}
-
-void sample_axis_plan(
-    const AxisMotionPlan& plan,
-    const float j_max,
-    const float a_max,
-    const float t,
-    float& a_ref,
-    float& v_ref
-) {
-    if (!plan.active) {
-        a_ref = 0.0f;
-        v_ref = plan.v_target;
-        return;
-    }
-
-    const float tc = std::clamp(t, 0.0f, plan.t_total);
-    const float s = plan.sign;
-
-    if (plan.has_const_acc) {
-        if (tc < plan.t_jerk) {
-            a_ref = s * j_max * tc;
-            v_ref = plan.v_start + 0.5f * s * j_max * tc * tc;
-            return;
-        }
-
-        if (tc < (plan.t_jerk + plan.t_const_acc)) {
-            a_ref = s * a_max;
-            v_ref = plan.v_start + s * a_max * (tc - 0.5f * plan.t_jerk);
-            return;
-        }
-
-        const float rem = plan.t_total - tc;
-        const float td = tc - plan.t_jerk - plan.t_const_acc;
-        a_ref = s * (a_max - j_max * td);
-        v_ref = plan.v_target - 0.5f * s * j_max * rem * rem;
-        return;
-    }
-
-    if (tc < plan.t_jerk) {
-        a_ref = s * j_max * tc;
-        v_ref = plan.v_start + 0.5f * s * j_max * tc * tc;
-        return;
-    }
-
-    const float rem = plan.t_total - tc;
-    a_ref = s * j_max * rem;
-    v_ref = plan.v_target - 0.5f * s * j_max * rem * rem;
-}
-
 } // namespace
 
 // Wheel velocity angle matrices
@@ -220,10 +110,15 @@ static const WheelMotorBase::Config_t WHEEL_MOTOR_PARAMS[4] = {
 };
 
 Robot::Robot() {
-    planner_start_vx_filter_.set_parameter({control_config::kPlannerStartVelocityLpfCutoffHz,
-                                             control_config::kControlDtSec});
-    planner_start_vy_filter_.set_parameter({control_config::kPlannerStartVelocityLpfCutoffHz,
-                                             control_config::kControlDtSec});
+    // Init vx/vy target-velocity TDs
+    TD::Parameter_t td_p{};
+    td_p.r  = 100.0f;
+    td_p.h  = 0.05f;
+    td_p.dt = control_config::kControlDtSec;
+    td_p.is_cycle = false;
+    td_vxvy_[0] = new TD(td_p, 0.0f);
+    td_vxvy_[1] = new TD(td_p, 0.0f);
+    td_vxvy_[2] = new TD(td_p, 0.0f);
 
     // Initialize wheel motors
     for (int i = 0; i < 4; i++) {
@@ -248,6 +143,9 @@ Robot::~Robot() {
     for (int i = 0; i < 4; i++) {
         delete wheel_motors[i];
     }
+    delete td_vxvy_[0];
+    delete td_vxvy_[1];
+    delete td_vxvy_[2];
 }
 
 void Robot::pi_decode_spi() {
@@ -490,80 +388,40 @@ void Robot::ik_solve() {
 }
 
 void Robot::motion_planner(const double _dt) {
-    const float dt_s = static_cast<float>(_dt / 1000000.0);  // Convert microseconds to seconds
-    if (dt_s <= 1e-9) {
-        return;
-    }
-
-    const auto measured_chassis_vx = chassis_estimator.chassis_vx_output_port()->any();
-    const auto measured_chassis_vy = chassis_estimator.chassis_vy_output_port()->any();
-    const float measured_vel[2] = {
-        measured_chassis_vx.has_value() ? *measured_chassis_vx : last_robot_real_vel[0],
-        measured_chassis_vy.has_value() ? *measured_chassis_vy : last_robot_real_vel[1],
-    };
-    const float planner_start_vel[2] = {
-        planner_start_vx_filter_.filter(measured_vel[0]),
-        planner_start_vy_filter_.filter(measured_vel[1]),
-    };
+    const float dt_s = static_cast<float>(_dt / 1000000.0);
+    if (dt_s <= 1e-9f) return;
 
     for (uint8_t i = 0; i < 3; i++) {
-        if (use_imu && i == 2) continue;  // yaw angle control bypasses planner
+        if (use_imu && i == 2) continue;  // yaw handled by prepare_yaw_control
 
-        AxisMotionPlan& plan = g_axis_plans[i];
-        const bool linear_axis = (i < 2);
         const float v_target = robot_vel[i];
-        // S-curve uses the larger limit for timing; directional clamp enforces per-phase limits.
-        // This handles zero-crossing correctly: AccMax limits the speeding-up phase,
-        // DecMax limits the slowing-down phase, regardless of sign.
-        const float a_acc = (i == 0) ? xy_max_acc[0] : (i == 1) ? xy_max_acc[1] : yaw_max_acc;
-        const float a_dec = (i == 0) ? xy_max_dec[0] : (i == 1) ? xy_max_dec[1] : yaw_max_acc;
-        const float a_max = fmaxf(a_acc, a_dec);
-        const float j_max = (i == 0) ? xy_max_jerk[0] : (i == 1) ? xy_max_jerk[1] : yaw_max_jerk;
 
-        const bool target_changed = fabsf(v_target - plan.v_target) > kPlannerReplanEps;
-        const bool current_off_target = fabsf(v_target - last_robot_real_vel[i]) > kPlannerVelEps;
-        const bool should_replan = target_changed || (!plan.active && current_off_target);
-        const float v_plan_start = (linear_axis && control_config::kPlannerStartFromMeasuredVelocity)
-            ? planner_start_vel[i]
-            : last_robot_real_vel[i];
-        if (should_replan) {
-            init_axis_plan(plan, v_plan_start, v_target, a_max, j_max);
-            if (linear_axis) {
-                last_robot_real_vel[i] = v_plan_start;
-            }
-        }
+        // ── TD estimation ──
+        td_vxvy_[i]->calc(v_target);
+        const float target_vel_est = td_vxvy_[i]->get_data();
+        const float target_acc_est = td_vxvy_[i]->get_diff();
 
-        if (!plan.active && fabsf(v_target - last_robot_real_vel[i]) <= kPlannerVelEps) {
-            robot_real_vel[i] = v_target;
-            robot_acc[i] = 0.0f;
-            last_robot_real_vel[i] = v_target;
-            continue;
-        }
+        // ── Reference generation ──
+        const float e = target_vel_est - last_robot_real_vel[i];
 
-        float a_profile = 0.0f;
-        float v_profile = v_target;
-        if (plan.active) {
-            plan.elapsed = std::min(plan.elapsed + dt_s, plan.t_total);
-            sample_axis_plan(plan, j_max, a_max, plan.elapsed, a_profile, v_profile);
+        // Desired acceleration = feedforward + immediate correction
+        float a_des = target_acc_est + e / dt_s;
 
-            robot_acc[i] = a_profile;
-            robot_real_vel[i] = v_profile;
+        // Per-direction accel/decel limit
+        const float a_limit = (a_des >= 0.0f)
+            ? xy_max_acc[i] : xy_max_dec[i];
+        a_des = std::clamp(a_des, -a_limit, a_limit);
 
-            if (plan.elapsed >= plan.t_total) {
-                robot_real_vel[i] = v_target;
-                robot_acc[i] = 0.0f;
-                plan.active = false;
-            }
-        } else {
-            robot_real_vel[i] = v_target;
-            robot_acc[i] = 0.0f;
-        }
-
+        // No jerk limit — set a_ref directly (same principle as yaw)
+        robot_acc[i] = a_des;
+        robot_real_vel[i] = last_robot_real_vel[i] + a_des * dt_s;
         last_robot_real_vel[i] = robot_real_vel[i];
     }
-    robot_ay_debug = robot_acc[1];
 
-    robot_real_vx_debug = robot_real_vel[0];
+    a_des_x_debug = robot_acc[0];
+    a_des_y_debug = robot_acc[1];
+    v_des_x_debug = robot_real_vel[0];
+    v_des_y_debug = robot_real_vel[1];
 }
 
 void Robot::bind_estimator_imu_ports(IMU& imu_ref) {

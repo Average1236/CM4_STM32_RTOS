@@ -82,6 +82,8 @@ void ChassisEstimator::step(float dt_s) {
         wheel_vx += j2_pinv_[0][col] * wheel_vel_rad_s[col];
         wheel_vy += j2_pinv_[1][col] * wheel_vel_rad_s[col];
     }
+    wheel_vx *= control_config::kWheelChassisVxScale;
+    wheel_vy *= control_config::kWheelChassisVyScale;
 
     if (!wheel_chassis_limiter_initialized_) {
         limited_wheel_chassis_vx_ = std::clamp(wheel_vx,
