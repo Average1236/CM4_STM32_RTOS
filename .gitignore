@@ -9,6 +9,7 @@ Thumbs.db
 .vscode/
 .idea/
 .cache/
+.claude/
 
 # Python cache (Docs scripts)
 __pycache__/
