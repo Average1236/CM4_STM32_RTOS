@@ -134,11 +134,11 @@ public:
     }
 
     float get_integ() const {
-        return integ;
+        return integ * parameter_.ki;
     }
 
     float get_diff() const {
-        return diff;
+        return diff * parameter_.kd;
     }
 
 private:

@@ -22,7 +22,7 @@ inline constexpr float kPi           = 3.1415926535f;
 //  Mass, inertia, wheel geometry.  Only change when hardware is modified.
 // ==========================================================================
 
-inline constexpr float kRobotMassKg           = 3.0f;
+inline constexpr float kRobotMassKg           = 4.0f;
 inline constexpr float kRobotInertiaKgM2      = 8e-3f;
 inline constexpr float kWheelRadiusM          = 0.03f;
 inline constexpr float kWheelCenterDistanceM  = 0.0785f;
@@ -63,9 +63,9 @@ inline constexpr float kYawTargetLowPassCutoffHz = 10.0f;
 // Kd: derivative gain on ω_z (dimensionless damping)
 //   D = -Kd * ω_z_meas  (derivative-on-measurement)
 //   ↑ = more damping, less overshoot   ↓ = livelier response
-inline constexpr float kYawAnglePidKp = 25.0f;
+inline constexpr float kYawAnglePidKp = 20.0f;
 inline constexpr float kYawAnglePidKi = 3.0f;
-inline constexpr float kYawAnglePidKd = 0.3f;
+inline constexpr float kYawAnglePidKd = 0.0f;
 
 // ---- 3c. Vy coupling feedforward ----
 // Feeds forward vy reference into yaw torque (Coriolis-like coupling).
@@ -92,7 +92,7 @@ inline constexpr float kLesoScheduleOmegaThreshold    = 0.01f;  // scheduling kn
 // Control law: F_task_ψ = I · (wc_rate · (ω_ref − ω_z_est) − disturbance + coupling)
 //   ↑ = tighter velocity tracking        ↓ = less motor saturation
 //   Rule of thumb: wc_rate ≤ inner_wo / 3
-inline constexpr float kYawRateControllerBandwidth = 60.0f;
+inline constexpr float kYawRateControllerBandwidth = 75.0f;
 
 // ---- 4c. Omega-z / gyro pre-filtering (Butterworth 2nd-order) ----
 // 0.0 = passthrough.  Non-zero adds delay, use only if gyro is noisy.
@@ -110,25 +110,28 @@ inline constexpr float kVelFeedbackGainYaw = 0.0f;
 // ==========================================================================
 //  5. Chassis Velocity Control  —  vx / vy PID
 // --------------------------------------------------------------------------
-//  Per-axis PID controllers in ChassisController.
-//  Output is acceleration demand (m/s²), added to planner feedforward.
+//  Simplified path: SPI target → Butterworth LPF → PID → clamp by xy_max_acc.
+//  No TD-based acceleration planner.  No feedforward (robot_acc = 0).
+//  PID output (m/s²) is directly scaled to force by mass.
 // ==========================================================================
 
 // ---- vx ----
-inline constexpr float kChassisVelPidKpX            = 30.0f;
-inline constexpr float kChassisVelPidKiX            = 300.0f;
+inline constexpr float kChassisVxRefButterworthCutoffHz = 10.0f;   // target LPF (Hz)
+inline constexpr float kChassisVelPidKpX            = 15.0f;
+inline constexpr float kChassisVelPidKiX            = 150.0f;
 inline constexpr float kChassisVelPidKdX            = 0.0f;
 inline constexpr float kChassisVelPidOutputLimitX   = 10.0f;   // m/s²
-inline constexpr float kChassisVelPidIntegLimitX    = 5.0f;    // m/s² contribution
+inline constexpr float kChassisVelPidIntegLimitX    = 10.0f;    // m/s² contribution
 inline constexpr float kChassisVelPidBackCalcGainX  = 0.3f;
 inline constexpr float kChassisVelPidDiffCutoffHzX  = 0.0f;
 
 // ---- vy ----
-inline constexpr float kChassisVelPidKpY            = 30.0f;
-inline constexpr float kChassisVelPidKiY            = 300.0f;
+inline constexpr float kChassisVyRefButterworthCutoffHz = 10.0f;   // target LPF (Hz)
+inline constexpr float kChassisVelPidKpY            = 15.0f;
+inline constexpr float kChassisVelPidKiY            = 150.0f;
 inline constexpr float kChassisVelPidKdY            = 0.0f;
 inline constexpr float kChassisVelPidOutputLimitY   = 10.0f;   // m/s²
-inline constexpr float kChassisVelPidIntegLimitY    = 5.0f;    // m/s² contribution
+inline constexpr float kChassisVelPidIntegLimitY    = 10.0f;    // m/s² contribution
 inline constexpr float kChassisVelPidBackCalcGainY  = 0.3f;
 inline constexpr float kChassisVelPidDiffCutoffHzY  = 0.0f;
 
@@ -171,7 +174,7 @@ inline constexpr float kWheelObsVelocityButterworthCutoffHz = 100.0f;   // LPF o
 // High near zero speed (airborne oscillation suppression),
 // low at high speed (natural friction provides damping).
 inline constexpr float kWheelVirtualDampingNmPerRadPS = 0.027f;
-inline constexpr float kWheelVirtualDampingMin        = 0.01f;
+inline constexpr float kWheelVirtualDampingMin        = 0.005f;
 inline constexpr float kWheelDampScheduleSpeedRadPS   = 10.0f;    // scheduling knee
 inline constexpr float kWheelVirtualDampingLimitNm    = 0.4f;
 

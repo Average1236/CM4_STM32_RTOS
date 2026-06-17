@@ -110,15 +110,20 @@ static const WheelMotorBase::Config_t WHEEL_MOTOR_PARAMS[4] = {
 };
 
 Robot::Robot() {
-    // Init vx/vy target-velocity TDs
+    // Init yaw fallback TD (non-IMU mode only)
+    // vx/vy no longer use TDs — Butterworth LPFs are initialized in-class (robot.hpp)
     TD::Parameter_t td_p{};
     td_p.r  = 100.0f;
     td_p.h  = 0.05f;
     td_p.dt = control_config::kControlDtSec;
     td_p.is_cycle = false;
-    td_vxvy_[0] = new TD(td_p, 0.0f);
-    td_vxvy_[1] = new TD(td_p, 0.0f);
-    td_vxvy_[2] = new TD(td_p, 0.0f);
+    td_yaw_fallback_ = new TD(td_p, 0.0f);
+
+    // Init vx/vy reference Butterworth LPFs
+    vx_ref_lpf_ = new ButterworthLowPass2(
+        {control_config::kChassisVxRefButterworthCutoffHz, control_config::kControlDtSec}, 0.0f);
+    vy_ref_lpf_ = new ButterworthLowPass2(
+        {control_config::kChassisVyRefButterworthCutoffHz, control_config::kControlDtSec}, 0.0f);
 
     // Initialize wheel motors
     for (int i = 0; i < 4; i++) {
@@ -143,9 +148,9 @@ Robot::~Robot() {
     for (int i = 0; i < 4; i++) {
         delete wheel_motors[i];
     }
-    delete td_vxvy_[0];
-    delete td_vxvy_[1];
-    delete td_vxvy_[2];
+    delete vx_ref_lpf_;
+    delete vy_ref_lpf_;
+    delete td_yaw_fallback_;
 }
 
 void Robot::pi_decode_spi() {
@@ -395,28 +400,25 @@ void Robot::motion_planner(const double _dt) {
     const float dt_s = static_cast<float>(_dt / 1000000.0);
     if (dt_s <= 1e-9f) return;
 
-    for (uint8_t i = 0; i < 3; i++) {
-        if (use_imu && i == 2) continue;  // yaw handled by prepare_yaw_control
+    // ── Vx / Vy: Butterworth LPF on SPI target (simplified, no TD) ──
+    robot_real_vel[0] = vx_ref_lpf_->filter(robot_vel[0]);
+    robot_real_vel[1] = vy_ref_lpf_->filter(robot_vel[1]);
+    robot_acc[0] = 0.0f;
+    robot_acc[1] = 0.0f;
 
+    // ── Yaw: TD-based planner (non-IMU fallback only) ──
+    if (!use_imu && td_yaw_fallback_ != nullptr) {
+        const uint8_t i = 2;
         const float v_target = robot_vel[i];
 
-        // ── TD estimation ──
-        td_vxvy_[i]->calc(v_target);
-        const float target_vel_est = td_vxvy_[i]->get_data();
-        const float target_acc_est = td_vxvy_[i]->get_diff();
+        td_yaw_fallback_->calc(v_target);
+        const float target_vel_est = td_yaw_fallback_->get_data();
+        const float target_acc_est = td_yaw_fallback_->get_diff();
 
-        // ── Reference generation ──
         const float e = target_vel_est - last_robot_real_vel[i];
-
-        // Desired acceleration = feedforward + immediate correction
         float a_des = target_acc_est + e / dt_s;
+        a_des = std::clamp(a_des, -yaw_max_acc, yaw_max_acc);
 
-        // Per-direction accel/decel limit
-        const float a_limit = (a_des >= 0.0f)
-            ? xy_max_acc[i] : xy_max_dec[i];
-        a_des = std::clamp(a_des, -a_limit, a_limit);
-
-        // No jerk limit — set a_ref directly (same principle as yaw)
         robot_acc[i] = a_des;
         robot_real_vel[i] = last_robot_real_vel[i] + a_des * dt_s;
         last_robot_real_vel[i] = robot_real_vel[i];
@@ -451,6 +453,7 @@ void Robot::update_torque_feedforward(const double _dt) {
         return;
     }
 
+    chassis_controller.set_vxvy_acc_limits(xy_max_acc[0], xy_max_acc[1]);
     chassis_controller.set_reference(robot_real_vel, robot_acc);
     chassis_controller.set_use_imu_yaw(use_imu);
     // set_yaw_target no longer called: outer angle loop runs in prepare_yaw_control(),

@@ -119,7 +119,11 @@ public:
     bool yaw_target_initialized = false;
     YawSCurve yaw_s_curve_{{0.0f, 0.0f, 0.0f, 0.0f}};
     CircularLowPassFilter yaw_target_lpf_;
-    TD* td_vxvy_[3] = {nullptr, nullptr, nullptr};
+    // vx/vy: Butterworth LPFs (heap-allocated, replace TD-based planner)
+    ButterworthLowPass2* vx_ref_lpf_ = nullptr;
+    ButterworthLowPass2* vy_ref_lpf_ = nullptr;
+    // Yaw TD fallback (non-IMU mode only)
+    TD* td_yaw_fallback_ = nullptr;
     float xy_max_acc[2] = {7.0f, 7.0f};
     float xy_max_jerk[2] = {1000.0f, 1000.0f};
     float xy_max_dec[2] = {10.0f, 10.0f};

@@ -27,6 +27,7 @@ public:
     void set_use_imu_yaw(bool enable);
     void set_yaw_target(float target_pos, float target_vel);
     void set_yaw_angle_target(float target_filt, float yaw_max_vel);
+    void set_vxvy_acc_limits(float acc_x, float acc_y);
     void step(float dt_s);
     void reset();
 
@@ -63,6 +64,10 @@ private:
     float yaw_angle_pid_integ_ = 0.0f;
     float yaw_angle_target_ = 0.0f;
     float yaw_angle_pid_max_vel_ = 25.0f;
+
+    // Runtime acc limits from SPI (clamp vx/vy PID output)
+    float vx_acc_limit_ = 7.0f;
+    float vy_acc_limit_ = 7.0f;
 
     float j1_[3][4] = {{0.0f}};
     float j1_pinv_[4][3] = {{0.0f}};

@@ -30,6 +30,7 @@ volatile float yaw_target_pos_debug = 0;
 volatile float yaw_target_vel_debug = 0;
 volatile float yaw_angle_pid_output_debug = 0;
 volatile float yaw_angle_pid_integ_debug = 0;
+volatile float yaw_angle_pid_diff_debug = 0;
 
 namespace {
 
@@ -94,6 +95,11 @@ void ChassisController::set_yaw_angle_target(float target_filt, float yaw_max_ve
     yaw_angle_pid_max_vel_ = yaw_max_vel;
 
     yaw_target_pos_debug = target_filt;
+}
+
+void ChassisController::set_vxvy_acc_limits(float acc_x, float acc_y) {
+    if (acc_x > 0.0f) vx_acc_limit_ = acc_x;
+    if (acc_y > 0.0f) vy_acc_limit_ = acc_y;
 }
 
 void ChassisController::step(float dt_s) {
@@ -172,6 +178,7 @@ void ChassisController::step(float dt_s) {
         omega_ref = std::clamp(omega_ref, -yaw_angle_pid_max_vel_, yaw_angle_pid_max_vel_);
         yaw_angle_pid_output_debug = omega_ref;
         yaw_angle_pid_integ_debug  = yaw_angle_pid_integ_;
+        yaw_angle_pid_diff_debug = D_out;
 
         // ---- Inner Rate LADRC ----
         // P + disturbance-rejection on ω_z.
@@ -192,8 +199,11 @@ void ChassisController::step(float dt_s) {
         F_task_psi = control_config::kRobotInertiaKgM2 * (acc_ref_[2] + fb_psi - yaw_leso_[1]);
     }
 
-    const float pid_vx = vx_pid_.calc(vel_ref_[0], vx_m_s, kChassisVxPidParam);
-    const float pid_vy = vy_pid_.calc(vel_ref_[1], vy_m_s, kChassisVyPidParam);
+    const float pid_vx_raw = vx_pid_.calc(vel_ref_[0], vx_m_s, kChassisVxPidParam);
+    const float pid_vy_raw = vy_pid_.calc(vel_ref_[1], vy_m_s, kChassisVyPidParam);
+    // Runtime acc limit from SPI (outer clamp, complements PID's internal output_limit)
+    const float pid_vx = std::clamp(pid_vx_raw, -vx_acc_limit_, vx_acc_limit_);
+    const float pid_vy = std::clamp(pid_vy_raw, -vy_acc_limit_, vy_acc_limit_);
 
     vx_ref_debug = vel_ref_[0];
     vy_ref_debug = vel_ref_[1];
