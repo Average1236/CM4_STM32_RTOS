@@ -28,6 +28,8 @@ volatile float wo_psi_eff_debug = 0;
 volatile float omega_z_filt_debug = 0;
 volatile float yaw_target_pos_debug = 0;
 volatile float yaw_target_vel_debug = 0;
+volatile float yaw_angle_pid_output_debug = 0;
+volatile float yaw_angle_pid_integ_debug = 0;
 
 namespace {
 
@@ -83,8 +85,15 @@ void ChassisController::set_yaw_target(float target_pos, float target_vel) {
     yaw_target_pos_ = target_pos;
     yaw_target_vel_ = target_vel;
 
-    yaw_target_pos_debug = target_pos;
-    yaw_target_vel_debug = target_vel;
+    // yaw_target_pos_debug = target_pos;
+    // yaw_target_vel_debug = target_vel;
+}
+
+void ChassisController::set_yaw_angle_target(float target_filt, float yaw_max_vel) {
+    yaw_angle_target_ = target_filt;
+    yaw_angle_pid_max_vel_ = yaw_max_vel;
+
+    yaw_target_pos_debug = target_filt;
 }
 
 void ChassisController::step(float dt_s) {
@@ -149,18 +158,32 @@ void ChassisController::step(float dt_s) {
     float fb_psi;
     float F_task_psi;
     if (use_imu_) {
-        const float err_pos = wrap_to_pi(yaw_target_pos_ - yaw_rad);
-        const float err_vel = yaw_target_vel_ - omega_z_rad_s;
-        err_psi_pos_debug = err_pos;
-        err_psi_vel_debug = err_vel;
-        const float wc = control_config::kAngleControllerBandwidthMin
-                       + (control_config::kAngleControllerBandwidth - control_config::kAngleControllerBandwidthMin) * alpha_psi;
-        const float Kp = wc * wc;
-        const float Kd = 2.0f * wc;
-        fb_psi = Kp * err_pos + Kd * err_vel;
+        // ---- Outer Angle PID → ω_ref ----
+        const float err_angle = wrap_to_pi(yaw_angle_target_ - yaw_rad);
+        yaw_angle_pid_integ_ += control_config::kYawAnglePidKi * err_angle * dt_s;
+        // Anti-windup: clamp integral to yaw_max_vel range
+        yaw_angle_pid_integ_ = std::clamp(yaw_angle_pid_integ_,
+                                          -yaw_angle_pid_max_vel_,
+                                           yaw_angle_pid_max_vel_);
+        const float P_out = control_config::kYawAnglePidKp * err_angle;
+        const float I_out = yaw_angle_pid_integ_;
+        const float D_out = -control_config::kYawAnglePidKd * omega_z_rad_s;  // derivative on measurement
+        float omega_ref = P_out + I_out + D_out;
+        omega_ref = std::clamp(omega_ref, -yaw_angle_pid_max_vel_, yaw_angle_pid_max_vel_);
+        yaw_angle_pid_output_debug = omega_ref;
+        yaw_angle_pid_integ_debug  = yaw_angle_pid_integ_;
+
+        // ---- Inner Rate LADRC ----
+        // P + disturbance-rejection on ω_z.
+        const float err_wz = omega_ref - yaw_leso_[0];
+        err_psi_pos_debug = omega_ref;     // outer PID output
+        err_psi_vel_debug = err_wz;        // velocity tracking error
+        const float wc_rate = control_config::kYawRateControllerBandwidth;
+        fb_psi = wc_rate * err_wz;
         yaw_ref_input_debug = fb_psi;
-        F_task_psi = control_config::kRobotInertiaKgM2 * (fb_psi - yaw_leso_[1]
-                     + control_config::kYawVyCoupling * vel_ref_[1]);
+        F_task_psi = control_config::kRobotInertiaKgM2
+                   * (fb_psi - yaw_leso_[1]
+                      + control_config::kYawVyCoupling * vel_ref_[1]);
     } else {
         fb_psi = control_config::kVelFeedbackGainYaw * (vel_ref_[2] - yaw_leso_[0]);
         err_psi_pos_debug = 0.0f;
@@ -206,6 +229,7 @@ void ChassisController::step(float dt_s) {
 void ChassisController::reset() {
     yaw_leso_[0] = 0.0f;
     yaw_leso_[1] = 0.0f;
+    yaw_angle_pid_integ_ = 0.0f;
     vx_pid_.reset();
     vy_pid_.reset();
     for (int i = 0; i < 4; ++i) {

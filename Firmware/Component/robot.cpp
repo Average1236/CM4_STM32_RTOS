@@ -175,6 +175,10 @@ void Robot::pi_decode_spi() {
     if (yaw_vel_cmd > 0.0f) yaw_max_vel = yaw_vel_cmd;
     if (yaw_acc_cmd > 0.0f) yaw_max_acc = yaw_acc_cmd;
     if (yaw_jerk_cmd > 0.0f) yaw_max_jerk = yaw_jerk_cmd;
+
+    // // FIXME: temporary hardcode
+    // yaw_max_vel = 10.0f;
+
     yaw_vel_max_debug = yaw_max_vel;
     yaw_acc_max_debug = yaw_max_acc;
     yaw_jerk_max_debug = yaw_max_jerk;
@@ -347,31 +351,31 @@ void Robot::prepare_yaw_control(float dt_s) {
         return;
     }
 
-    yaw_s_curve_.set_config({
-        yaw_max_vel,
-        yaw_max_acc,
-        control_config::kYawTargetStopBandRad,
-        control_config::kYawTargetVelZeroEpsRadS
-    });
+    // Circular LPF on wrapped target
+    const float cutoff = control_config::kYawTargetLowPassCutoffHz;
+    const float alpha = (cutoff > 0.0f)
+        ? (6.283185307f * cutoff * dt_s) / (6.283185307f * cutoff * dt_s + 1.0f)
+        : 1.0f;
+    yaw_target_lpf_.step(yaw_target_rad, alpha);
 
+    // One-time init
     if (!yaw_target_initialized) {
-        const auto yaw = chassis_estimator.chassis_yaw_output_port()->any();
-        const float init_yaw = yaw.has_value() ? *yaw : 0.0f;
-        const float init_omega = 0.0f;
-        yaw_s_curve_.reset(init_yaw, init_omega, yaw_target_rad, dt_s);
+        yaw_target_lpf_.reset(0.0f);
         yaw_target_initialized = true;
     }
 
-    yaw_s_curve_.set_target_measurement(yaw_target_rad);
-    yaw_s_curve_.step(dt_s);
+    // Pass filtered target to ChassisController for angle PID
+    chassis_controller.set_yaw_angle_target(yaw_target_lpf_.state(), yaw_max_vel);
 
-    robot_real_vel[2] = yaw_s_curve_.velocity();
-    robot_acc[2] = yaw_s_curve_.acceleration();
+    // robot_real_vel[2] / robot_acc[2] no longer used for yaw in IMU mode;
+    // angle PID → inner rate LADRC runs entirely inside ChassisController::step().
+    robot_real_vel[2] = 0.0f;
+    robot_acc[2] = 0.0f;
 
     // Debug
-    yaw_ref_debug     = yaw_s_curve_.position();
-    yaw_ref_vel_debug = yaw_s_curve_.velocity();
-    yaw_ref_acc_debug = yaw_s_curve_.acceleration();
+    yaw_ref_debug     = yaw_target_lpf_.state();
+    yaw_ref_vel_debug = 0.0f;   // omega_ref is internal to ChassisController now
+    yaw_ref_acc_debug = 0.0f;
 }
 
 void Robot::ik_solve() {
@@ -449,9 +453,8 @@ void Robot::update_torque_feedforward(const double _dt) {
 
     chassis_controller.set_reference(robot_real_vel, robot_acc);
     chassis_controller.set_use_imu_yaw(use_imu);
-    if (use_imu) {
-        chassis_controller.set_yaw_target(yaw_s_curve_.position(), yaw_s_curve_.velocity());
-    }
+    // set_yaw_target no longer called: outer angle loop runs in prepare_yaw_control(),
+    // inner velocity loop tracks vel_ref_[2] (set via set_reference) directly.
     chassis_estimator.set_reference_accel(robot_acc);
     chassis_estimator.step(dt_s);
     chassis_controller.step(dt_s);

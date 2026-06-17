@@ -6,6 +6,7 @@
 #include "chassis_estimator.hpp"
 #include "dribbler_zfoc.hpp"
 #include "yaw_s_curve.hpp"
+#include "circular_lpf.hpp"
 
 struct __attribute__((packed)) CM4_to_stm32_spi
 {
@@ -117,6 +118,7 @@ public:
     float yaw_target_rad = 0.0f;
     bool yaw_target_initialized = false;
     YawSCurve yaw_s_curve_{{0.0f, 0.0f, 0.0f, 0.0f}};
+    CircularLowPassFilter yaw_target_lpf_;
     TD* td_vxvy_[3] = {nullptr, nullptr, nullptr};
     float xy_max_acc[2] = {7.0f, 7.0f};
     float xy_max_jerk[2] = {1000.0f, 1000.0f};

@@ -26,6 +26,7 @@ public:
     void set_reference(const float vel_ref[3], const float acc_ref[3]);
     void set_use_imu_yaw(bool enable);
     void set_yaw_target(float target_pos, float target_vel);
+    void set_yaw_angle_target(float target_filt, float yaw_max_vel);
     void step(float dt_s);
     void reset();
 
@@ -57,6 +58,11 @@ private:
     float yaw_target_pos_ = 0.0f;
     float yaw_target_vel_ = 0.0f;
     bool use_imu_ = false;
+
+    // Angle PID state (outer loop → ω_ref)
+    float yaw_angle_pid_integ_ = 0.0f;
+    float yaw_angle_target_ = 0.0f;
+    float yaw_angle_pid_max_vel_ = 25.0f;
 
     float j1_[3][4] = {{0.0f}};
     float j1_pinv_[4][3] = {{0.0f}};
