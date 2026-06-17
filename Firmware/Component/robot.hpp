@@ -11,6 +11,7 @@
 struct __attribute__((packed)) CM4_to_stm32_spi
 {
     uint8_t drib_power;
+    uint8_t drib_mode;     // 1: torque, 2: speed, 3: hybrid
     int16_t vel[3];
     int16_t angle_pid[3];
     int16_t wheel_pid[3];
@@ -80,9 +81,18 @@ public:
     bool watchdog_check();
 
     float infra_voltage = 0;
+    bool infrare_flag = false;
     float dribble_power = 0;
     float dribble_velocity = -50.0f;
-    float dribble_torque_ff = -0.01f;
+    float dribble_torque_ff = -0.15f;
+
+    uint8_t dribbler_mode = 0;
+    enum DribblerHybridPhase : uint8_t {
+        kDribblerHybridTorquePhase = 0,
+        kDribblerHybridSpeedPhase = 1,
+    };
+    DribblerHybridPhase dribbler_hybrid_phase = kDribblerHybridTorquePhase;
+    uint32_t dribbler_ball_hold_count = 0;
 
     DribblerZfoc dribbler;
 

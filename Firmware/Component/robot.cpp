@@ -16,6 +16,7 @@ volatile float v_des_x_debug = 0;
 volatile float v_des_y_debug = 0;
 volatile uint16_t kick_pulse_debug = 0;
 volatile float dribble_power_debug = 0;
+volatile uint8_t dribbler_mode_debug = 0;
 volatile int use_imu_debug = 0;
 volatile float dribble_velocity_debug = 0;
 volatile float dribble_torque_ff_debug = 0;
@@ -162,8 +163,31 @@ void Robot::pi_decode_spi() {
     }
     robot_vel[2] = SpiRx.vel[2] / 100.0f;
 
-    dribble_power = (SpiRx.drib_power != 0) ? 1.0f : 0.0f;
+    const uint8_t prev_dribbler_mode = dribbler_mode;
+    dribble_power = SpiRx.drib_power;
+
+    dribbler_mode = SpiRx.drib_mode;
+    if (dribbler_mode < control_config::kDribblerModeTorque ||
+        dribbler_mode > control_config::kDribblerModeHybrid) {
+        dribbler_mode = control_config::kDribblerModeHybrid;
+    }
+
+    if (dribbler_mode == control_config::kDribblerModeHybrid &&
+        prev_dribbler_mode != control_config::kDribblerModeHybrid) {
+        dribbler_hybrid_phase = kDribblerHybridTorquePhase;
+        dribbler_ball_hold_count = 0;
+    }
+
     dribble_velocity = SpiRx.drib_velocity / 100.0f;
+    if (dribbler_mode == control_config::kDribblerModeSpeed) {
+        if (SpiRx.drib_power == 10) {
+            dribble_velocity = -10.0f;
+        } else if (SpiRx.drib_power == 20) {
+            dribble_velocity = -50.0f;
+        } else if (SpiRx.drib_power == 30) {
+            dribble_velocity = -100.0f;
+        }
+    }
     dribble_torque_ff = SpiRx.drib_torque_ff / 1000.0f;
 
     for (uint8_t i = 0; i < 2; ++i) {
@@ -196,8 +220,6 @@ void Robot::pi_decode_spi() {
         robot_vel[2] = std::clamp(robot_vel[2], -yaw_max_vel, yaw_max_vel);
     }
 
-    dribble_power = SpiRx.drib_power / 50.0f * -1.0f;
-
     kick_mode = SpiRx.kick_mode ? false : true;
     kick_discharge_time = SpiRx.kick_discharge_time;
 
@@ -217,6 +239,7 @@ void Robot::pi_decode_spi() {
     target_vw_debug = robot_vel[2];
     yaw_target_debug = yaw_target_rad;
     dribble_power_debug = dribble_power;
+    dribbler_mode_debug = dribbler_mode;
     dribble_velocity_debug = dribble_velocity;
     dribble_torque_ff_debug = dribble_torque_ff;
 }

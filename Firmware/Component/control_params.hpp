@@ -5,6 +5,25 @@
 
 namespace control_config {
 
+// Dribbler control mode flags (from CM4 drib_mode byte over SPI)
+// 1 = torque control, 2 = velocity control, 3 = hybrid
+inline constexpr uint8_t kDribblerModeTorque = 1;
+inline constexpr uint8_t kDribblerModeSpeed = 2;
+inline constexpr uint8_t kDribblerModeHybrid = 3;
+
+inline constexpr float kDribblerHybridTorqueNm = -0.05f;
+inline constexpr float kDribblerHybridSpeedRps = -100.0f;
+inline constexpr float kDribblerHybridTorqueLimitNm = 0.15f;
+inline constexpr uint32_t kDribblerHybridBallHoldFrames = 20;
+inline constexpr uint32_t kDribblerHybridBallLostFrames = 10;
+inline constexpr uint32_t kDribblerHybridDebounceStep = 2;
+
+inline constexpr float kDribblerSpeedBaseRps = -50.0f;
+inline constexpr float kDribblerSpeedCompensateGain = 23.0f;
+inline constexpr float kDribblerSpeedSlipMargin = 1.3f;
+inline constexpr float kDribblerSpeedDeadZone = -0.05f;
+inline constexpr float kDribblerSpeedSafetyClamp = -100.0f;
+
 // ==========================================================================
 //  1. System Constants
 // --------------------------------------------------------------------------
