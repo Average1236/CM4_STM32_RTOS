@@ -28,6 +28,8 @@ public:
     void set_yaw_target(float target_pos, float target_vel);
     void set_yaw_angle_target(float target_filt, float yaw_max_vel);
     void set_vxvy_acc_limits(float acc_x, float acc_y);
+    float omega_ref() const { return omega_ref_; }
+    float f_task(std::size_t index) const { return (index < 3) ? f_task_[index] : 0.0f; }
     void step(float dt_s);
     void reset();
 
@@ -80,6 +82,8 @@ private:
     float last_chassis_yaw_rad_ = 0.0f;
 
     ButterworthLowPass2 omega_z_filter_;
+    float omega_ref_ = 0.0f;
+    float f_task_[3] = {0.0f, 0.0f, 0.0f};
 };
 
 #endif // __CHASSIS_CONTROLLER_HPP

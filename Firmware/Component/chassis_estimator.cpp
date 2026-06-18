@@ -171,13 +171,13 @@ void ChassisEstimator::step(float dt_s) {
         vision_vy_debug = raw_vision_vy;
 
         kf_wheel_vision_vx_.predict(control_config::kVisionWheelFusionQX);
-        kf_wheel_vision_vx_.update(wheel_vx, control_config::kVisionWheelFusionRWheelX);
+        // kf_wheel_vision_vx_.update(wheel_vx, control_config::kVisionWheelFusionRWheelX);
         if (vision_vx.has_value()) {
             kf_wheel_vision_vx_.update(raw_vision_vx, control_config::kVisionWheelFusionRVisionX);
         }
 
         kf_wheel_vision_vy_.predict(control_config::kVisionWheelFusionQY);
-        kf_wheel_vision_vy_.update(wheel_vy, control_config::kVisionWheelFusionRWheelY);
+        // kf_wheel_vision_vy_.update(wheel_vy, control_config::kVisionWheelFusionRWheelY);
         if (vision_vy.has_value()) {
             kf_wheel_vision_vy_.update(raw_vision_vy, control_config::kVisionWheelFusionRVisionY);
         }

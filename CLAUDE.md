@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
 
 ## Project overview
 
@@ -20,9 +20,27 @@ cmake --build build/Debug
 # Flash via J-Link (open Firmware/stm32_cm4_rtos.jdebug in J-Link debugger)
 ```
 
-**After every code change**, run `cmake --build build/Debug` from `Firmware/` and verify zero errors and zero warnings before continuing.
+**After every code change**, run `cmake --build build/Debug` from `Firmware/` and verify zero errors before continuing.
 
 CMakePresets.json defines `Debug` and `Release` presets. Both use the Ninja generator and the bundled toolchain file at `Firmware/cmake/gcc-arm-none-eabi.cmake`.
+
+## Raspberry Pi side workflow
+
+The Raspberry Pi project may be present locally at `rpi_timer/robot/` and is deployed to `/home/pi/rpi_timer/robot/` on the Pi (`pi@192.168.31.245`, password`123`). Use `paramiko` from the base Python environment for password-based SFTP/SSH when key auth is unavailable; do not commit credentials.
+
+When changing Raspberry Pi protobuf files:
+
+```bash
+# On the Pi, regenerate generated protobuf code after editing share/proto/*.proto
+cd /home/pi/rpi_timer/robot/share/proto
+protoc --cpp_out=. zss_cmd.proto
+
+# Then rebuild the Pi project
+cd /home/pi/rpi_timer/robot
+cmake --build build
+```
+
+After regenerating protobuf code on the Pi, sync the generated `share/proto/*.pb.h` and `share/proto/*.pb.cc` files back to the local `rpi_timer/robot/share/proto/` copy so local code matches the deployed code. Prefer normal generated protobuf accessors (for example `raw_vision_vel_x()`) over parsing `UnknownFieldSet` manually.
 
 ## High-level architecture
 

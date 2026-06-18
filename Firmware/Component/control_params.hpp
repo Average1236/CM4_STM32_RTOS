@@ -136,8 +136,8 @@ inline constexpr float kVelFeedbackGainYaw = 0.0f;
 
 // ---- vx ----
 inline constexpr float kChassisVxRefButterworthCutoffHz = 10.0f;   // target LPF (Hz)
-inline constexpr float kChassisVelPidKpX            = 15.0f;
-inline constexpr float kChassisVelPidKiX            = 150.0f;
+inline constexpr float kChassisVelPidKpX            = 30.0f;
+inline constexpr float kChassisVelPidKiX            = 300.0f;
 inline constexpr float kChassisVelPidKdX            = 0.0f;
 inline constexpr float kChassisVelPidOutputLimitX   = 10.0f;   // m/s²
 inline constexpr float kChassisVelPidIntegLimitX    = 10.0f;    // m/s² contribution
@@ -146,8 +146,8 @@ inline constexpr float kChassisVelPidDiffCutoffHzX  = 0.0f;
 
 // ---- vy ----
 inline constexpr float kChassisVyRefButterworthCutoffHz = 10.0f;   // target LPF (Hz)
-inline constexpr float kChassisVelPidKpY            = 15.0f;
-inline constexpr float kChassisVelPidKiY            = 150.0f;
+inline constexpr float kChassisVelPidKpY            = 30.0f;
+inline constexpr float kChassisVelPidKiY            = 300.0f;
 inline constexpr float kChassisVelPidKdY            = 0.0f;
 inline constexpr float kChassisVelPidOutputLimitY   = 10.0f;   // m/s²
 inline constexpr float kChassisVelPidIntegLimitY    = 10.0f;    // m/s² contribution
@@ -281,8 +281,8 @@ inline constexpr float kVisionOptflowFusionRVisionY  = 0.005f;
 // ---- 7d. Wheel + Vision Velocity Fusion (source == 4) ----
 inline constexpr float kVisionWheelFusionQX       = 0.02f;
 inline constexpr float kVisionWheelFusionQY       = 0.02f;
-inline constexpr float kVisionWheelFusionRWheelX  = 0.02f;
-inline constexpr float kVisionWheelFusionRWheelY  = 0.02f;
+inline constexpr float kVisionWheelFusionRWheelX  = 0.9f;
+inline constexpr float kVisionWheelFusionRWheelY  = 0.9f;
 inline constexpr float kVisionWheelFusionRVisionX = 0.02f;
 inline constexpr float kVisionWheelFusionRVisionY = 0.02f;
 

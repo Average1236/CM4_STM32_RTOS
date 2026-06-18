@@ -71,6 +71,10 @@ int16_t encode_angular_centi(const float value) {
     return encode_i16(value * 100.0f);
 }
 
+int16_t encode_angular_milli(const float value) {
+    return encode_i16(value * 1000.0f);
+}
+
 float decomposed_axis_velocity_limit_m_s(const float wheel_axis_coeff[4], const float wheel_vel_limit_rpm) {
     float max_coeff = 0.0f;
     for (uint8_t i = 0; i < 4; ++i) {
@@ -359,6 +363,14 @@ void Robot::pi_encode_spi() {
     SpiTx.yaw_max_jerk = encode_angular_centi(yaw_max_jerk);
     SpiTx.planned_vel[0] = encode_velocity_mm_s(robot_real_vel[0]);
     SpiTx.planned_vel[1] = encode_velocity_mm_s(robot_real_vel[1]);
+    const auto chassis_yaw = chassis_estimator.chassis_yaw_output_port()->any();
+    const auto chassis_omega_z = chassis_estimator.chassis_omega_z_output_port()->any();
+    SpiTx.chassis_yaw_rad = encode_angular_milli(chassis_yaw.has_value() ? *chassis_yaw : 0.0f);
+    SpiTx.chassis_omega_z = encode_angular_centi(chassis_omega_z.has_value() ? *chassis_omega_z : 0.0f);
+    SpiTx.controller_omega_ref = encode_angular_centi(chassis_controller.omega_ref());
+    for (uint8_t i = 0; i < 3; ++i) {
+        SpiTx.controller_f_task[i] = encode_angular_centi(chassis_controller.f_task(i));
+    }
     SpiTx.reserved = 0;
 
     // Encode IMU data

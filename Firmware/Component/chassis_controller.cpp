@@ -163,6 +163,7 @@ void ChassisController::step(float dt_s) {
 
     float fb_psi;
     float F_task_psi;
+    float omega_ref = vel_ref_[2];
     if (use_imu_) {
         // ---- Outer Angle PID → ω_ref ----
         const float err_angle = wrap_to_pi(yaw_angle_target_ - yaw_rad);
@@ -174,7 +175,7 @@ void ChassisController::step(float dt_s) {
         const float P_out = control_config::kYawAnglePidKp * err_angle;
         const float I_out = yaw_angle_pid_integ_;
         const float D_out = -control_config::kYawAnglePidKd * omega_z_rad_s;  // derivative on measurement
-        float omega_ref = P_out + I_out + D_out;
+        omega_ref = P_out + I_out + D_out;
         omega_ref = std::clamp(omega_ref, -yaw_angle_pid_max_vel_, yaw_angle_pid_max_vel_);
         yaw_angle_pid_output_debug = omega_ref;
         yaw_angle_pid_integ_debug  = yaw_angle_pid_integ_;
@@ -219,6 +220,10 @@ void ChassisController::step(float dt_s) {
         control_config::kRobotMassKg * (acc_ref_[1] + pid_vy),
         F_task_psi,
     };
+    omega_ref_ = omega_ref;
+    for (int i = 0; i < 3; ++i) {
+        f_task_[i] = F_task[i];
+    }
 
     F_task_0_debug = F_task[0];
     F_task_1_debug = F_task[1];
@@ -250,6 +255,10 @@ void ChassisController::reset() {
     last_chassis_omega_z_rad_s_ = 0.0f;
     last_chassis_yaw_rad_ = 0.0f;
     omega_z_filter_.reset(0.0f);
+    omega_ref_ = 0.0f;
+    for (int i = 0; i < 3; ++i) {
+        f_task_[i] = 0.0f;
+    }
 }
 
 bool ChassisController::inverse3x3(const float in[3][3], float out[3][3]) const {

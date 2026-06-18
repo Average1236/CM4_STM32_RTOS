@@ -18,7 +18,7 @@ extern "C" {
 
 #define PI_UART_TX_DATA_LENGTH 3
 #define PI_UART_RX_DATA_LENGTH 7
-#define SPI_LENGTH 80
+#define SPI_LENGTH 96
 
 #define INFRARED_THRESHOLD (0.5f)
 
