@@ -3,7 +3,20 @@
 
 #include <cmath>
 
+
 #define PI (3.1415926f)
+
+constexpr float kPi = 3.1415926535f;
+
+inline float wrap_to_pi(float angle_rad) {
+    while (angle_rad > kPi) {
+        angle_rad -= 2.0f * kPi;
+    }
+    while (angle_rad < -kPi) {
+        angle_rad += 2.0f * kPi;
+    }
+    return angle_rad;
+}
 
 template <typename T>
 T limit(T data_t, T limit_t)
@@ -56,26 +69,56 @@ class PID {
 public:
     struct Parameter_t
     {
-        float kp;
-        float ki;
-        float kd;
-        float output_limit;
-        float integ_limit;
-        float dt;
+        float kp = 0.0f;
+        float ki = 0.0f;
+        float kd = 0.0f;
+        float output_limit = 0.0f;
+        float integ_limit = 0.0f;
+        float dt = 0.0f;
+        float back_calc_gain = 0.0f;
+        float diff_cutoff_hz = 0.0f;  // 0 disables the derivative low-pass
     };
 
-    PID(const Parameter_t parameter) : parameter_(parameter) {};
+    PID() = default;
+    explicit PID(const Parameter_t parameter) : parameter_(parameter) {};
     ~PID() = default;
 
     float calc(float ref, float fdb) {
+        return calc(ref, fdb, parameter_);
+    }
+
+    float calc(float ref, float fdb, const Parameter_t& parameter) {
+        constexpr float kEps = 1e-6f;
+        parameter_ = parameter;
+
         last_err = err;
         err = ref - fdb;
 
-        diff = (err - last_err) / parameter_.dt;
-        integ = limit<float>(integ + err * parameter_.dt, parameter_.integ_limit / parameter_.ki);
+        const float dt = (parameter.dt > kEps) ? parameter.dt : kEps;
+        const float raw_diff = (err - last_err) / dt;
 
-        output = limit<float>(parameter_.kp * err + parameter_.ki * integ + parameter_.kd * diff,
-                              parameter_.output_limit);
+        if (parameter.diff_cutoff_hz > kEps) {
+            constexpr float kTwoPi = 6.283185307f;
+            const float tf = 1.0f / (kTwoPi * parameter.diff_cutoff_hz);
+            diff_filt_ = diff_filt_ + (raw_diff - diff_filt_) * dt / (dt + tf);
+        } else {
+            diff_filt_ = raw_diff;
+        }
+        diff = diff_filt_;
+
+        if (std::fabs(parameter.ki) > kEps) {
+            const float integ_abs_limit = parameter.integ_limit / std::fabs(parameter.ki);
+            const float integ_pre = limit<float>(integ + err * dt, integ_abs_limit);
+            const float output_pre = parameter.kp * err + parameter.ki * integ_pre + parameter.kd * diff;
+            const float output_sat = limit<float>(output_pre, parameter.output_limit);
+
+            // Anti-windup by back-calculation: feed saturation residual back to integrator.
+            integ = integ_pre + parameter.back_calc_gain * (output_sat - output_pre) * dt / parameter.ki;
+            integ = limit<float>(integ, integ_abs_limit);
+            output = output_sat;
+        } else {
+            output = limit<float>(parameter.kp * err + parameter.kd * diff, parameter.output_limit);
+        }
 
         return output;
     }
@@ -85,8 +128,17 @@ public:
     void reset() {
         integ = 0.0f;
         diff = 0.0f;
+        diff_filt_ = 0.0f;
         last_err = 0.0f;
         output = 0.0f;
+    }
+
+    float get_integ() const {
+        return integ * parameter_.ki;
+    }
+
+    float get_diff() const {
+        return diff * parameter_.kd;
     }
 
 private:
@@ -95,7 +147,112 @@ private:
     float last_err = 0.0f;
     float integ = 0.0f;
     float diff = 0.0f;
+    float diff_filt_ = 0.0f;
     float output = 0.0f;    
+};
+
+class ButterworthLowPass2 {
+public:
+    struct Parameter_t {
+        float cutoff_hz;
+        float dt;
+    };
+
+    explicit ButterworthLowPass2(Parameter_t parameter, float init = 0.0f)
+        : parameter_(parameter) {
+        compute_coeffs();
+        reset(init);
+    }
+
+    float filter(float x) {
+        if (!enabled_) {
+            y_ = x;
+            return y_;
+        }
+
+        // Transposed direct-form II implementation.
+        const float y = b0_ * x + z1_;
+        z1_ = b1_ * x - a1_ * y + z2_;
+        z2_ = b2_ * x - a2_ * y;
+        y_ = y;
+        return y_;
+    }
+
+    void set_parameter(Parameter_t parameter) {
+        parameter_ = parameter;
+        compute_coeffs();
+        reset(y_);
+    }
+
+    void reset(float value = 0.0f) {
+        y_ = value;
+        if (!enabled_) {
+            z1_ = 0.0f;
+            z2_ = 0.0f;
+            return;
+        }
+
+        // Make filter output start at `value` for constant input `value`.
+        z1_ = value * (1.0f - b0_);
+        z2_ = value * (b2_ - a2_);
+    }
+
+    float output() const {
+        return y_;
+    }
+
+private:
+    void compute_coeffs() {
+        constexpr float kEps = 1e-6f;
+        constexpr float kQ = 0.70710678f; // 2nd-order Butterworth Q
+        constexpr float kTwoPi = 6.283185307f;
+
+        const float dt = (parameter_.dt > kEps) ? parameter_.dt : kEps;
+        const float fs = 1.0f / dt;
+        const float cutoff = parameter_.cutoff_hz;
+
+        if (cutoff <= kEps || cutoff >= 0.49f * fs) {
+            enabled_ = false;
+            b0_ = 1.0f;
+            b1_ = 0.0f;
+            b2_ = 0.0f;
+            a1_ = 0.0f;
+            a2_ = 0.0f;
+            return;
+        }
+
+        enabled_ = true;
+        const float omega = kTwoPi * cutoff / fs;
+        const float cosw = std::cos(omega);
+        const float sinw = std::sin(omega);
+        const float alpha = sinw / (2.0f * kQ);
+
+        const float b0 = (1.0f - cosw) * 0.5f;
+        const float b1 = 1.0f - cosw;
+        const float b2 = (1.0f - cosw) * 0.5f;
+        const float a0 = 1.0f + alpha;
+        const float a1 = -2.0f * cosw;
+        const float a2 = 1.0f - alpha;
+
+        b0_ = b0 / a0;
+        b1_ = b1 / a0;
+        b2_ = b2 / a0;
+        a1_ = a1 / a0;
+        a2_ = a2 / a0;
+    }
+
+    Parameter_t parameter_;
+    bool enabled_ = false;
+
+    float b0_ = 1.0f;
+    float b1_ = 0.0f;
+    float b2_ = 0.0f;
+    float a1_ = 0.0f;
+    float a2_ = 0.0f;
+
+    float z1_ = 0.0f;
+    float z2_ = 0.0f;
+    float y_ = 0.0f;
 };
 
 class TD {
@@ -118,6 +275,10 @@ public:
         d = parameter_.r * parameter_.h;
         d0 = d * parameter_.h;
         cycle = parameter_.cycle_high - parameter_.cycle_low;
+        data = init;
+        diff = 0;
+        last_raw_data_ = init;
+        raw_data_ = init;
     }
     ~TD() = default;
     void calc(float raw_data) {

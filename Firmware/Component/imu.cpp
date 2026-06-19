@@ -1,41 +1,201 @@
 #include "imu.hpp"
+#include "control_params.hpp"
 
-const float imu_k[3] = {16.0f * 9.8f / 32768.0f, 2000.0f / 32768.0f, 180.0f / 32768.0f};
-const float lsm56ds3_gyro_k = 245.0f / 32768.0f;
+#include <cstring>
 
-void IMU::decode(uint8_t raw_data[IMU_RX_DATA_LENGTH])
+// Debug
+volatile float imu_acc_x_debug = 0.0f;
+volatile float imu_acc_y_debug = 0.0f;
+volatile float imu_acc_z_debug = 0.0f;
+volatile float imu_gyro_x_debug = 0.0f;
+volatile float imu_gyro_y_debug = 0.0f;
+volatile float imu_gyro_z_debug = 0.0f;
+volatile float imu_omega_z_filt_debug = 0.0f;
+volatile float imu_yaw_debug = 0.0f;
+volatile float imu_bias_gx_debug = 0.0f;
+volatile float imu_bias_gy_debug = 0.0f;
+volatile float imu_bias_gz_debug = 0.0f;
+volatile float imu_bias_window_std_debug = 0.0f;
+volatile uint32_t imu_bias_confirm_count_debug = 0;
+
+namespace {
+
+constexpr float kGravityMS2 = 9.81f;
+
+float variance_from_sums(float sum, float sum_sq, float n) {
+    if (n <= 1.0f) {
+        return 0.0f;
+    }
+    const float mean = sum / n;
+    const float variance = sum_sq / n - mean * mean;
+    return (variance > 0.0f) ? variance : 0.0f;
+}
+
+float clamp_delta(float delta, float limit_abs) {
+    if (delta > limit_abs) {
+        return limit_abs;
+    }
+    if (delta < -limit_abs) {
+        return -limit_abs;
+    }
+    return delta;
+}
+
+float update_bias_limited(float current, float measured) {
+    const float delta = control_config::kImuBiasAlpha * (measured - current);
+    return current + clamp_delta(delta, control_config::kImuBiasMaxUpdateStepDegPerS);
+}
+
+} // namespace
+
+IMU::IMU(
+    Model model,
+    SPI_HandleTypeDef* hspi,
+    GPIO_TypeDef* cs_port,
+    uint16_t cs_pin
+) : omega_filter_({control_config::kImuOmegaButterworthCutoffHz, 0.00125f}),
+    model_(model), hspi_(hspi), cs_port_(cs_port), cs_pin_(cs_pin) {}
+
+bool IMU::init()
 {
-    for (uint8_t j = 0; j < 33; j++)
-    {
-        if (raw_data[j] != 0x55)
-            continue;
+    return icm42688_init();
+}
 
-        for (uint8_t i = 0; i < 3; i++)
-        {
-            if (raw_data[j + 0 + i * 11] == 0x55 && raw_data[j + 1 + i * 11] == (0x51 + i))
-            {
+void IMU::process_once()
+{
+    bool updated = false;
+    if (icm42688_read_burst(icm_rx_buffer_, IMU_ICM42688_BURST_DATA_LENGTH)) {
+        updated = decode_icm42688(icm_rx_buffer_, IMU_ICM42688_BURST_DATA_LENGTH);
+    }
 
-                if (sumcrc(&(raw_data[j + 0 + i * 11])))
-                {
-                    data_[0 + i * 4] = (short)(((short)raw_data[j + 3 + i * 11] << 8) | raw_data[j + 2 + i * 11]) * imu_k[i];
-                    data_[1 + i * 4] = (short)(((short)raw_data[j + 5 + i * 11] << 8) | raw_data[j + 4 + i * 11]) * imu_k[i];
-                    data_[2 + i * 4] = (short)(((short)raw_data[j + 7 + i * 11] << 8) | raw_data[j + 6 + i * 11]) * imu_k[i];
-                    // data_[kVoltage] = (short)(((short)raw_data[9] << 8) | raw_data[8]) / 100.0;
-                }
-            }
-        }
+    imu_acc_x_debug = data_[kAccX];
+    imu_acc_y_debug = data_[kAccY];
+    imu_acc_z_debug = data_[kAccZ];
+    imu_gyro_x_debug = data_[kOmegaX];
+    imu_gyro_y_debug = data_[kOmegaY];
+    imu_gyro_z_debug = data_[kOmegaZ];
+
+    if (updated) {
+        publish_ports_from_cache();
     }
 }
 
-bool IMU::sumcrc(const uint8_t raw_data[11])
+bool IMU::decode_icm42688(const uint8_t* raw_data, size_t len)
 {
-    uint16_t sum = 0x0;
-    for (size_t i = 0; i < 10; i++)
-    {
-        sum += raw_data[i];
+    if (raw_data == nullptr || len < IMU_ICM42688_BURST_DATA_LENGTH) {
+        return false;
     }
-    uint8_t crc = sum & 0xFF;
-    return (crc == raw_data[10]);
+
+    const int16_t ax = static_cast<int16_t>((static_cast<uint16_t>(raw_data[0]) << 8) | raw_data[1]);
+    const int16_t ay = static_cast<int16_t>((static_cast<uint16_t>(raw_data[2]) << 8) | raw_data[3]);
+    const int16_t az = static_cast<int16_t>((static_cast<uint16_t>(raw_data[4]) << 8) | raw_data[5]);
+    const int16_t gx = static_cast<int16_t>((static_cast<uint16_t>(raw_data[6]) << 8) | raw_data[7]);
+    const int16_t gy = static_cast<int16_t>((static_cast<uint16_t>(raw_data[8]) << 8) | raw_data[9]);
+    const int16_t gz = static_cast<int16_t>((static_cast<uint16_t>(raw_data[10]) << 8) | raw_data[11]);
+
+    data_[kAccX] = static_cast<float>(ax) * acc_sensitivity_;
+    data_[kAccY] = static_cast<float>(ay) * acc_sensitivity_;
+    data_[kAccZ] = static_cast<float>(az) * acc_sensitivity_;
+
+    data_[kOmegaX] = static_cast<float>(gx) * gyro_sensitivity_;
+    data_[kOmegaY] = static_cast<float>(gy) * gyro_sensitivity_;
+    data_[kOmegaZ] = static_cast<float>(gz) * gyro_sensitivity_;
+
+    data_[kOmegaZ] -= control_config::kImuOmegaBiasZ;
+
+    return true;
+}
+
+bool IMU::icm42688_init()
+{
+    if (hspi_ == nullptr || cs_port_ == nullptr || cs_pin_ == 0U) {
+        return false;
+    }
+
+    HAL_Delay(100); // Wait for sensor power up
+
+    icm42688_write_reg(kIcm42688RegBankSel, 0x00);
+    icm42688_write_reg(kIcm42688DeviceConfig, 0x01);
+    HAL_Delay(100);
+
+    const uint8_t who_am_i = icm42688_read_reg(kIcm42688WhoAmI);
+    if (who_am_i != kIcm42688WhoAmIValue) {
+        return false;
+    }
+
+    const uint8_t accel_cfg = static_cast<uint8_t>((kIcm42688Afs4G << 5) | kIcm42688Aodr1000Hz);
+    const uint8_t gyro_cfg = static_cast<uint8_t>((kIcm42688Gfs1000Dps << 5) | kIcm42688Godr1000Hz);
+    icm42688_write_reg(kIcm42688AccelConfig0, accel_cfg);
+    icm42688_write_reg(kIcm42688GyroConfig0, gyro_cfg);
+
+    uint8_t pwr_mgmt0 = icm42688_read_reg(kIcm42688PwrMgmt0);
+    pwr_mgmt0 &= static_cast<uint8_t>(~(1U << 5));
+    pwr_mgmt0 |= static_cast<uint8_t>(3U << 2);
+    pwr_mgmt0 |= 3U;
+    icm42688_write_reg(kIcm42688PwrMgmt0, pwr_mgmt0);
+    HAL_Delay(1);
+
+    acc_sensitivity_ = 4.0f * 9.8f / 32768.0f;
+    gyro_sensitivity_ = 1000.0f / 32768.0f;
+    return true;
+}
+
+uint8_t IMU::icm42688_read_reg(uint8_t reg)
+{
+    uint8_t tx[2] = {static_cast<uint8_t>(reg | 0x80U), 0x00};
+    uint8_t rx[2] = {0};
+    icm42688_cs_low();
+    const HAL_StatusTypeDef status = HAL_SPI_TransmitReceive(hspi_, tx, rx, 2U, 10U);
+    icm42688_cs_high();
+    if (status != HAL_OK) {
+        return 0U;
+    }
+    return rx[1];
+}
+
+void IMU::icm42688_read_regs(uint8_t reg, uint8_t* data, uint16_t len)
+{
+    if (data == nullptr || len == 0U) {
+        return;
+    }
+
+    uint8_t tx_data[24] = {0};
+    uint8_t rx_data[24] = {0};
+    tx_data[0] = static_cast<uint8_t>(reg | 0x80U);
+
+    icm42688_cs_low();
+    if (HAL_SPI_TransmitReceive(hspi_, tx_data, rx_data, len + 1U, 10U) == HAL_OK) {
+        std::memcpy(data, rx_data + 1, len);
+    }
+    icm42688_cs_high();
+}
+
+void IMU::icm42688_write_reg(uint8_t reg, uint8_t value)
+{
+    uint8_t tx[2] = {reg, value};
+    uint8_t rx[2] = {0};
+    icm42688_cs_low();
+    (void)HAL_SPI_TransmitReceive(hspi_, tx, rx, 2U, 10U);
+    icm42688_cs_high();
+}
+
+bool IMU::icm42688_read_burst(uint8_t* data, uint16_t len)
+{
+    if (data == nullptr || len == 0U) {
+        return false;
+    }
+    icm42688_read_regs(kIcm42688AccelDataX1, data, len);
+    return true;
+}
+
+void IMU::icm42688_cs_low()
+{
+    HAL_GPIO_WritePin(cs_port_, cs_pin_, GPIO_PIN_RESET);
+}
+
+void IMU::icm42688_cs_high()
+{
+    HAL_GPIO_WritePin(cs_port_, cs_pin_, GPIO_PIN_SET);
 }
 
 void IMU::get_data(float out_data[9]) const
@@ -53,21 +213,222 @@ void IMU::get_data(float out_data[9]) const
     out_data[8] = data_[kAngleZ];
 }
 
-void IMU::lsm6ds3_init() {
-    HAL_Delay(20);
-    auto write_reg = [this](uint8_t addr, uint8_t val) {
-        uint16_t tx = (static_cast<uint16_t>(addr & 0x7F) << 8) | val; // write: bit7=0
-        (void)HAL_SPI_Transmit(hspi_, (uint8_t*)&tx, 1, HAL_MAX_DELAY);
-    };
-
-    write_reg(0x19, 0x38); // CTRL10_C: Gyro X/Y/Z enable
-    write_reg(0x11, 0x60); // CTRL2_G: 416Hz, high-performance, 245 dps
-    write_reg(0x0D, 0x02); // INT1_CTRL: Gyro data-ready on INT1
-    write_reg(0x12, 0x04); // CTRL3_C: IF_INC=1 (auto address increment)
+void IMU::update_integrated_yaw(float dt_s) {
+    // 使用动态估计的陀螺 Z 偏置（静止窗口 EMA 更新）
+    const float dynamic_bias_gz = imu_bias_valid_ ? imu_stat_.bias_gz_dps : 0.0f;
+    const float omega_z_corrected = data_[kOmegaZ] - dynamic_bias_gz;
+    const float omega_z_filt = omega_filter_.filter(omega_z_corrected);
+    imu_omega_z_filt_debug = omega_z_filt * (3.1415926535f / 180.0f);
+    omega_z_port_ = omega_z_filt;
+    integrated_yaw_deg_ += dt_s * omega_z_filt;
+    integrated_yaw_deg_ = wrap_to_pi(integrated_yaw_deg_ * (3.1415926535f / 180.0f)) * (180.0f / 3.1415926535f);
+    data_[kAngleZ] = integrated_yaw_deg_;
+    yaw_port_ = integrated_yaw_deg_;
 }
 
-void IMU::process_spi_data() {
-    data_[kOmegaX] = (short)(((short)(lsm6ds3_rx_data[1] >> 8) << 8) | (lsm6ds3_rx_data[0] & 0xFF)) * lsm56ds3_gyro_k;
-    data_[kOmegaY] = (short)(((short)(lsm6ds3_rx_data[2] >> 8) << 8) | (lsm6ds3_rx_data[1] & 0xFF)) * lsm56ds3_gyro_k;
-    data_[kOmegaZ] = (short)(((short)(lsm6ds3_rx_data[3] >> 8) << 8) | (lsm6ds3_rx_data[2] & 0xFF)) * lsm56ds3_gyro_k;
+void IMU::publish_ports_from_cache() {
+    omega_x_port_ = data_[kOmegaX];
+    omega_y_port_ = data_[kOmegaY];
+    acc_x_port_ = data_[kAccX];
+    acc_y_port_ = data_[kAccY];
+    acc_z_port_ = data_[kAccZ];
+    // omega_z and yaw are published by update_integrated_yaw()
+}
+
+void IMU::update_roll_pitch(float dt_s) {
+    // 锚定帧计数器（函数级静态，跨调用保持；仅 trust_accel 退出时清零）
+    static uint8_t anchor_frame_count = 0;
+
+    // 1. 去偏后陀螺积分（使用内部估计的 bias）
+    const float dynamic_bias_gx = imu_bias_valid_ ? imu_stat_.bias_gx_dps : 0.0f;
+    const float dynamic_bias_gy = imu_bias_valid_ ? imu_stat_.bias_gy_dps : 0.0f;
+    const float omega_x = data_[kOmegaX] - dynamic_bias_gx;
+    const float omega_y = data_[kOmegaY] - dynamic_bias_gy;
+    integrated_roll_deg_  += dt_s * omega_x;
+    integrated_pitch_deg_ += dt_s * omega_y;
+
+    // 2. 加速度计锚定（仅在内部 trust_accel=true 时）
+    if (imu_stat_.trust_accel) {
+        const float alpha = (anchor_frame_count < 3)
+            ? 0.5f : control_config::kImuRollPitchAlpha;
+        anchor_frame_count++;
+
+        const float gy = data_[kAccY];
+        const float gz = data_[kAccZ];
+        const float gx = data_[kAccX];
+
+        constexpr float kRadToDeg = 180.0f / 3.1415926535f;
+        const float acc_roll  = atan2f(gy, gz) * kRadToDeg;
+        const float acc_pitch = atan2f(-gx, sqrtf(gy*gy + gz*gz)) * kRadToDeg;
+
+        integrated_roll_deg_  = alpha * integrated_roll_deg_
+                              + (1.0f - alpha) * acc_roll;
+        integrated_pitch_deg_ = alpha * integrated_pitch_deg_
+                              + (1.0f - alpha) * acc_pitch;
+    } else {
+        anchor_frame_count = 0;
+    }
+
+    data_[kAngleX] = integrated_roll_deg_;
+    data_[kAngleY] = integrated_pitch_deg_;
+    roll_port_  = integrated_roll_deg_;
+    pitch_port_ = integrated_pitch_deg_;
+}
+
+void IMU::compute_stationary_and_bias() {
+    imu_stat_sample_count_++;
+
+    const float ax = data_[kAccX], ay = data_[kAccY], az = data_[kAccZ];
+    const float gx = data_[kOmegaX], gy = data_[kOmegaY], gz = data_[kOmegaZ];
+
+    const float acc_norm = sqrtf(ax*ax + ay*ay + az*az);
+    const float acc_var  = fabsf(acc_norm - prev_acc_norm_);
+    prev_acc_norm_ = acc_norm;
+
+    const bool accel_norm_ok = fabsf(acc_norm - kGravityMS2) < control_config::kImuBiasAccelNormTolerance;
+    const bool accel_stable = (acc_var < control_config::kImuBiasAccelVarThreshold);
+    const bool gyro_still = (fabsf(gx) < control_config::kImuBiasGyroStillThresholdDegPerS)
+                         && (fabsf(gy) < control_config::kImuBiasGyroStillThresholdDegPerS)
+                         && (fabsf(gz) < control_config::kImuBiasGyroStillThresholdDegPerS);
+    const bool all_still = accel_norm_ok && accel_stable && gyro_still;
+
+    auto reset_collect_window = [this]() {
+        imu_stat_collect_count_ = 0;
+        imu_stat_sum_acc_norm_ = 0.0f;
+        imu_stat_sum_acc_norm_sq_ = 0.0f;
+        imu_stat_sum_gx_ = 0.0f;
+        imu_stat_sum_gy_ = 0.0f;
+        imu_stat_sum_gz_ = 0.0f;
+        imu_stat_sum_gx_sq_ = 0.0f;
+        imu_stat_sum_gy_sq_ = 0.0f;
+        imu_stat_sum_gz_sq_ = 0.0f;
+    };
+
+    auto reset_to_normal = [this, &reset_collect_window]() {
+        imu_stat_phase_ = ImuStatPhase::kNormal;
+        imu_stat_.confirm_count = 0;
+        imu_stat_.trust_accel = false;
+        if (!imu_bias_valid_) {
+            imu_bias_valid_window_count_ = 0;
+        }
+        reset_collect_window();
+    };
+
+    if (imu_stat_sample_count_ < control_config::kImuBiasStartupIgnoreFrames) {
+        reset_to_normal();
+        imu_bias_gx_debug = imu_stat_.bias_gx_dps;
+        imu_bias_gy_debug = imu_stat_.bias_gy_dps;
+        imu_bias_gz_debug = imu_stat_.bias_gz_dps;
+        imu_bias_confirm_count_debug = imu_stat_.confirm_count;
+        return;
+    }
+
+    switch (imu_stat_phase_) {
+    case ImuStatPhase::kNormal:
+        if (all_still) {
+            imu_stat_.confirm_count++;
+            if (imu_stat_.confirm_count >= control_config::kImuBiasConfirmFrames) {
+                imu_stat_phase_ = ImuStatPhase::kCollecting;
+                reset_collect_window();
+            }
+        } else {
+            imu_stat_.confirm_count = 0;
+        }
+        imu_stat_.trust_accel = false;
+        break;
+
+    case ImuStatPhase::kCollecting:
+        if (!all_still) {
+            reset_to_normal();
+            break;
+        }
+        imu_stat_sum_acc_norm_ += acc_norm;
+        imu_stat_sum_acc_norm_sq_ += acc_norm * acc_norm;
+        imu_stat_sum_gx_ += gx;
+        imu_stat_sum_gy_ += gy;
+        imu_stat_sum_gz_ += gz;
+        imu_stat_sum_gx_sq_ += gx * gx;
+        imu_stat_sum_gy_sq_ += gy * gy;
+        imu_stat_sum_gz_sq_ += gz * gz;
+        imu_stat_collect_count_++;
+        if (imu_stat_collect_count_ >= control_config::kImuBiasWindowFrames) {
+            imu_stat_phase_ = ImuStatPhase::kVerifying;
+        }
+        imu_stat_.trust_accel = true;
+        break;
+
+    case ImuStatPhase::kVerifying:
+        if (all_still && imu_stat_collect_count_ > 0) {
+            const float n = static_cast<float>(imu_stat_collect_count_);
+            const float mean_acc_norm = imu_stat_sum_acc_norm_ / n;
+            const float mean_gx = imu_stat_sum_gx_ / n;
+            const float mean_gy = imu_stat_sum_gy_ / n;
+            const float mean_gz = imu_stat_sum_gz_ / n;
+
+            const float acc_std = sqrtf(variance_from_sums(imu_stat_sum_acc_norm_, imu_stat_sum_acc_norm_sq_, n));
+            const float gx_std = sqrtf(variance_from_sums(imu_stat_sum_gx_, imu_stat_sum_gx_sq_, n));
+            const float gy_std = sqrtf(variance_from_sums(imu_stat_sum_gy_, imu_stat_sum_gy_sq_, n));
+            const float gz_std = sqrtf(variance_from_sums(imu_stat_sum_gz_, imu_stat_sum_gz_sq_, n));
+
+            const bool acc_window_ok = fabsf(mean_acc_norm - kGravityMS2) < control_config::kImuBiasAccelNormTolerance
+                                    && acc_std < control_config::kImuBiasAccelStdMax;
+            const bool gyro_window_ok = fabsf(mean_gx) < control_config::kImuBiasMaxAbsDegPerS
+                                      && fabsf(mean_gy) < control_config::kImuBiasMaxAbsDegPerS
+                                      && fabsf(mean_gz) < control_config::kImuBiasMaxAbsDegPerS
+                                      && gx_std < control_config::kImuBiasGyroStdMaxDegPerS
+                                      && gy_std < control_config::kImuBiasGyroStdMaxDegPerS
+                                      && gz_std < control_config::kImuBiasGyroStdMaxDegPerS;
+
+            imu_bias_window_std_debug = fmaxf(fmaxf(gx_std, gy_std), gz_std);
+            if (acc_window_ok && gyro_window_ok) {
+                if (imu_bias_valid_) {
+                    imu_stat_.bias_gx_dps = update_bias_limited(imu_stat_.bias_gx_dps, mean_gx);
+                    imu_stat_.bias_gy_dps = update_bias_limited(imu_stat_.bias_gy_dps, mean_gy);
+                    imu_stat_.bias_gz_dps = update_bias_limited(imu_stat_.bias_gz_dps, mean_gz);
+                } else {
+                    if (imu_bias_valid_window_count_ < control_config::kImuBiasValidWindows) {
+                        imu_bias_valid_window_count_++;
+                    }
+                    if (imu_bias_valid_window_count_ >= control_config::kImuBiasValidWindows) {
+                        imu_stat_.bias_gx_dps = mean_gx;
+                        imu_stat_.bias_gy_dps = mean_gy;
+                        imu_stat_.bias_gz_dps = mean_gz;
+                        imu_bias_valid_ = true;
+                    }
+                }
+                imu_stat_phase_ = ImuStatPhase::kCollecting;
+                reset_collect_window();
+                imu_stat_.trust_accel = true;
+            } else {
+                if (!imu_bias_valid_) {
+                    imu_bias_valid_window_count_ = 0;
+                }
+                reset_to_normal();
+            }
+        } else {
+            reset_to_normal();
+        }
+        break;
+    }
+
+    if (!all_still && imu_stat_phase_ == ImuStatPhase::kCollecting) {
+        reset_to_normal();
+    }
+
+    imu_bias_gx_debug = imu_stat_.bias_gx_dps;
+    imu_bias_gy_debug = imu_stat_.bias_gy_dps;
+    imu_bias_gz_debug = imu_stat_.bias_gz_dps;
+    imu_bias_confirm_count_debug = imu_stat_.confirm_count;
+}
+
+void IMU::reset_ports() {
+    omega_x_port_.reset();
+    omega_y_port_.reset();
+    omega_z_port_.reset();
+    yaw_port_.reset();
+    roll_port_.reset();
+    pitch_port_.reset();
+    acc_x_port_.reset();
+    acc_y_port_.reset();
+    acc_z_port_.reset();
 }

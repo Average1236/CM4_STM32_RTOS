@@ -6,6 +6,8 @@
 
 // Debug variables
 volatile uint8_t id_debug = 0;
+volatile uint32_t motor_fb_count[4] = {0, 0, 0, 0};
+volatile uint32_t motor_fb_unmatched_task_count = 0;
 
 extern "C" {
 
@@ -18,12 +20,6 @@ void StartMotorRxTask(void *argument) {
     for(;;) {
         // Block waiting for motor feedback from queue
         if (osMessageQueueGet(q_motor_fbHandle, &fb_msg, NULL, osWaitForever) == osOK) {
-
-            id_debug = fb_msg.id;  // Debug: store received CAN ID
-            if (id_debug == 14) {
-                volatile uint8_t a = 0;
-            }
-                            
             // Match wheel motor feedback by configured feedback CAN ID instead of hardcoded IDs.
             int matched_wheel_idx = -1;
             for (int i = 0; i < 4; ++i) {
@@ -35,22 +31,12 @@ void StartMotorRxTask(void *argument) {
             }
 
             if (matched_wheel_idx >= 0) {
+                motor_fb_count[matched_wheel_idx]++;
                 if (!robot.wheel_motors[matched_wheel_idx]->is_writing_register()) {
                     robot.wheel_motors[matched_wheel_idx]->parse_feedback_data(fb_msg.buf);
-                    if (!robot.wheel_motors[matched_wheel_idx]->is_enabled()) {
-                        can_Message_t msg;
-                        robot.wheel_motors[matched_wheel_idx]->build_clear_error_msg(msg);
-                        osSemaphoreAcquire(sem_can_txHandle, osWaitForever);
-                        can2_bus.send_message(msg);
-                        osSemaphoreRelease(sem_can_txHandle);
-                        robot.wheel_motors[matched_wheel_idx]->build_enable_msg(msg);
-                        osSemaphoreAcquire(sem_can_txHandle, osWaitForever);
-                        can2_bus.send_message(msg);
-                        osSemaphoreRelease(sem_can_txHandle);
-                    }
                 }
-            } else if (robot.dribbler != nullptr && fb_msg.id == robot.dribbler->feedback_can_id()) {
-                robot.dribbler->parse_feedback_data(fb_msg.buf);
+            } else {
+                motor_fb_unmatched_task_count++;
             }
 
         }

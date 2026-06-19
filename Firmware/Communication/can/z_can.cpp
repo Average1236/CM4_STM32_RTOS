@@ -18,16 +18,19 @@ bool ZCAN::apply_config() {
 bool ZCAN::reinit() {
     HAL_CAN_Stop(handle_);
     HAL_CAN_ResetError(handle_);
+    const uint32_t rx_pending_it = (handle_->Instance == CAN1)
+                                 ? CAN_IT_RX_FIFO0_MSG_PENDING
+                                 : CAN_IT_RX_FIFO1_MSG_PENDING;
     return (HAL_CAN_Init(handle_) == HAL_OK)
         && (HAL_CAN_Start(handle_) == HAL_OK)
-        && (HAL_CAN_ActivateNotification(handle_, CAN_IT_RX_FIFO0_MSG_PENDING | CAN_IT_RX_FIFO1_MSG_PENDING) == HAL_OK);
+        && (HAL_CAN_ActivateNotification(handle_, rx_pending_it) == HAL_OK);
 }
 
 bool ZCAN::start(CAN_HandleTypeDef* handle) {
     handle_ = handle;
 
     #if defined(STM32F405xx)
-    start_bank_ = (handle_->Instance == CAN1) ? 0 : 14; // STM32F405 has 28 filter banks shared between CAN1 and CAN2
+    start_bank_ = (handle_->Instance == CAN1) ? 0 : kSlaveStartFilterBank;
     #endif
 
     handle_->Init.Prescaler = CAN_FREQ / config_.baud_rate / (config_.sjw + config_.time_seg1 + config_.time_seg2);
@@ -76,6 +79,7 @@ void ZCAN::process_rx_fifo(uint32_t fifo) {
 
         // Find the triggered subscription item based on header.FilterMatchIndex
         auto it = std::find_if(subscriptions_.begin() + start_bank_, subscriptions_.end(), [&](auto& s) {
+            if (s.fifo == kCanFifoNone) return false;
             size_t current_idx = (s.fifo == 0 ? fifo0_idx : fifo1_idx)++;
             return (header.FilterMatchIndex == current_idx) && (s.fifo == fifo);
         });
@@ -137,7 +141,7 @@ bool ZCAN::subscribe(const MsgIdFilterSpecs& filter, on_can_message_cb_t callbac
     uint32_t mask = (is_extended ? (filter.mask << 3) : (filter.mask << 21))
                   | (1 << 2); // care about the is_extended bit
 
-    CAN_FilterTypeDef hal_filter;
+    CAN_FilterTypeDef hal_filter = {};
     hal_filter.FilterActivation = ENABLE;
     hal_filter.FilterBank = &*it - &subscriptions_[0];
     hal_filter.FilterFIFOAssignment = it->fifo;
@@ -147,6 +151,7 @@ bool ZCAN::subscribe(const MsgIdFilterSpecs& filter, on_can_message_cb_t callbac
     hal_filter.FilterMaskIdLow = mask & 0xffff;
     hal_filter.FilterMode = CAN_FILTERMODE_IDMASK;
     hal_filter.FilterScale = CAN_FILTERSCALE_32BIT;
+    hal_filter.SlaveStartFilterBank = kSlaveStartFilterBank;
 
     if (HAL_CAN_ConfigFilter(handle_, &hal_filter) != HAL_OK) {
         return false;
@@ -159,7 +164,7 @@ bool ZCAN::unsubscribe(CanSubscription* handle) {
     if (subscription < subscriptions_.begin() || subscription >= subscriptions_.end()) {
         return false;
     }
-    if (subscription->fifo != kCanFifoNone) {
+    if (subscription->fifo == kCanFifoNone) {
         return false; // not in use
     }
 
@@ -167,6 +172,8 @@ bool ZCAN::unsubscribe(CanSubscription* handle) {
 
     CAN_FilterTypeDef hal_filter = {};
     hal_filter.FilterActivation = DISABLE;
+    hal_filter.FilterBank = subscription - &subscriptions_[0];
+    hal_filter.SlaveStartFilterBank = kSlaveStartFilterBank;
     return HAL_CAN_ConfigFilter(handle_, &hal_filter) == HAL_OK;
 }
 
@@ -187,5 +194,5 @@ void HAL_CAN_SleepCallback(CAN_HandleTypeDef *hcan) {}
 void HAL_CAN_WakeUpFromRxMsgCallback(CAN_HandleTypeDef *hcan) {}
 
 void HAL_CAN_ErrorCallback(CAN_HandleTypeDef *hcan) {
-    //HAL_CAN_ResetError(hcan);
+    HAL_CAN_ResetError(hcan);
 }

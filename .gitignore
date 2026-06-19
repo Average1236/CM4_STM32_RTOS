@@ -6,8 +6,10 @@ Thumbs.db
 *~
 
 # VS Code / IDE local settings
-# .vscode/
+.vscode/
 .idea/
+.cache/
+.claude/
 
 # Python cache (Docs scripts)
 __pycache__/
@@ -49,3 +51,6 @@ JLinkLog.txt
 # Logs and temporary outputs
 *.log
 Docs/logs/*.csv
+Docs/*.csv
+
+rpi_timer/

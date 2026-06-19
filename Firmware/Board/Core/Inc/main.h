@@ -58,6 +58,7 @@ void Error_Handler(void);
 
 /* Private defines -----------------------------------------------------------*/
 #define TIM2_PERIOD_CLOCKS 2000
+#define TIM7_PERIOD_CLOCKS 1250
 #define CHIP_Pin GPIO_PIN_3
 #define CHIP_GPIO_Port GPIOB
 #define SHOOT_Pin GPIO_PIN_4

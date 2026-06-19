@@ -1,5 +1,12 @@
 cmake_minimum_required(VERSION 3.22)
 
+if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+    set(CMAKE_TOOLCHAIN_FILE ${CMAKE_CURRENT_SOURCE_DIR}/cmake/gcc-arm-none-eabi.cmake CACHE FILEPATH "Default toolchain")
+endif()
+
+# Fix compiler test for bare-metal builds
+set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+
 project(CM4_stm32_RTOS LANGUAGES C CXX ASM)
 
 set(CMAKE_C_STANDARD 11)

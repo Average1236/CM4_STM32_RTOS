@@ -3,7 +3,9 @@
 
 #include "Task/utils.hpp"
 #include "Communication/can/can_helpers.hpp"
+#include "component.hpp"
 #include <cstdint>
+#include <limits>
 
 class WheelMotorBase {
 public:
@@ -52,6 +54,7 @@ public:
     virtual void build_set_pmax_msg(float pmax, can_Message_t& msg) = 0;
     virtual void build_set_vmax_msg(float vmax, can_Message_t& msg) = 0;
     virtual void build_set_tmax_msg(float tmax, can_Message_t& msg) = 0;
+    virtual void reset_wheel_speed_pid() = 0;
 
     virtual uint32_t command_can_id() const = 0;
     virtual uint32_t feedback_can_id() const { return static_cast<uint32_t>(config_.feedback_id); }
@@ -64,8 +67,20 @@ public:
     Type get_type() const { return type_; }
     bool is_enabled() const { return enabled_; }
 
+    OutputPort<float>* angle_output_port() { return &angle_output_port_; }
+    OutputPort<float>* velocity_output_port() { return &velocity_output_port_; }
+    OutputPort<float>* torque_output_port() { return &torque_output_port_; }
+    OutputPort<float>* current_output_port() { return &current_output_port_; }
+    OutputPort<float>* torque_cmd_output_port() { return &torque_cmd_output_port_; }
+
+    InputPort<float>* velocity_cmd_input_port() { return &velocity_cmd_input_port_; }
+    InputPort<float>* torque_ff_cmd_input_port() { return &torque_ff_cmd_input_port_; }
+
+    void reset_ports();
+
 protected:
     WheelMotorBase(Type type, const Config_t& config, const Info_t& info);
+    void publish_feedback_ports();
 
     float angle_ = 0.0f;
     float vel_ = 0.0f;
@@ -77,6 +92,15 @@ protected:
     Config_t config_;
     Mode mode_ = kModeVelocityControl;
     bool enabled_ = false;
+
+    OutputPort<float> angle_output_port_{0.0f};
+    OutputPort<float> velocity_output_port_{0.0f};
+    OutputPort<float> torque_output_port_{0.0f};
+    OutputPort<float> current_output_port_{0.0f};
+    OutputPort<float> torque_cmd_output_port_{0.0f};
+
+    InputPort<float> velocity_cmd_input_port_;
+    InputPort<float> torque_ff_cmd_input_port_;
 };
 
 class MotorDMH3510 : public WheelMotorBase {
@@ -107,9 +131,9 @@ public:
     struct Parameter_t {
         float acc = 10.0f;
         float dec = -10.0f;
-        float kp_asr = 1.0f;
-        float ki_asr = 50000.0f;
-        float pmax = 12.5f;
+        float kp_asr = 0.0f;
+        float ki_asr = 0.0f;
+        float pmax = 3.1415926535f;
         float vmax = 280.0f;
         float tmax = 1.0f;
     };
@@ -134,6 +158,7 @@ public:
     void build_set_tmax_msg(float tmax, can_Message_t& msg);
 
     bool is_writing_register() { return writing_register_; }
+    void reset_wheel_speed_pid() override;
 
     void build_write_register_msg(uint8_t rid, uint32_t data, can_Message_t& msg);
 
@@ -143,7 +168,36 @@ public:
 
 private:
     State state_ = kStateMotorDisable;
+    State last_error_ = kStateMotorDisable;
     bool writing_register_ = false;
+    PID wheel_speed_pid_;
+    float wheel_speed_pid_kp_alpha_ = 0.0f;
+    bool wheel_speed_pid_prev_enabled_ = false;
+
+    void update_wheel_speed_pll_gains();
+    PID::Parameter_t wheel_speed_pid_param_with_ramp();
+    void reset_wheel_speed_pll(float measured_pos_rad, bool mark_prev_enabled);
+    void update_wheel_speed_pll_from_pos(float measured_pos_rad, bool enabled_now);
+    static float wrap_pm_pi(float angle_rad);
+
+    float pll_kp_ = 0.0f;
+    float pll_ki_ = 0.0f;
+    float pll_pos_est_rad_ = 0.0f;
+    float pll_vel_est_rad_s_ = 0.0f;
+    float pll_vel_ramp_alpha_ = 0.0f;
+    bool pll_initialized_ = false;
+    bool pll_prev_enabled_ = false;
+    bool pll_gain_unstable_ = false;
+
+    // 3-state Luenberger observer [θ, ω, T_dist]
+    float obs_theta_rad_ = 0.0f;
+    float obs_omega_rad_s_ = 0.0f;
+    float obs_t_dist_nm_ = 0.0f;
+    bool obs_initialized_ = false;
+    float last_torque_cmd_nm_ = 0.0f;
+
+    // Velocity filter for damping path
+    ButterworthLowPass2 obs_vel_filter_{{0.0f, 0.0f}};
 
     static float uint_to_float(int x_int, float x_min, float x_max, int bits);
 };

@@ -41,13 +41,15 @@ void StartTelemetryTask(void *argument) {
         
         // Update timestamp statistics
         if (osMutexAcquire(mtx_robot_stateHandle, 10) == osOK) {
-            
-            // Monitor optical flow timing
-            extern uint32_t mouse_time_ms;
-            if (mouse_time_ms != ts.optflow_last) {
-                ts.optflow_delay = current_time - mouse_time_ms;
-                ts.optflow_last = mouse_time_ms;
-                ts.optflow_count++;
+            // Monitor optical flow timing with explicit online/offline status.
+            if (g_optflow_available) {
+                ts.optflow_delay = current_time - g_optflow_last_update_ms;
+                if (g_optflow_last_update_ms != ts.optflow_last) {
+                    ts.optflow_last = g_optflow_last_update_ms;
+                    ts.optflow_count++;
+                }
+            } else {
+                ts.optflow_delay = 0;
             }
             
             osMutexRelease(mtx_robot_stateHandle);

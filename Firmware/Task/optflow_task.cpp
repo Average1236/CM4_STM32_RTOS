@@ -5,70 +5,111 @@
 #include "Component/opt_flow.hpp"
 #include <cstring>
 
-float raw_X, raw_Y;
-float last_X, last_Y;
-float delta_X, delta_Y;
-float global_X, global_Y;
-float body_vx, body_vy, omega_z;
-float raw_vx, raw_vy, raw_omega;
-uint32_t mouse_time_ms, last_mouse_time_ms;
-float dt_s;
-float delta_yaw, angle;
-float e, f;
-float all;
-float imu_omega_z;
-float imu_angle_z;
+// OptFlow health flags consumed by telemetry_task
+volatile bool g_optflow_available = false;
+volatile uint32_t g_optflow_last_update_ms = 0;
 
+namespace {
+static constexpr uint32_t kOptFlowQueueWaitMs = 20;
+static constexpr uint32_t kOptFlowOfflineTimeoutMs = 200;
+}
+
+// Debug / telemetry globals (snapshot + per-sensor velocities)
+float dual_flow_left_x;
+float dual_flow_left_y;
+float dual_flow_right_x;
+float dual_flow_right_y;
+float dual_flow_left_vx;
+float dual_flow_left_vy;
+float dual_flow_right_vx;
+float dual_flow_right_vy;
+float raw_vx, raw_vy;
+float body_vx, body_vy, omega_z;
+float robot_pos_x_mm, robot_pos_y_mm;
+float flow_px, flow_py, flow_yaw;
+unsigned int mouse_time_ms;
+unsigned int optflow_valid_mask;
+unsigned int mouse_left_tick_ms;
+unsigned int mouse_right_tick_ms;
 
 extern "C" {
 
-// OptFlowRxTask - Process optical flow sensor data
+// OptFlowRxTask - Process dual optical flow sensor data fused with IMU
 void StartOptFlowRxTask(void *argument) {
     osDelay(100);  // Wait for initialization
-    
-    OptFlow::Data_t data;
-    
+
+    DualOptFlowSnapshot_t snapshot;
+    bool have_snapshot = false;
+
     for(;;) {
-        // Block waiting for optical flow data from queue
-        if (osMessageQueueGet(q_optflow_dataHandle, &data, NULL, osWaitForever) == osOK) {
-            
-            // // Acquire robot state mutex
-            // if (osMutexAcquire(mtx_robot_stateHandle, 10) == osOK) {
-                
-            // Get IMU data
-            imu_omega_z = imu.get_data(IMU::kOmegaZ);
-            imu_angle_z = imu.get_data(IMU::kAngleZ);
-            
-            // Process optical flow data
-            opt_flow.process(data, imu_omega_z, imu_angle_z);
-            
-            // Update external variables for backward compatibility
-            const OptFlow::State_t& state = opt_flow.get_state();
-            raw_X = state.raw_x;
-            raw_Y = state.raw_y;
-            last_X = state.last_x;
-            last_Y = state.last_y;
-            delta_X = state.delta_x;
-            delta_Y = state.delta_y;
-            global_X = state.global_x;
-            global_Y = state.global_y;
-            raw_vx = state.raw_vx;
-            raw_vy = state.raw_vy;
-            raw_omega = state.raw_omega;
-            mouse_time_ms = state.time_ms;
-            last_mouse_time_ms = state.last_time_ms;
-            dt_s = state.dt_s;
-            delta_yaw = state.delta_yaw;
-            angle = state.angle;
-            e = state.e;
-            f = state.f;
-            all = state.all_distance;
-                
-            //     osMutexRelease(mtx_robot_stateHandle);
-            // }
+        // Poll with timeout so we can maintain explicit offline state.
+        if (osMessageQueueGet(q_optflow_dataHandle, &snapshot, NULL, kOptFlowQueueWaitMs) == osOK) {
+            have_snapshot = true;
+
+            // --- Mirror raw snapshot to global vars (debug) ---
+            dual_flow_left_x   = snapshot.left_x;
+            dual_flow_left_y   = snapshot.left_y;
+            dual_flow_right_x  = snapshot.right_x;
+            dual_flow_right_y  = snapshot.right_y;
+            optflow_valid_mask = snapshot.valid_mask;
+            mouse_time_ms      = snapshot.tick_ms;
+            mouse_left_tick_ms  = snapshot.left_tick_ms;
+            mouse_right_tick_ms = snapshot.right_tick_ms;
+
+            // --- Build OptFlow::Data_t (flow sensor only; IMU via Ports) ---
+            OptFlow::Data_t data;
+            data.left_x        = snapshot.left_x;
+            data.left_y        = snapshot.left_y;
+            data.right_x       = snapshot.right_x;
+            data.right_y       = snapshot.right_y;
+            data.tick_ms       = snapshot.tick_ms;
+            data.left_tick_ms  = snapshot.left_tick_ms;
+            data.right_tick_ms = snapshot.right_tick_ms;
+            data.valid_mask    = snapshot.valid_mask;
+
+            opt_flow.process(data);
+
+            // --- Pull fused state from OutputPorts ---
+            const OptFlow::State_t& s = opt_flow.get_state();
+
+            dual_flow_left_vx  = s.pll_l_vx;
+            dual_flow_left_vy  = s.pll_l_vy;
+            dual_flow_right_vx = s.pll_r_vx;
+            dual_flow_right_vy = s.pll_r_vy;
+
+            body_vx = s.kf_vx * 0.001f; // mm/s → m/s
+            body_vy = s.kf_vy * 0.001f; // mm/s → m/s
+            omega_z = s.omega_z;
+            robot_pos_x_mm = s.flow_px;
+            robot_pos_y_mm = s.flow_py;
+            flow_px = s.flow_px;
+            flow_py = s.flow_py;
+            flow_yaw = s.flow_yaw;
+
+            raw_vx = s.body_vx;
+            raw_vy = s.body_vy;
+
+            g_optflow_last_update_ms = HAL_GetTick();
+            g_optflow_available = true;
+        } else {
+            const uint32_t now_ms = HAL_GetTick();
+            if ((now_ms - g_optflow_last_update_ms) > kOptFlowOfflineTimeoutMs) {
+                g_optflow_available = false;
+            }
+            if (have_snapshot) {
+                OptFlow::Data_t data;
+                data.left_x        = snapshot.left_x;
+                data.left_y        = snapshot.left_y;
+                data.right_x       = snapshot.right_x;
+                data.right_y       = snapshot.right_y;
+                data.tick_ms       = now_ms;
+                data.left_tick_ms  = snapshot.left_tick_ms;
+                data.right_tick_ms = snapshot.right_tick_ms;
+                data.valid_mask    = 0u;
+                opt_flow.process(data);
+            }
         }
     }
 }
 
 } // extern "C"
-

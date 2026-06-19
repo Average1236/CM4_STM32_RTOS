@@ -4,6 +4,8 @@
 // Hardware configuration
 #include "board.h"
 
+#include "main.h"
+
 #include "Task/can_callbacks.h"
 
 #ifdef __cplusplus
@@ -16,12 +18,12 @@ extern "C" {
 
 #define PI_UART_TX_DATA_LENGTH 3
 #define PI_UART_RX_DATA_LENGTH 7
-#define SPI_LENGTH 32
+#define SPI_LENGTH 96
 
-#define INFRARED_THRESHOLD (3.3f)
+#define INFRARED_THRESHOLD (0.5f)
 
 const uint8_t piRxFrameHeader = 0xbb;
-const float bat_k = 12.27;
+const float bat_k = 106.04f / 6.04f;
 const float cap_k = 113.73;
 
 #ifdef __cplusplus

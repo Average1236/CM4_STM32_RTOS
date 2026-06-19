@@ -75,7 +75,7 @@ osThreadId_t OptFlowRxTaskHandle;
 const osThreadAttr_t OptFlowRxTask_attributes = {
   .name = "OptFlowRxTask",
   .stack_size = 2048 * 4,
-  .priority = (osPriority_t) osPriorityHigh,
+  .priority = (osPriority_t) osPriorityHigh2,
 };
 /* Definitions for CrtlTask */
 osThreadId_t CrtlTaskHandle;
@@ -89,14 +89,14 @@ osThreadId_t MotorRxTaskHandle;
 const osThreadAttr_t MotorRxTask_attributes = {
   .name = "MotorRxTask",
   .stack_size = 2048 * 4,
-  .priority = (osPriority_t) osPriorityHigh,
+  .priority = (osPriority_t) osPriorityHigh1,
 };
 /* Definitions for ImuRxTask */
 osThreadId_t ImuRxTaskHandle;
 const osThreadAttr_t ImuRxTask_attributes = {
   .name = "ImuRxTask",
   .stack_size = 1024 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
+  .priority = (osPriority_t) osPriorityHigh3,
 };
 /* Definitions for SpiExchangeTask */
 osThreadId_t SpiExchangeTaskHandle;
@@ -104,13 +104,6 @@ const osThreadAttr_t SpiExchangeTask_attributes = {
   .name = "SpiExchangeTask",
   .stack_size = 512 * 4,
   .priority = (osPriority_t) osPriorityNormal,
-};
-/* Definitions for TelemetryTask */
-osThreadId_t TelemetryTaskHandle;
-const osThreadAttr_t TelemetryTask_attributes = {
-  .name = "TelemetryTask",
-  .stack_size = 512 * 4,
-  .priority = (osPriority_t) osPriorityLow,
 };
 /* Definitions for HealthTask */
 osThreadId_t HealthTaskHandle;
@@ -131,7 +124,6 @@ void StartCrtlTask(void *argument);
 void StartMotorRxTask(void *argument);
 void StartImuRxTask(void *argument);
 void StartSpiExchangeTask(void *argument);
-void StartTelemetryTask(void *argument);
 void StartHealthTask(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
@@ -166,7 +158,7 @@ void MX_FREERTOS_Init(void) {
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
-  q_optflow_dataHandle = osMessageQueueNew(8, 16, NULL);  // 8 messages, 16 bytes each (2 floats)
+  q_optflow_dataHandle = osMessageQueueNew(8, 32, NULL);  // 8 snapshots, 32 bytes each (DualOptFlowSnapshot_t)
   q_motor_fbHandle = osMessageQueueNew(25, 16, NULL);     // 25 messages for 5 motors
   q_imu_dataHandle = osMessageQueueNew(8, 36, NULL);      // 8 messages, 36 bytes (9 floats)
   /* USER CODE END RTOS_QUEUES */
@@ -189,9 +181,6 @@ void MX_FREERTOS_Init(void) {
 
   /* creation of SpiExchangeTask */
   SpiExchangeTaskHandle = osThreadNew(StartSpiExchangeTask, NULL, &SpiExchangeTask_attributes);
-
-  /* creation of TelemetryTask */
-  TelemetryTaskHandle = osThreadNew(StartTelemetryTask, NULL, &TelemetryTask_attributes);
 
   /* creation of HealthTask */
   HealthTaskHandle = osThreadNew(StartHealthTask, NULL, &HealthTask_attributes);
@@ -312,24 +301,6 @@ __weak void StartSpiExchangeTask(void *argument)
     osDelay(1);
   }
   /* USER CODE END StartSpiExchangeTask */
-}
-
-/* USER CODE BEGIN Header_StartTelemetryTask */
-/**
-* @brief Function implementing the TelemetryTask thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_StartTelemetryTask */
-__weak void StartTelemetryTask(void *argument)
-{
-  /* USER CODE BEGIN StartTelemetryTask */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
-  /* USER CODE END StartTelemetryTask */
 }
 
 /* USER CODE BEGIN Header_StartHealthTask */

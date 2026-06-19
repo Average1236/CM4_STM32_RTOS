@@ -1,5 +1,6 @@
 #include "z_main.h"
 #include "iwdg.h"
+#include "usart.h"
 
 #if defined(STM32F405xx)
 // Place FreeRTOS heap in core coupled memory for better performance
@@ -13,7 +14,7 @@ Robot robot{};
 
 ZCAN can1_bus;
 ZCAN can2_bus;
-IMU imu(&hspi2);
+IMU imu(IMU::Model::kIcm42688, &hspi2, GPIOB, GPIO_PIN_9);
 OptFlow opt_flow;
 
 extern "C" int main(void) {

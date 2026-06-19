@@ -55,6 +55,7 @@ public:
 
 private:
     static const uint8_t kCanFifoNone = 0xff;
+    static constexpr uint32_t kSlaveStartFilterBank = 14;
 
     struct ZCANSubscription : CanSubscription {
         uint8_t fifo = kCanFifoNone;
