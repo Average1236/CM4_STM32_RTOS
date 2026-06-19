@@ -136,6 +136,7 @@ public:
     // vx/vy: Butterworth LPFs (heap-allocated, replace TD-based planner)
     ButterworthLowPass2* vx_ref_lpf_ = nullptr;
     ButterworthLowPass2* vy_ref_lpf_ = nullptr;
+    ButterworthLowPass2* yaw_fallback_omega_z_lpf_ = nullptr;
     // Yaw TD fallback (non-IMU mode only)
     TD* td_yaw_fallback_ = nullptr;
     float xy_max_acc[2] = {7.0f, 7.0f};
@@ -176,6 +177,7 @@ private:
     bool kick_active_ = false;
     uint32_t last_kick_tick_ = 0;
     uint16_t kick_pulse_us_ = 0;
+    float yaw_fallback_pid_integ_ = 0.0f;
 };
 
 #endif // __ROBOT_HPP

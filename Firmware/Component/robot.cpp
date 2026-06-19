@@ -27,6 +27,8 @@ volatile float yaw_target_debug = 0;
 volatile float yaw_ref_debug = 0;
 volatile float yaw_ref_vel_debug = 0;
 volatile float yaw_ref_acc_debug = 0;
+volatile float fallback_yaw_integ_debug = 0;
+volatile float fallback_yaw_diff_debug = 0;
 
 // Wheel geometry
 static constexpr float WHEEL_ANGLE_FORWARD = control_config::kWheelAlphaRad;
@@ -129,6 +131,8 @@ Robot::Robot() {
         {control_config::kChassisVxRefButterworthCutoffHz, control_config::kControlDtSec}, 0.0f);
     vy_ref_lpf_ = new ButterworthLowPass2(
         {control_config::kChassisVyRefButterworthCutoffHz, control_config::kControlDtSec}, 0.0f);
+    yaw_fallback_omega_z_lpf_ = new ButterworthLowPass2(
+        {control_config::kYawFallbackOmegaZFilterCutoffHz, control_config::kControlDtSec}, 0.0f);
 
     // Initialize wheel motors
     for (int i = 0; i < 4; i++) {
@@ -155,6 +159,7 @@ Robot::~Robot() {
     }
     delete vx_ref_lpf_;
     delete vy_ref_lpf_;
+    delete yaw_fallback_omega_z_lpf_;
     delete td_yaw_fallback_;
 }
 
@@ -311,7 +316,7 @@ void Robot::pi_encode_spi() {
     float imu_data[9] = {0.0f};
     imu.get_data(imu_data);
 
-    // SpiTx.infrare_flag = (infra_ADC1_val > 0.5f) ? 1 : 0;
+    SpiTx.infrare_flag = infrare_flag;
     SpiTx.getBall = false;
     SpiTx.imu_online = true;
     SpiTx.battery_vol = static_cast<int16_t>(bat_ADC2_val * 5);
@@ -384,6 +389,10 @@ void Robot::pi_encode_spi() {
 void Robot::prepare_yaw_control(float dt_s) {
     if (!use_imu) {
         yaw_target_initialized = false;
+        yaw_fallback_pid_integ_ = 0.0f;
+        if (yaw_fallback_omega_z_lpf_ != nullptr) {
+            yaw_fallback_omega_z_lpf_->reset(0.0f);
+        }
         return;
     }
 
@@ -404,17 +413,46 @@ void Robot::prepare_yaw_control(float dt_s) {
         yaw_target_initialized = true;
     }
 
+    const float yaw_ref = yaw_target_lpf_.state();
     // Pass filtered target to ChassisController for angle PID
-    chassis_controller.set_yaw_angle_target(yaw_target_lpf_.state(), yaw_max_vel);
+    chassis_controller.set_yaw_angle_target(yaw_ref, yaw_max_vel);
 
     // robot_real_vel[2] / robot_acc[2] no longer used for yaw in IMU mode;
     // angle PID → inner rate LADRC runs entirely inside ChassisController::step().
-    robot_real_vel[2] = 0.0f;
+    float omega_ref = 0.0f;
+    if constexpr (control_config::kUseWheelSpeedPidFallback) {
+        const auto yaw_opt = chassis_estimator.chassis_yaw_output_port()->any();
+        const auto omega_z_opt = chassis_estimator.chassis_omega_z_output_port()->any();
+        const float yaw_rad = yaw_opt.has_value() ? *yaw_opt : 0.0f;
+        const float omega_z_raw_rad_s = omega_z_opt.has_value() ? *omega_z_opt : 0.0f;
+        const float omega_z_rad_s = (yaw_fallback_omega_z_lpf_ != nullptr)
+            ? yaw_fallback_omega_z_lpf_->filter(omega_z_raw_rad_s)
+            : omega_z_raw_rad_s;
+        const float err_angle = wrap_to_pi(yaw_ref - yaw_rad);
+
+        yaw_fallback_pid_integ_ += control_config::kYawFallbackAnglePidKi * err_angle * dt_s;
+        yaw_fallback_pid_integ_ = std::clamp(yaw_fallback_pid_integ_, -yaw_max_vel, yaw_max_vel);
+
+        const float p_out = control_config::kYawFallbackAnglePidKp * err_angle;
+        const float i_out = yaw_fallback_pid_integ_;
+        const float d_out = -control_config::kYawFallbackAnglePidKd * omega_z_rad_s;
+        omega_ref = std::clamp(p_out + i_out + d_out, -yaw_max_vel, yaw_max_vel);
+        robot_real_vel[2] = omega_ref;
+
+        fallback_yaw_integ_debug = i_out;
+        fallback_yaw_diff_debug = d_out;
+    } else {
+        yaw_fallback_pid_integ_ = 0.0f;
+        if (yaw_fallback_omega_z_lpf_ != nullptr) {
+            yaw_fallback_omega_z_lpf_->reset(0.0f);
+        }
+        robot_real_vel[2] = 0.0f;
+    }
     robot_acc[2] = 0.0f;
 
     // Debug
-    yaw_ref_debug     = yaw_target_lpf_.state();
-    yaw_ref_vel_debug = 0.0f;   // omega_ref is internal to ChassisController now
+    yaw_ref_debug     = yaw_ref;
+    yaw_ref_vel_debug = omega_ref;
     yaw_ref_acc_debug = 0.0f;
 }
 
@@ -490,7 +528,7 @@ void Robot::update_torque_feedforward(const double _dt) {
 
     chassis_controller.set_vxvy_acc_limits(xy_max_acc[0], xy_max_acc[1]);
     chassis_controller.set_reference(robot_real_vel, robot_acc);
-    chassis_controller.set_use_imu_yaw(use_imu);
+    chassis_controller.set_use_imu_yaw(use_imu && !control_config::kUseWheelSpeedPidFallback);
     // set_yaw_target no longer called: outer angle loop runs in prepare_yaw_control(),
     // inner velocity loop tracks vel_ref_[2] (set via set_reference) directly.
     chassis_estimator.set_reference_accel(robot_acc);

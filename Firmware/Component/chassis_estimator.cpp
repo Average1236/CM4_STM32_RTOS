@@ -331,7 +331,7 @@ void ChassisEstimator::step(float dt_s) {
     chassis_vx_debug = chassis_vel_meas[0];
     chassis_vy_debug = chassis_vel_meas[1];
     chassis_yaw_debug = yaw_rad;
-    chassis_omega_z_debug = omega_z_rad_s * kRadToDeg;
+    chassis_omega_z_debug = omega_z_rad_s;
 
     chassis_vx_output_port_ = chassis_vel_meas[0];
     chassis_vy_output_port_ = chassis_vel_meas[1];

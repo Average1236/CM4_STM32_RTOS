@@ -43,7 +43,7 @@ inline constexpr float kPi           = 3.1415926535f;
 
 inline constexpr float kRobotMassKg           = 4.0f;
 inline constexpr float kRobotInertiaKgM2      = 8e-3f;
-inline constexpr float kWheelRadiusM          = 0.03f;
+inline constexpr float kWheelRadiusM          = 0.033f;
 inline constexpr float kWheelCenterDistanceM  = 0.0785f;
 inline constexpr float kCenterToComDistanceM  = 0.0f;
 inline constexpr float kWheelAlphaRad         = 30.0f / 180.0f * kPi;
@@ -86,7 +86,15 @@ inline constexpr float kYawAnglePidKp = 20.0f;
 inline constexpr float kYawAnglePidKi = 3.0f;
 inline constexpr float kYawAnglePidKd = 0.0f;
 
-// ---- 3c. Vy coupling feedforward ----
+// ---- 3c. Wheel-speed fallback outer angle PID (in Robot::prepare_yaw_control) ----
+// Separate from the torque-control yaw PID so wheel-speed fallback can be tuned
+// without changing the active torque/LADRC yaw path.
+inline constexpr float kYawFallbackAnglePidKp = 10.0f;
+inline constexpr float kYawFallbackAnglePidKi = 2.0f;
+inline constexpr float kYawFallbackAnglePidKd = 0.3f;
+inline constexpr float kYawFallbackOmegaZFilterCutoffHz = 50.0f;
+
+// ---- 3d. Vy coupling feedforward ----
 // Feeds forward vy reference into yaw torque (Coriolis-like coupling).
 // 0.0 = disabled.  Non-zero when lateral motion affects yaw noticeably.
 inline constexpr float kYawVyCoupling = 0.0f;
@@ -154,8 +162,12 @@ inline constexpr float kChassisVelPidIntegLimitY    = 10.0f;    // m/s² contrib
 inline constexpr float kChassisVelPidBackCalcGainY  = 0.3f;
 inline constexpr float kChassisVelPidDiffCutoffHzY  = 0.0f;
 
+// Wheel-speed PID fallback disables chassis torque feedforward and closes
+// yaw angle through wheel velocity commands instead.
+inline constexpr bool kUseWheelSpeedPidFallback = true;
+
 // Yaw torque feedforward limit per wheel (Nm)
-inline constexpr float kWheelTorqueFfLimitNm = 0.7f;
+inline constexpr float kWheelTorqueFfLimitNm = kUseWheelSpeedPidFallback ? 0.0f : 0.7f;
 
 
 // ==========================================================================
@@ -165,13 +177,13 @@ inline constexpr float kWheelTorqueFfLimitNm = 0.7f;
 // ==========================================================================
 
 // ---- 6a. Speed PID ----
-inline constexpr float kWheelSpeedPidKp             = 0.03f;
-inline constexpr float kWheelSpeedPidKi             = 0.6f;
+inline constexpr float kWheelSpeedPidKp             = 0.04f;
+inline constexpr float kWheelSpeedPidKi             = 0.4f;
 inline constexpr float kWheelSpeedPidKd             = 0.0f;
 inline constexpr float kWheelSpeedPidBackCalcGain   = 0.3f;
 inline constexpr float kWheelSpeedPidDiffCutoffHz   = 50.0f;
-inline constexpr float kWheelSpeedPidOutputLimitNm  = 0.0f;    // 0 = disabled
-inline constexpr float kWheelSpeedPidIntegLimitNm   = 0.0f;    // 0 = disabled
+inline constexpr float kWheelSpeedPidOutputLimitNm  = kUseWheelSpeedPidFallback ? 0.5f : 0.0f;
+inline constexpr float kWheelSpeedPidIntegLimitNm   = kUseWheelSpeedPidFallback ? 0.5f : 0.0f;
 inline constexpr float kWheelSpeedPidKpRampTimeSec  = 1.5f;    // Kp ramp-up time
 
 // ---- 6b. Velocity PLL (motor speed observer) ----

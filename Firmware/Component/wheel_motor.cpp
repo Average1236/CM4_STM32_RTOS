@@ -158,9 +158,12 @@ void MotorDMH3510::pack_mit_data(float position, float velocity, float kp, float
     // Damping coefficient decreases with speed: high at low speed (airborne
     // oscillation suppression), low at high speed (natural friction active).
     const float obs_vel_filtered = obs_vel_filter_.filter(obs_omega_rad_s_);
-    const float damp_alpha = 1.0f - std::clamp(fabsf(velocity) / control_config::kWheelDampScheduleSpeedRadPS, 0.0f, 1.0f);
-    const float damp_eff = control_config::kWheelVirtualDampingMin
-                         + (control_config::kWheelVirtualDampingNmPerRadPS - control_config::kWheelVirtualDampingMin) * damp_alpha;
+    float damp_eff = control_config::kWheelVirtualDampingNmPerRadPS;
+    if constexpr (!control_config::kUseWheelSpeedPidFallback) {
+        const float damp_alpha = 1.0f - std::clamp(fabsf(velocity) / control_config::kWheelDampScheduleSpeedRadPS, 0.0f, 1.0f);
+        damp_eff = control_config::kWheelVirtualDampingMin
+                 + (control_config::kWheelVirtualDampingNmPerRadPS - control_config::kWheelVirtualDampingMin) * damp_alpha;
+    }
     const float torque_damp_raw = enabled_
         ? (damp_eff * (velocity - obs_vel_filtered))
         : 0.0f;
