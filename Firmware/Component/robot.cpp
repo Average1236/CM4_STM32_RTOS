@@ -14,6 +14,7 @@ volatile float a_des_y_debug = 0;
 volatile float wheel_vel_debug = 0;
 volatile float v_des_x_debug = 0;
 volatile float v_des_y_debug = 0;
+volatile float kick_discharge_time_debug = 0;
 volatile uint16_t kick_pulse_debug = 0;
 volatile float dribble_power_debug = 0;
 volatile uint8_t dribbler_mode_debug = 0;
@@ -231,6 +232,7 @@ void Robot::pi_decode_spi() {
 
     kick_mode = SpiRx.kick_mode ? false : true;
     kick_discharge_time = SpiRx.kick_discharge_time;
+    kick_discharge_time_debug = kick_discharge_time;
 
     use_imu = SpiRx.use_imu;
     // use_imu = true;

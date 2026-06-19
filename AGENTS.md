@@ -28,6 +28,8 @@ CMakePresets.json defines `Debug` and `Release` presets. Both use the Ninja gene
 
 The Raspberry Pi project may be present locally at `rpi_timer/robot/` and is deployed to `/home/pi/rpi_timer/robot/` on the Pi (`pi@192.168.31.245`, password`123`). Use `paramiko` from the base Python environment for password-based SFTP/SSH when key auth is unavailable; do not commit credentials.
 
+Before making any local changes under `rpi_timer/robot/`, copy/sync the current remote project from the Pi first so the local and deployed Raspberry Pi code stay in sync.
+
 When changing Raspberry Pi protobuf files:
 
 ```bash

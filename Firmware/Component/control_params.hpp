@@ -177,8 +177,8 @@ inline constexpr float kWheelTorqueFfLimitNm = kUseWheelSpeedPidFallback ? 0.0f 
 // ==========================================================================
 
 // ---- 6a. Speed PID ----
-inline constexpr float kWheelSpeedPidKp             = 0.04f;
-inline constexpr float kWheelSpeedPidKi             = 0.4f;
+inline constexpr float kWheelSpeedPidKp             = 0.06f;
+inline constexpr float kWheelSpeedPidKi             = 0.6f;
 inline constexpr float kWheelSpeedPidKd             = 0.0f;
 inline constexpr float kWheelSpeedPidBackCalcGain   = 0.3f;
 inline constexpr float kWheelSpeedPidDiffCutoffHz   = 50.0f;

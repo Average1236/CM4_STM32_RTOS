@@ -10,6 +10,9 @@
 #include "stm32f4xx_hal.h"
 
 volatile uint32_t optflow_can_counter[2] = {0, 0}; // For debugging: count received frames for left (0) and right (1) optical flow sensors
+volatile uint32_t motor_fb_bad_len_count = 0;
+volatile uint32_t motor_fb_unmatched_count = 0;
+volatile uint32_t motor_fb_queue_drop_count = 0;
 
 namespace {
 
@@ -41,7 +44,7 @@ void on_optflow_rx(void* ctx, const can_Message_t& msg) {
         snapshot.valid_mask |= 0x01;
         snapshot.left_tick_ms = HAL_GetTick();
         optflow_can_counter[0]++;
-    } else {
+    } else if (msg.id == kOptFlowCanIdRight) {
         snapshot.right_x = x;
         snapshot.right_y = -y;
         snapshot.valid_mask |= 0x02;
@@ -65,11 +68,24 @@ void on_dribbler_heartbeat_rx(void* ctx, const can_Message_t& msg) {
     }
 }
 
-// Callback for motor feedback messages (CAN IDs 0x201-0x205)
+// Callback for motor feedback messages (exact wheel feedback IDs on CAN2)
 void on_motor_fb_rx(void* ctx, const can_Message_t& msg) {
+    WheelMotorBase* motor = static_cast<WheelMotorBase*>(ctx);
+    if (msg.len != 8) {
+        motor_fb_bad_len_count++;
+        return;
+    }
+    if (motor == nullptr || msg.id != motor->feedback_can_id()) {
+        motor_fb_unmatched_count++;
+        return;
+    }
+    if (q_motor_fbHandle == nullptr) {
+        motor_fb_queue_drop_count++;
+        return;
+    }
 
-    can_Message_t fb_msg = msg; // Make a copy
-
-    // Send to queue (non-blocking from ISR context)
-    osMessageQueuePut(q_motor_fbHandle, &fb_msg, 0, 0);
+    can_Message_t fb_msg = msg;
+    if (osMessageQueuePut(q_motor_fbHandle, &fb_msg, 0, 0) != osOK) {
+        motor_fb_queue_drop_count++;
+    }
 }

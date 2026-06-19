@@ -6,7 +6,8 @@
 
 // Debug variables
 volatile uint8_t id_debug = 0;
-volatile uint32_t fb_id_counter[8] = {0};
+volatile uint32_t motor_fb_count[4] = {0, 0, 0, 0};
+volatile uint32_t motor_fb_unmatched_task_count = 0;
 
 extern "C" {
 
@@ -19,8 +20,6 @@ void StartMotorRxTask(void *argument) {
     for(;;) {
         // Block waiting for motor feedback from queue
         if (osMessageQueueGet(q_motor_fbHandle, &fb_msg, NULL, osWaitForever) == osOK) {
-            fb_id_counter[fb_msg.id]++;
-                            
             // Match wheel motor feedback by configured feedback CAN ID instead of hardcoded IDs.
             int matched_wheel_idx = -1;
             for (int i = 0; i < 4; ++i) {
@@ -32,9 +31,12 @@ void StartMotorRxTask(void *argument) {
             }
 
             if (matched_wheel_idx >= 0) {
+                motor_fb_count[matched_wheel_idx]++;
                 if (!robot.wheel_motors[matched_wheel_idx]->is_writing_register()) {
                     robot.wheel_motors[matched_wheel_idx]->parse_feedback_data(fb_msg.buf);
                 }
+            } else {
+                motor_fb_unmatched_task_count++;
             }
 
         }
