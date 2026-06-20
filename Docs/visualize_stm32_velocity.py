@@ -14,6 +14,7 @@ Generated outputs:
     stm32_velocity_vision_source.png, when vision_source exists
     stm32_velocity_yaw_control.png, when chassis_yaw_rad exists
     stm32_velocity_controller_force.png, when controller_f_task_x exists
+    stm32_velocity_xy_acc_dec_limits.png, when XY acceleration-limit columns exist
     stm32_velocity_error_summary.csv
 
 Usage:
@@ -574,6 +575,47 @@ def plot_controller_force(plot_df: pd.DataFrame, output_dir: Path, interactive: 
     return True
 
 
+def plot_xy_acc_dec_limits(
+    plot_df: pd.DataFrame,
+    output_dir: Path,
+    interactive: bool,
+) -> bool:
+    required_cols = {
+        "xy_max_acc_x",
+        "xy_max_acc_y",
+        "xy_max_dec_x",
+        "xy_max_dec_y",
+    }
+    if not required_cols.issubset(plot_df.columns):
+        return False
+
+    fig, (ax_x, ax_y) = plt.subplots(2, 1, figsize=(12, 7), sharex=True)
+
+    for ax, axis_name in ((ax_x, "x"), (ax_y, "y")):
+        artists = []
+        for limit_name, linestyle in (("acc", "-"), ("dec", "--")):
+            column = f"xy_max_{limit_name}_{axis_name}"
+            (line,) = ax.plot(
+                plot_df["t_bin"],
+                plot_df[column],
+                label=column,
+                linestyle=linestyle,
+            )
+            artists.append(line)
+
+        ax.set_title(f"{axis_name.upper()}-axis acceleration/deceleration limits")
+        ax.set_ylabel("Acceleration (m/s^2)")
+        ax.grid(True, alpha=0.3)
+        add_interactive_legend(ax, artists)
+
+    ax_y.set_xlabel("Elapsed time (s)")
+    fig.tight_layout()
+    fig.savefig(output_dir / "stm32_velocity_xy_acc_dec_limits.png", dpi=180)
+    if not interactive:
+        plt.close(fig)
+
+    return True
+
 def print_basic_info(df: pd.DataFrame, csv_path: Path) -> None:
     duration_s = df["t_s"].iloc[-1] - df["t_s"].iloc[0]
     median_dt_ms = df["time_ms"].diff().median()
@@ -595,7 +637,7 @@ def main() -> None:
     parser.add_argument(
         "--csv",
         type=str,
-        default="stm32_velocity_log_regulation.csv",
+        default="stm32_velocity_log_F_3.csv",
         help="Path to input CSV file.",
     )
     parser.add_argument(
@@ -634,6 +676,7 @@ def main() -> None:
     has_vision_source_plot = plot_vision_source(plot_df, output_dir, interactive)
     has_yaw_control_plot = plot_yaw_control(plot_df, output_dir, interactive)
     has_controller_force_plot = plot_controller_force(plot_df, output_dir, interactive)
+    has_xy_acc_dec_limits_plot = plot_xy_acc_dec_limits(plot_df, output_dir, interactive)
     summary = export_error_summary(df, output_dir)
 
     print("\nError summary:")
@@ -650,6 +693,8 @@ def main() -> None:
         print(output_dir / "stm32_velocity_yaw_control.png")
     if has_controller_force_plot:
         print(output_dir / "stm32_velocity_controller_force.png")
+    if has_xy_acc_dec_limits_plot:
+        print(output_dir / "stm32_velocity_xy_acc_dec_limits.png")
     print(output_dir / "stm32_velocity_error_summary.csv")
 
     if interactive:

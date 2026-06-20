@@ -143,22 +143,22 @@ inline constexpr float kVelFeedbackGainYaw = 0.0f;
 // ==========================================================================
 
 // ---- vx ----
-inline constexpr float kChassisVxRefButterworthCutoffHz = 10.0f;   // target LPF (Hz)
+inline constexpr float kChassisVxRefButterworthCutoffHz = 5.0f;   // target LPF (Hz)
 inline constexpr float kChassisVelPidKpX            = 30.0f;
 inline constexpr float kChassisVelPidKiX            = 300.0f;
 inline constexpr float kChassisVelPidKdX            = 0.0f;
-inline constexpr float kChassisVelPidOutputLimitX   = 10.0f;   // m/s²
-inline constexpr float kChassisVelPidIntegLimitX    = 10.0f;    // m/s² contribution
+inline constexpr float kChassisVelPidOutputLimitX   = 20.0f;   // m/s²
+inline constexpr float kChassisVelPidIntegLimitX    = 20.0f;    // m/s² contribution
 inline constexpr float kChassisVelPidBackCalcGainX  = 0.3f;
 inline constexpr float kChassisVelPidDiffCutoffHzX  = 0.0f;
 
 // ---- vy ----
-inline constexpr float kChassisVyRefButterworthCutoffHz = 10.0f;   // target LPF (Hz)
+inline constexpr float kChassisVyRefButterworthCutoffHz = 5.0f;   // target LPF (Hz)
 inline constexpr float kChassisVelPidKpY            = 30.0f;
 inline constexpr float kChassisVelPidKiY            = 300.0f;
 inline constexpr float kChassisVelPidKdY            = 0.0f;
-inline constexpr float kChassisVelPidOutputLimitY   = 10.0f;   // m/s²
-inline constexpr float kChassisVelPidIntegLimitY    = 10.0f;    // m/s² contribution
+inline constexpr float kChassisVelPidOutputLimitY   = 20.0f;   // m/s²
+inline constexpr float kChassisVelPidIntegLimitY    = 20.0f;    // m/s² contribution
 inline constexpr float kChassisVelPidBackCalcGainY  = 0.3f;
 inline constexpr float kChassisVelPidDiffCutoffHzY  = 0.0f;
 

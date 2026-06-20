@@ -205,6 +205,8 @@ void ChassisController::step(float dt_s) {
     // Runtime acc limit from SPI (outer clamp, complements PID's internal output_limit)
     const float pid_vx = std::clamp(pid_vx_raw, -vx_acc_limit_, vx_acc_limit_);
     const float pid_vy = std::clamp(pid_vy_raw, -vy_acc_limit_, vy_acc_limit_);
+    // const float pid_vx = pid_vx_raw;
+    // const float pid_vy = pid_vy_raw;
 
     vx_ref_debug = vel_ref_[0];
     vy_ref_debug = vel_ref_[1];

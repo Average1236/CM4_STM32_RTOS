@@ -233,6 +233,7 @@ void StartCrtlTask(void *argument) {
     uint32_t last_heartbeat_count = 0;
     uint8_t last_dribbler_mode = 0;
     bool last_active_torque_mode = false;
+    (void)last_active_torque_mode;  // silence unused warning when torque mode disabled
     uint8_t hybrid_switch_delay = 0;   // skip cmd for 1 frame after mode switch
 
     for(;;) {
