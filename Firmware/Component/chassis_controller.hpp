@@ -28,6 +28,7 @@ public:
     void set_yaw_target(float target_pos, float target_vel);
     void set_yaw_angle_target(float target_filt, float yaw_max_vel);
     void set_vxvy_acc_limits(float acc_x, float acc_y);
+    void set_velocity_pid_gains(const float pid_x[3], const float pid_y[3]);
     float omega_ref() const { return omega_ref_; }
     float f_task(std::size_t index) const { return (index < 3) ? f_task_[index] : 0.0f; }
     void step(float dt_s);
@@ -54,6 +55,8 @@ private:
 
     PID vx_pid_;
     PID vy_pid_;
+    PID::Parameter_t vx_pid_param_;
+    PID::Parameter_t vy_pid_param_;
 
     // 2nd-order LESO states: [z1=omega_z, z2=disturbance] for yaw
     float yaw_leso_[2] = {0.0f, 0.0f};

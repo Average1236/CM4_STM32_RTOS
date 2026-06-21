@@ -164,7 +164,7 @@ inline constexpr float kChassisVelPidDiffCutoffHzY  = 0.0f;
 
 // Wheel-speed PID fallback disables chassis torque feedforward and closes
 // yaw angle through wheel velocity commands instead.
-inline constexpr bool kUseWheelSpeedPidFallback = true;
+inline constexpr bool kUseWheelSpeedPidFallback = false;
 
 // Yaw torque feedforward limit per wheel (Nm)
 inline constexpr float kWheelTorqueFfLimitNm = kUseWheelSpeedPidFallback ? 0.0f : 0.7f;

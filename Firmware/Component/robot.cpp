@@ -224,6 +224,14 @@ void Robot::pi_decode_spi() {
     raw_vision_vel_mm_s[0] = static_cast<float>(SpiRx.raw_vision_vel[0]);
     raw_vision_vel_mm_s[1] = static_cast<float>(SpiRx.raw_vision_vel[1]);
     vision_source = static_cast<float>(SpiRx.vision_source);
+    for (uint8_t axis = 0; axis < 2; ++axis) {
+        for (uint8_t gain = 0; gain < 3; ++gain) {
+            if (SpiRx.chassis_vel_pid[axis][gain] >= 0) {
+                chassis_vel_pid[axis][gain] = SpiRx.chassis_vel_pid[axis][gain] / 100.0f;
+            }
+        }
+    }
+    chassis_controller.set_velocity_pid_gains(chassis_vel_pid[0], chassis_vel_pid[1]);
     // In IMU mode robot_vel[2] is a yaw angle, not a velocity — do not clamp to
     // velocity limits here.  Velocity clamping happens in the yaw reference tracker.
     if (!use_imu) {
@@ -377,6 +385,11 @@ void Robot::pi_encode_spi() {
     SpiTx.controller_omega_ref = encode_angular_centi(chassis_controller.omega_ref());
     for (uint8_t i = 0; i < 3; ++i) {
         SpiTx.controller_f_task[i] = encode_angular_centi(chassis_controller.f_task(i));
+    }
+    for (uint8_t axis = 0; axis < 2; ++axis) {
+        for (uint8_t gain = 0; gain < 3; ++gain) {
+            SpiTx.chassis_vel_pid[axis][gain] = encode_angular_centi(chassis_vel_pid[axis][gain]);
+        }
     }
     SpiTx.reserved = 0;
 

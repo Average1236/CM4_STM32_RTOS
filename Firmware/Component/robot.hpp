@@ -28,6 +28,7 @@ struct __attribute__((packed)) CM4_to_stm32_spi
     int16_t yaw_max_jerk;    // rad/s^3 * 100
     int16_t raw_vision_vel[2]; // vx, vy in mm/s
     uint8_t vision_source;     // 3: optflow + vision, 4: wheel + vision
+    int16_t chassis_vel_pid[2][3]; // x/y Kp, Ki, Kd * 100
 };
 
 static_assert(sizeof(CM4_to_stm32_spi) <= SPI_LENGTH, "CM4_to_stm32_spi exceeds SPI_LENGTH");
@@ -58,6 +59,7 @@ struct __attribute__((packed)) stm32_to_CM4_spi
     int16_t chassis_omega_z;       // rad/s * 100
     int16_t controller_omega_ref;  // rad/s * 100
     int16_t controller_f_task[3];  // Fx, Fy, Fpsi * 100
+    int16_t chassis_vel_pid[2][3]; // applied x/y Kp, Ki, Kd * 100
     int16_t reserved;
 };
 
@@ -145,6 +147,10 @@ public:
     float yaw_max_vel = 25.0f;
     float yaw_max_acc = 40.0f;
     float yaw_max_jerk = 200.0f;
+    float chassis_vel_pid[2][3] = {
+        {30.0f, 300.0f, 0.0f},
+        {30.0f, 300.0f, 0.0f},
+    };
 
     // m/s
     float robot_vel[3] = {0};

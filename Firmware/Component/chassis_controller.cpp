@@ -59,7 +59,9 @@ const PID::Parameter_t kChassisVyPidParam = {
 } // namespace
 
 ChassisController::ChassisController()
-    : omega_z_filter_({control_config::kChassisOmegaZFilterCutoffHz,
+    : vx_pid_param_(kChassisVxPidParam),
+      vy_pid_param_(kChassisVyPidParam),
+      omega_z_filter_({control_config::kChassisOmegaZFilterCutoffHz,
                        control_config::kControlDtSec},
                       0.0f) {
     precompute_mappings();
@@ -100,6 +102,19 @@ void ChassisController::set_yaw_angle_target(float target_filt, float yaw_max_ve
 void ChassisController::set_vxvy_acc_limits(float acc_x, float acc_y) {
     if (acc_x > 0.0f) vx_acc_limit_ = acc_x;
     if (acc_y > 0.0f) vy_acc_limit_ = acc_y;
+}
+
+void ChassisController::set_velocity_pid_gains(const float pid_x[3], const float pid_y[3]) {
+    if (pid_x != nullptr && pid_x[0] >= 0.0f && pid_x[1] >= 0.0f && pid_x[2] >= 0.0f) {
+        vx_pid_param_.kp = pid_x[0];
+        vx_pid_param_.ki = pid_x[1];
+        vx_pid_param_.kd = pid_x[2];
+    }
+    if (pid_y != nullptr && pid_y[0] >= 0.0f && pid_y[1] >= 0.0f && pid_y[2] >= 0.0f) {
+        vy_pid_param_.kp = pid_y[0];
+        vy_pid_param_.ki = pid_y[1];
+        vy_pid_param_.kd = pid_y[2];
+    }
 }
 
 void ChassisController::step(float dt_s) {
@@ -200,8 +215,8 @@ void ChassisController::step(float dt_s) {
         F_task_psi = control_config::kRobotInertiaKgM2 * (acc_ref_[2] + fb_psi - yaw_leso_[1]);
     }
 
-    const float pid_vx_raw = vx_pid_.calc(vel_ref_[0], vx_m_s, kChassisVxPidParam);
-    const float pid_vy_raw = vy_pid_.calc(vel_ref_[1], vy_m_s, kChassisVyPidParam);
+    const float pid_vx_raw = vx_pid_.calc(vel_ref_[0], vx_m_s, vx_pid_param_);
+    const float pid_vy_raw = vy_pid_.calc(vel_ref_[1], vy_m_s, vy_pid_param_);
     // Runtime acc limit from SPI (outer clamp, complements PID's internal output_limit)
     const float pid_vx = std::clamp(pid_vx_raw, -vx_acc_limit_, vx_acc_limit_);
     const float pid_vy = std::clamp(pid_vy_raw, -vy_acc_limit_, vy_acc_limit_);
