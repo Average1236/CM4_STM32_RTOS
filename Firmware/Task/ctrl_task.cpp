@@ -4,6 +4,7 @@
 #include "z_main.h"
 #include "iwdg.h"
 #include "Component/control_params.hpp"
+#include <cmath>
 #include <optional>
 
 namespace {
@@ -117,23 +118,6 @@ bool build_wheel_command(Robot& robot, uint8_t index, bool safe_output, can_Mess
     return false;
 }
 
-// Dribbler speed feedforward compensation: when chassis moves backward (vx < 0),
-// the dribbler must spin faster to pull the ball against chassis motion.
-// chassis_vx: chassis velocity (m/s), backward is negative
-// base_speed: base dribbler speed (turns/s), negative
-// returns: compensated speed clamped to [kDribblerSpeedSafetyClamp, 0]
-float calc_dribbler_speed_with_compensation(float base_speed, float chassis_vx) {
-    float cmd = base_speed;
-    if (chassis_vx < control_config::kDribblerSpeedDeadZone) {
-        float compensate_turns = chassis_vx * control_config::kDribblerSpeedCompensateGain
-                                 * control_config::kDribblerSpeedSlipMargin;
-        cmd += compensate_turns;
-    }
-    if (cmd < control_config::kDribblerSpeedSafetyClamp) {
-        cmd = control_config::kDribblerSpeedSafetyClamp;
-    }
-    return cmd;
-}
 
 } // namespace
 
@@ -367,12 +351,11 @@ void StartCrtlTask(void *argument) {
                     // ── Branch 2: Pure Speed (20) ──
                     if (dribbler_enabled) {
                         last_active_torque_mode = false;
-                        const float compensated = calc_dribbler_speed_with_compensation(
-                            robot.dribble_velocity, chassis_vx);
-                        robot.dribbler.build_velocity_msg(dribbler_cmd_msg, compensated, robot.dribble_torque_ff);
+                        const float torque_limit_abs = fabsf(robot.dribble_torque_ff);
+                        robot.dribbler.build_velocity_msg(dribbler_cmd_msg, robot.dribble_velocity, torque_limit_abs);
                         dribbler_can_cmd_id_debug = DribblerZfoc::kCanIdSetInputVelocity;
-                        dribbler_can_torque_debug = robot.dribble_torque_ff;
-                        dribbler_can_velocity_debug = compensated;
+                        dribbler_can_torque_debug = torque_limit_abs;
+                        dribbler_can_velocity_debug = robot.dribble_velocity;
                     }
                     robot.dribbler.build_velocity_msg(dribbler_stop_msg, 0.0f, 0.0f);
 
