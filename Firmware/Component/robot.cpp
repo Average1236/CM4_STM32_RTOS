@@ -230,6 +230,7 @@ void Robot::pi_decode_spi() {
                 chassis_vel_pid[axis][gain] = SpiRx.chassis_vel_pid[axis][gain] / 100.0f;
             }
         }
+        acceleration_ff[axis] = SpiRx.acceleration_ff[axis] / 1000.0f;
     }
     chassis_controller.set_velocity_pid_gains(chassis_vel_pid[0], chassis_vel_pid[1]);
     // In IMU mode robot_vel[2] is a yaw angle, not a velocity — do not clamp to
@@ -488,11 +489,11 @@ void Robot::motion_planner(const double _dt) {
     const float dt_s = static_cast<float>(_dt / 1000000.0);
     if (dt_s <= 1e-9f) return;
 
-    // ── Vx / Vy: Butterworth LPF on SPI target (simplified, no TD) ──
+    // Filter velocity targets and preserve host-planned acceleration feedforward.
     robot_real_vel[0] = vx_ref_lpf_->filter(robot_vel[0]);
     robot_real_vel[1] = vy_ref_lpf_->filter(robot_vel[1]);
-    robot_acc[0] = 0.0f;
-    robot_acc[1] = 0.0f;
+    robot_acc[0] = acceleration_ff[0];
+    robot_acc[1] = acceleration_ff[1];
 
     // ── Yaw: TD-based planner (non-IMU fallback only) ──
     if (!use_imu && td_yaw_fallback_ != nullptr) {

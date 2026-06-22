@@ -14,6 +14,8 @@ volatile float vx_pid_integ_debug = 0;
 volatile float vy_pid_integ_debug = 0;
 volatile float vx_pid_diff_debug = 0;
 volatile float vy_pid_diff_debug = 0;
+volatile float vx_acc_ff_debug = 0;
+volatile float vy_acc_ff_debug = 0;
 volatile float F_task_0_debug = 0;
 volatile float F_task_1_debug = 0;
 volatile float F_task_2_debug = 0;
@@ -231,10 +233,14 @@ void ChassisController::step(float dt_s) {
     vy_pid_integ_debug = vy_pid_.get_integ();
     vx_pid_diff_debug = vx_pid_.get_diff();
     vy_pid_diff_debug = vy_pid_.get_diff();
+    vx_acc_ff_debug = acc_ref_[0];
+    vy_acc_ff_debug = acc_ref_[1];
 
+    const float vx_acc_command = acc_ref_[0] + pid_vx;
+    const float vy_acc_command = acc_ref_[1] + pid_vy;
     const float F_task[3] = {
-        control_config::kRobotMassKg * (acc_ref_[0] + pid_vx),
-        control_config::kRobotMassKg * (acc_ref_[1] + pid_vy),
+        control_config::kRobotMassKg * vx_acc_command,
+        control_config::kRobotMassKg * vy_acc_command,
         F_task_psi,
     };
     omega_ref_ = omega_ref;

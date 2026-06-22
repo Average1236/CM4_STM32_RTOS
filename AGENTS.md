@@ -23,6 +23,10 @@ cmake --build build/Debug
 **After every code change**, run `cmake --build build/Debug` from `Firmware/` and verify zero errors before continuing.
 
 CMakePresets.json defines `Debug` and `Release` presets. Both use the Ninja generator and the bundled toolchain file at `Firmware/cmake/gcc-arm-none-eabi.cmake`.
+## Local tooling constraints
+
+- Run visualization scripts, including `Docs/visualize_stm32_velocity.py`, with the Anaconda base environment (`D:\anaconda\python.exe`). The default system Python may not contain the required plotting dependencies.
+- The current sandbox configuration cannot run `apply_patch`. Do not use `apply_patch` in this repository; use PowerShell-based file editing while preserving the existing file encoding and unrelated changes.
 
 ## Raspberry Pi side workflow
 

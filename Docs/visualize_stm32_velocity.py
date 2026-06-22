@@ -9,11 +9,13 @@ Default input:
 Generated outputs:
     stm32_velocity_vx_comparison.png
     stm32_velocity_vy_comparison.png
+    stm32_velocity_planned_fused_acceleration.png
     stm32_velocity_fused_tracking_error.png
     stm32_velocity_xy_plane.png
     stm32_velocity_vision_source.png, when vision_source exists
     stm32_velocity_yaw_control.png, when chassis_yaw_rad exists
     stm32_velocity_controller_force.png, when controller_f_task_x exists
+    stm32_velocity_acceleration_feedforward.png, when acc_ff_x/y exist
     stm32_velocity_xy_acc_dec_limits.png, when XY acceleration-limit columns exist
     stm32_velocity_error_summary.csv
 
@@ -67,6 +69,20 @@ def add_optional_derived_columns(df: pd.DataFrame) -> pd.DataFrame:
     if {"raw_vision_vel_x", "raw_vision_vel_y"}.issubset(df.columns):
         df["raw_vision_vx"] = df["raw_vision_vel_x"] * 0.001
         df["raw_vision_vy"] = df["raw_vision_vel_y"] * 0.001
+
+    dt_s = (df["time_ms"].diff() * 0.001).where(lambda values: values > 0)
+    acceleration_sources = {
+        "planned": ("planned_vx", "planned_vy"),
+        "fused_chassis": ("fused_chassis_vx", "fused_chassis_vy"),
+    }
+    for source_name, (vx_column, vy_column) in acceleration_sources.items():
+        if {vx_column, vy_column}.issubset(df.columns):
+            df[f"{source_name}_acc_x"] = (
+                df[vx_column].diff().div(dt_s).replace([np.inf, -np.inf], np.nan)
+            )
+            df[f"{source_name}_acc_y"] = (
+                df[vy_column].diff().div(dt_s).replace([np.inf, -np.inf], np.nan)
+            )
 
     return df
 
@@ -214,6 +230,53 @@ def plot_vy_comparison(plot_df: pd.DataFrame, output_dir: Path, interactive: boo
         interactive=interactive,
     )
 
+
+def plot_planned_fused_acceleration(
+    plot_df: pd.DataFrame,
+    output_dir: Path,
+    interactive: bool,
+) -> bool:
+    required_cols = {
+        "planned_acc_x",
+        "planned_acc_y",
+        "fused_chassis_acc_x",
+        "fused_chassis_acc_y",
+    }
+    if not required_cols.issubset(plot_df.columns):
+        return False
+
+    fig, (ax_x, ax_y) = plt.subplots(2, 1, figsize=(12, 7), sharex=True)
+    for ax, axis_name in ((ax_x, "x"), (ax_y, "y")):
+        artists = []
+        for source_name, color in (
+            ("planned", "tab:red"),
+            ("fused_chassis", "tab:blue"),
+        ):
+            column = f"{source_name}_acc_{axis_name}"
+            (line,) = ax.plot(
+                plot_df["t_bin"],
+                plot_df[column],
+                label=column,
+                color=color,
+            )
+            artists.append(line)
+
+        ax.axhline(0, linestyle="--", linewidth=1, color="gray")
+        ax.set_title(f"{axis_name.upper()}-axis planned and fused acceleration")
+        ax.set_ylabel("Acceleration (m/s^2)")
+        ax.grid(True, alpha=0.3)
+        add_interactive_legend(ax, artists)
+
+    ax_y.set_xlabel("Elapsed time (s)")
+    fig.tight_layout()
+    fig.savefig(
+        output_dir / "stm32_velocity_planned_fused_acceleration.png",
+        dpi=180,
+    )
+    if not interactive:
+        plt.close(fig)
+
+    return True
 
 def plot_fused_tracking_error(
     df: pd.DataFrame,
@@ -575,6 +638,44 @@ def plot_controller_force(plot_df: pd.DataFrame, output_dir: Path, interactive: 
     return True
 
 
+def plot_acceleration_feedforward(
+    plot_df: pd.DataFrame,
+    output_dir: Path,
+    interactive: bool,
+) -> bool:
+    acceleration_cols = optional_columns(plot_df, ["acc_ff_x", "acc_ff_y"])
+    if not acceleration_cols:
+        return False
+
+    fig, ax = plt.subplots(figsize=(12, 5))
+    artists = []
+    colors = {"acc_ff_x": "tab:red", "acc_ff_y": "tab:green"}
+    for column in acceleration_cols:
+        (line,) = ax.plot(
+            plot_df["t_bin"],
+            plot_df[column],
+            label=column,
+            color=colors[column],
+        )
+        artists.append(line)
+
+    ax.axhline(0, linestyle="--", linewidth=1, color="gray")
+    ax.set_title("Host acceleration feedforward")
+    ax.set_xlabel("Elapsed time (s)")
+    ax.set_ylabel("Acceleration (m/s^2)")
+    ax.grid(True, alpha=0.3)
+    add_interactive_legend(ax, artists)
+
+    fig.tight_layout()
+    fig.savefig(
+        output_dir / "stm32_velocity_acceleration_feedforward.png",
+        dpi=180,
+    )
+    if not interactive:
+        plt.close(fig)
+
+    return True
+
 def plot_xy_acc_dec_limits(
     plot_df: pd.DataFrame,
     output_dir: Path,
@@ -603,7 +704,18 @@ def plot_xy_acc_dec_limits(
             )
             artists.append(line)
 
-        ax.set_title(f"{axis_name.upper()}-axis acceleration/deceleration limits")
+        feedforward_column = f"acc_ff_{axis_name}"
+        if feedforward_column in plot_df.columns:
+            (line,) = ax.plot(
+                plot_df["t_bin"],
+                plot_df[feedforward_column],
+                label=feedforward_column,
+                color="purple",
+                linewidth=1.4,
+            )
+            artists.append(line)
+
+        ax.set_title(f"{axis_name.upper()}-axis acceleration feedforward and limits")
         ax.set_ylabel("Acceleration (m/s^2)")
         ax.grid(True, alpha=0.3)
         add_interactive_legend(ax, artists)
@@ -637,7 +749,7 @@ def main() -> None:
     parser.add_argument(
         "--csv",
         type=str,
-        default="stm32_velocity_log_F_3.csv",
+        default="stm32_velocity_log_cir_4.csv",
         help="Path to input CSV file.",
     )
     parser.add_argument(
@@ -671,11 +783,17 @@ def main() -> None:
     interactive = not args.no_show
     plot_vx_comparison(plot_df, output_dir, interactive)
     plot_vy_comparison(plot_df, output_dir, interactive)
+    has_planned_fused_acceleration_plot = plot_planned_fused_acceleration(
+        plot_df, output_dir, interactive
+    )
     plot_fused_tracking_error(df, output_dir, interactive)
     plot_xy_plane(plot_df, output_dir, interactive)
     has_vision_source_plot = plot_vision_source(plot_df, output_dir, interactive)
     has_yaw_control_plot = plot_yaw_control(plot_df, output_dir, interactive)
     has_controller_force_plot = plot_controller_force(plot_df, output_dir, interactive)
+    has_acceleration_feedforward_plot = plot_acceleration_feedforward(
+        plot_df, output_dir, interactive
+    )
     has_xy_acc_dec_limits_plot = plot_xy_acc_dec_limits(plot_df, output_dir, interactive)
     summary = export_error_summary(df, output_dir)
 
@@ -685,6 +803,8 @@ def main() -> None:
     print("\nGenerated files:")
     print(output_dir / "stm32_velocity_vx_comparison.png")
     print(output_dir / "stm32_velocity_vy_comparison.png")
+    if has_planned_fused_acceleration_plot:
+        print(output_dir / "stm32_velocity_planned_fused_acceleration.png")
     print(output_dir / "stm32_velocity_fused_tracking_error.png")
     print(output_dir / "stm32_velocity_xy_plane.png")
     if has_vision_source_plot:
@@ -693,6 +813,8 @@ def main() -> None:
         print(output_dir / "stm32_velocity_yaw_control.png")
     if has_controller_force_plot:
         print(output_dir / "stm32_velocity_controller_force.png")
+    if has_acceleration_feedforward_plot:
+        print(output_dir / "stm32_velocity_acceleration_feedforward.png")
     if has_xy_acc_dec_limits_plot:
         print(output_dir / "stm32_velocity_xy_acc_dec_limits.png")
     print(output_dir / "stm32_velocity_error_summary.csv")

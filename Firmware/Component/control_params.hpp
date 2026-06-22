@@ -41,7 +41,7 @@ inline constexpr float kPi           = 3.1415926535f;
 //  Mass, inertia, wheel geometry.  Only change when hardware is modified.
 // ==========================================================================
 
-inline constexpr float kRobotMassKg           = 4.0f;
+inline constexpr float kRobotMassKg           = 2.7f;
 inline constexpr float kRobotInertiaKgM2      = 8e-3f;
 inline constexpr float kWheelRadiusM          = 0.033f;
 inline constexpr float kWheelCenterDistanceM  = 0.0785f;
@@ -137,8 +137,8 @@ inline constexpr float kVelFeedbackGainYaw = 0.0f;
 // ==========================================================================
 //  5. Chassis Velocity Control  —  vx / vy PID
 // --------------------------------------------------------------------------
-//  Simplified path: SPI target → Butterworth LPF → PID → clamp by xy_max_acc.
-//  No TD-based acceleration planner.  No feedforward (robot_acc = 0).
+//  Path: SPI velocity target → Butterworth LPF → PID plus host acceleration feedforward.
+//  No TD-based acceleration planner. Feedforward uses CmdVel acceleration_x/y.
 //  PID output (m/s²) is directly scaled to force by mass.
 // ==========================================================================
 
@@ -150,7 +150,7 @@ inline constexpr float kChassisVelPidKdX            = 0.0f;
 inline constexpr float kChassisVelPidOutputLimitX   = 20.0f;   // m/s²
 inline constexpr float kChassisVelPidIntegLimitX    = 20.0f;    // m/s² contribution
 inline constexpr float kChassisVelPidBackCalcGainX  = 0.3f;
-inline constexpr float kChassisVelPidDiffCutoffHzX  = 0.0f;
+inline constexpr float kChassisVelPidDiffCutoffHzX  = 30.0f;
 
 // ---- vy ----
 inline constexpr float kChassisVyRefButterworthCutoffHz = 5.0f;   // target LPF (Hz)
@@ -160,7 +160,7 @@ inline constexpr float kChassisVelPidKdY            = 0.0f;
 inline constexpr float kChassisVelPidOutputLimitY   = 20.0f;   // m/s²
 inline constexpr float kChassisVelPidIntegLimitY    = 20.0f;    // m/s² contribution
 inline constexpr float kChassisVelPidBackCalcGainY  = 0.3f;
-inline constexpr float kChassisVelPidDiffCutoffHzY  = 0.0f;
+inline constexpr float kChassisVelPidDiffCutoffHzY  = 30.0f;
 
 // Wheel-speed PID fallback disables chassis torque feedforward and closes
 // yaw angle through wheel velocity commands instead.

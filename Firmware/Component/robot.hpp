@@ -29,6 +29,7 @@ struct __attribute__((packed)) CM4_to_stm32_spi
     int16_t raw_vision_vel[2]; // vx, vy in mm/s
     uint8_t vision_source;     // 3: optflow + vision, 4: wheel + vision
     int16_t chassis_vel_pid[2][3]; // x/y Kp, Ki, Kd * 100
+    int16_t acceleration_ff[2]; // robot-local vx/vy feedforward in mm/s^2
 };
 
 static_assert(sizeof(CM4_to_stm32_spi) <= SPI_LENGTH, "CM4_to_stm32_spi exceeds SPI_LENGTH");
@@ -158,6 +159,7 @@ public:
     float robot_real_vel[3] = {0};
     float last_robot_real_vel[3] = {0};
     float robot_acc[3] = {0};
+    float acceleration_ff[2] = {0.0f, 0.0f};
     float ik_solve_basis[3] = {0, 1, 2};
     float ik_solve_inv_b[3][3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
     float raw_vision_vel_mm_s[2] = {0.0f, 0.0f};
