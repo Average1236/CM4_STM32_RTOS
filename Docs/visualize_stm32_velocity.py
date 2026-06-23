@@ -12,6 +12,8 @@ Generated outputs:
     stm32_velocity_fused_tracking_error.png
     stm32_velocity_xy_plane.png
     stm32_velocity_vision_source.png, when vision_source exists
+    stm32_velocity_yaw_control.png, when chassis_yaw_rad exists
+    stm32_velocity_controller_force.png, when controller_f_task_x exists
     stm32_velocity_error_summary.csv
 
 Usage:
@@ -26,6 +28,7 @@ from pathlib import Path
 from typing import Any
 
 import matplotlib.pyplot as plt
+from matplotlib.axes import Axes
 import numpy as np
 import pandas as pd
 
@@ -98,7 +101,7 @@ def load_and_preprocess(csv_path: Path, bin_s: float) -> tuple[pd.DataFrame, pd.
     return df, plot_df
 
 
-def add_interactive_legend(ax: plt.Axes, artists: list[Any]) -> None:
+def add_interactive_legend(ax: Axes, artists: list[Any]) -> None:
     legend = ax.legend(loc="best")
     legend_map: dict[Any, Any] = {}
 
@@ -398,6 +401,179 @@ def plot_vision_source(plot_df: pd.DataFrame, output_dir: Path, interactive: boo
     return True
 
 
+def _add_twinx_interactive_legend(
+    ax1: Axes,
+    ax2: Axes,
+    artists_ax1: list[Any],
+    artists_ax2: list[Any],
+) -> None:
+    """Combine artists from two twin axes into one interactive legend.
+
+    Passes the original line artists directly as legend handles so that
+    pick-event → artist mapping stays 1:1 and toggle works reliably.
+    """
+    all_artists = artists_ax1 + artists_ax2
+    if not all_artists:
+        return
+
+    labels = [a.get_label() for a in all_artists]
+    # ax2 is the top-most overlapping axes created by twinx(). Matplotlib
+    # dispatches pick events only to artists in that top-most axes.
+    legend = ax2.legend(all_artists, labels, loc="best")
+    legend_map: dict[Any, Any] = {}
+    legend_items: dict[Any, list[Any]] = {}
+
+    # The legend stores the handles we just passed; use them for the
+    # picker / mapping.  On some mpl versions these are the exact same
+    # objects; on others they are proxies — either way the Legend was
+    # built from them so the order matches `all_artists`.
+    legend_handles = getattr(legend, "legend_handles", None)
+    if legend_handles is None:
+        legend_handles = legend.legendHandles
+
+    for lh, artist in zip(legend_handles, all_artists):
+        lh.set_picker(True)
+        lh.set_pickradius(8)
+        lh.set_alpha(1.0 if artist.get_visible() else 0.25)
+        legend_map[lh] = artist
+        legend_items.setdefault(artist, []).append(lh)
+
+    for lt, artist in zip(legend.get_texts(), all_artists):
+        lt.set_picker(True)
+        lt.set_alpha(1.0 if artist.get_visible() else 0.25)
+        legend_map[lt] = artist
+        legend_items.setdefault(artist, []).append(lt)
+
+    def on_pick(event: Any) -> None:
+        artist = legend_map.get(event.artist)
+        if artist is None:
+            return
+        visible = not artist.get_visible()
+        artist.set_visible(visible)
+        for legend_item in legend_items[artist]:
+            legend_item.set_alpha(1.0 if visible else 0.25)
+        ax1.figure.canvas.draw_idle()
+
+    ax1.figure.canvas.mpl_connect("pick_event", on_pick)
+    ax2.text(
+        0.99, 0.01,
+        "Click legend items to show/hide",
+        transform=ax2.transAxes,
+        ha="right", va="bottom", fontsize=9, alpha=0.65,
+    )
+
+
+def plot_yaw_control(plot_df: pd.DataFrame, output_dir: Path, interactive: bool) -> bool:
+    yaw_cols = optional_columns(plot_df, [
+        "chassis_yaw_rad",
+        "chassis_omega_z",
+        "target_vr",
+        "controller_omega_ref",
+    ])
+    if not yaw_cols:
+        return False
+
+    fig, ax1 = plt.subplots(figsize=(12, 5))
+
+    artists_ax1: list[Any] = []
+    if "chassis_yaw_rad" in yaw_cols:
+        (line,) = ax1.plot(
+            plot_df["t_bin"], plot_df["chassis_yaw_rad"],
+            label="chassis_yaw_rad", color="tab:blue",
+        )
+        artists_ax1.append(line)
+    ax1.set_ylabel("Yaw (rad)")
+    ax1.tick_params(axis="y")
+
+    # Omega_z / omega_ref on right axis (rad/s)
+    ax2 = ax1.twinx()
+    artists_ax2: list[Any] = []
+    if "chassis_omega_z" in yaw_cols:
+        (line,) = ax2.plot(
+            plot_df["t_bin"], plot_df["chassis_omega_z"],
+            label="chassis_omega_z", color="tab:orange",
+        )
+        artists_ax2.append(line)
+    if "target_vr" in yaw_cols:
+        (line,) = ax2.plot(
+            plot_df["t_bin"], plot_df["target_vr"],
+            label="target_vr", color="tab:red", linestyle=":",
+        )
+        artists_ax2.append(line)
+    if "controller_omega_ref" in yaw_cols:
+        (line,) = ax2.plot(
+            plot_df["t_bin"], plot_df["controller_omega_ref"],
+            label="controller_omega_ref", color="tab:green", linestyle="--",
+        )
+        artists_ax2.append(line)
+    ax2.set_ylabel("ωz (rad/s)")
+    ax2.tick_params(axis="y")
+
+    ax1.set_title("Yaw control: angle, angular velocity, and rate reference")
+    ax1.set_xlabel("Elapsed time (s)")
+    ax1.grid(True, alpha=0.3)
+    _add_twinx_interactive_legend(ax1, ax2, artists_ax1, artists_ax2)
+
+    fig.tight_layout()
+    fig.savefig(output_dir / "stm32_velocity_yaw_control.png", dpi=180)
+    if not interactive:
+        plt.close(fig)
+
+    return True
+
+
+def plot_controller_force(plot_df: pd.DataFrame, output_dir: Path, interactive: bool) -> bool:
+    force_cols = optional_columns(plot_df, [
+        "controller_f_task_x",
+        "controller_f_task_y",
+        "controller_f_task_psi",
+    ])
+    if not force_cols:
+        return False
+
+    fig, (ax_xy, ax_psi) = plt.subplots(2, 1, figsize=(12, 7), sharex=True)
+
+    artists_xy = []
+    if "controller_f_task_x" in force_cols:
+        (line,) = ax_xy.plot(
+            plot_df["t_bin"], plot_df["controller_f_task_x"],
+            label="F_task_x", color="tab:red",
+        )
+        artists_xy.append(line)
+    if "controller_f_task_y" in force_cols:
+        (line,) = ax_xy.plot(
+            plot_df["t_bin"], plot_df["controller_f_task_y"],
+            label="F_task_y", color="tab:green",
+        )
+        artists_xy.append(line)
+    ax_xy.set_ylabel("Force (N)")
+    ax_xy.set_title("ChassisController force output: F_task_x / F_task_y")
+    ax_xy.grid(True, alpha=0.3)
+    ax_xy.axhline(0, linestyle="--", linewidth=1, color="gray")
+    add_interactive_legend(ax_xy, artists_xy)
+
+    artists_psi = []
+    if "controller_f_task_psi" in force_cols:
+        (line,) = ax_psi.plot(
+            plot_df["t_bin"], plot_df["controller_f_task_psi"],
+            label="F_task_ψ", color="tab:purple",
+        )
+        artists_psi.append(line)
+    ax_psi.set_ylabel("Yaw moment (N·m)")
+    ax_psi.set_title("ChassisController force output: F_task_ψ")
+    ax_psi.set_xlabel("Elapsed time (s)")
+    ax_psi.grid(True, alpha=0.3)
+    ax_psi.axhline(0, linestyle="--", linewidth=1, color="gray")
+    add_interactive_legend(ax_psi, artists_psi)
+
+    fig.tight_layout()
+    fig.savefig(output_dir / "stm32_velocity_controller_force.png", dpi=180)
+    if not interactive:
+        plt.close(fig)
+
+    return True
+
+
 def print_basic_info(df: pd.DataFrame, csv_path: Path) -> None:
     duration_s = df["t_s"].iloc[-1] - df["t_s"].iloc[0]
     median_dt_ms = df["time_ms"].diff().median()
@@ -419,7 +595,7 @@ def main() -> None:
     parser.add_argument(
         "--csv",
         type=str,
-        default="stm32_velocity_log_35_soft_4.csv",
+        default="stm32_velocity_log_regulation.csv",
         help="Path to input CSV file.",
     )
     parser.add_argument(
@@ -456,6 +632,8 @@ def main() -> None:
     plot_fused_tracking_error(df, output_dir, interactive)
     plot_xy_plane(plot_df, output_dir, interactive)
     has_vision_source_plot = plot_vision_source(plot_df, output_dir, interactive)
+    has_yaw_control_plot = plot_yaw_control(plot_df, output_dir, interactive)
+    has_controller_force_plot = plot_controller_force(plot_df, output_dir, interactive)
     summary = export_error_summary(df, output_dir)
 
     print("\nError summary:")
@@ -468,6 +646,10 @@ def main() -> None:
     print(output_dir / "stm32_velocity_xy_plane.png")
     if has_vision_source_plot:
         print(output_dir / "stm32_velocity_vision_source.png")
+    if has_yaw_control_plot:
+        print(output_dir / "stm32_velocity_yaw_control.png")
+    if has_controller_force_plot:
+        print(output_dir / "stm32_velocity_controller_force.png")
     print(output_dir / "stm32_velocity_error_summary.csv")
 
     if interactive:
