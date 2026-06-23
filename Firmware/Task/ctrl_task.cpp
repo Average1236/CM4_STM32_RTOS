@@ -217,7 +217,6 @@ void StartCrtlTask(void *argument) {
     uint32_t last_heartbeat_count = 0;
     uint8_t last_dribbler_mode = 0;
     bool last_active_torque_mode = false;
-    uint8_t hybrid_switch_delay = 0;   // skip cmd for 1 frame after mode switch
 
     for(;;) {
         if (osSemaphoreAcquire(sem_ctrl_triggerHandle, osWaitForever) == osOK) {
@@ -294,7 +293,6 @@ void StartCrtlTask(void *argument) {
                                     // Confirmed ball hold → switch to speed phase
                                     robot.dribbler_hybrid_phase = Robot::kDribblerHybridSpeedPhase;
                                     robot.dribbler_ball_hold_count = 0;  // reuse for lost-ball counting
-                                    hybrid_switch_delay = 1;             // skip cmd this frame
                                     if (robot.dribbler.current_state == DribblerZfoc::kAxisStateClosedLoopControl) {
                                         robot.dribbler.queue_controller_mode_switch(false);
                                     }
@@ -315,7 +313,6 @@ void StartCrtlTask(void *argument) {
                                     // Confirmed ball lost → fall back to torque phase
                                     robot.dribbler_hybrid_phase = Robot::kDribblerHybridTorquePhase;
                                     robot.dribbler_ball_hold_count = 0;
-                                    hybrid_switch_delay = 1;             // skip cmd this frame
                                     if (robot.dribbler.current_state == DribblerZfoc::kAxisStateClosedLoopControl) {
                                         robot.dribbler.queue_controller_mode_switch(true);
                                     }
@@ -340,7 +337,7 @@ void StartCrtlTask(void *argument) {
                     // ── Branch 1: Pure Torque (10) ──
                     if (dribbler_enabled) {
                         last_active_torque_mode = true;
-                        robot.dribbler.build_torque_msg(dribbler_cmd_msg, robot.dribble_torque_ff, 0.0f);
+                        robot.dribbler.build_torque_msg(dribbler_cmd_msg, -0.05f, 0.0f);
                         dribbler_can_cmd_id_debug = DribblerZfoc::kCanIdSetInputTorque;
                         dribbler_can_torque_debug = robot.dribble_torque_ff;
                         dribbler_can_velocity_debug = 0.0f;
@@ -471,12 +468,12 @@ void StartCrtlTask(void *argument) {
                         }
                         robot.dribbler.pending_count = keep;  // only clear messages that were sent
                     }
-                    // Send dribbler command (only when in closed-loop control)
-                    // Skip cmd for 1 frame after hybrid phase switch to let ZFOC complete mode migration
+                    // Send dribbler command only after queued mode-switch messages have been sent.
+                    // This avoids one velocity-control frame with a stale zero velocity target.
+                    const bool dribbler_mode_update_pending =
+                        dribbler_enabled && (robot.dribbler.pending_count > 0);
                     if (robot.dribbler.current_state == DribblerZfoc::kAxisStateClosedLoopControl) {
-                        if (hybrid_switch_delay > 0) {
-                            hybrid_switch_delay--;
-                        } else {
+                        if (!dribbler_mode_update_pending) {
                             can1_bus.send_message(dribbler_enabled ? dribbler_cmd_msg : dribbler_stop_msg);
                         }
                     }
