@@ -41,7 +41,7 @@ inline constexpr float kPi           = 3.1415926535f;
 //  Mass, inertia, wheel geometry.  Only change when hardware is modified.
 // ==========================================================================
 
-inline constexpr float kRobotMassKg           = 2.7f;
+inline constexpr float kRobotMassKg           = 3.3f;
 inline constexpr float kRobotInertiaKgM2      = 8e-3f;
 inline constexpr float kWheelRadiusM          = 0.033f;
 inline constexpr float kWheelCenterDistanceM  = 0.0785f;
@@ -82,8 +82,8 @@ inline constexpr float kYawTargetLowPassCutoffHz = 10.0f;
 // Kd: derivative gain on ω_z (dimensionless damping)
 //   D = -Kd * ω_z_meas  (derivative-on-measurement)
 //   ↑ = more damping, less overshoot   ↓ = livelier response
-inline constexpr float kYawAnglePidKp = 20.0f;
-inline constexpr float kYawAnglePidKi = 3.0f;
+inline constexpr float kYawAnglePidKp = 15.0f;
+inline constexpr float kYawAnglePidKi = 2.0f;
 inline constexpr float kYawAnglePidKd = 0.0f;
 
 // ---- 3c. Wheel-speed fallback outer angle PID (in Robot::prepare_yaw_control) ----

@@ -749,7 +749,7 @@ def main() -> None:
     parser.add_argument(
         "--csv",
         type=str,
-        default="stm32_velocity_log_cir_4.csv",
+        default="stm32_velocity_log_dribble_1.csv",
         help="Path to input CSV file.",
     )
     parser.add_argument(
