@@ -52,5 +52,7 @@ JLinkLog.txt
 *.log
 Docs/logs/*.csv
 Docs/*.csv
+*.csv
+*.png
 
 rpi_timer/

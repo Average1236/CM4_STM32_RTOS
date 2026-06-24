@@ -56,7 +56,13 @@ float limit_velocity_axis(float target, float last, float dt_s,
 
 } // namespace
 
-ChassisEstimator::ChassisEstimator() {
+ChassisEstimator::ChassisEstimator()
+    : vision_vx_filter_({control_config::kVisionVelocityButterworthCutoffHz,
+                         control_config::kControlDtSec},
+                        0.0f),
+      vision_vy_filter_({control_config::kVisionVelocityButterworthCutoffHz,
+                         control_config::kControlDtSec},
+                        0.0f) {
     precompute_mappings();
 }
 
@@ -157,11 +163,16 @@ void ChassisEstimator::step(float dt_s) {
         fused_chassis_vy_output_port_ = kf_vision_vy_.v_est;
 
     } else if (velocity_source == 4) {
-        // --- Fused: wheel velocity + raw vision velocity with equal confidence.
+        // --- Pure vision velocity with Butterworth low-pass filter (no Kalman).
         const auto vision_vx = vision_vx_input_port_.any();
         const auto vision_vy = vision_vy_input_port_.any();
-        const float raw_vision_vx = vision_vx.has_value() ? *vision_vx * 0.001f : kf_wheel_vision_vx_.v_est;
-        const float raw_vision_vy = vision_vy.has_value() ? *vision_vy * 0.001f : kf_wheel_vision_vy_.v_est;
+        const float raw_vision_vx = vision_vx.has_value() ? *vision_vx * 0.001f : last_vision_vx_;
+        const float raw_vision_vy = vision_vy.has_value() ? *vision_vy * 0.001f : last_vision_vy_;
+        last_vision_vx_ = raw_vision_vx;
+        last_vision_vy_ = raw_vision_vy;
+
+        const float filt_vx = vision_vx_filter_.filter(raw_vision_vx);
+        const float filt_vy = vision_vy_filter_.filter(raw_vision_vy);
 
         wheel_vx_debug = wheel_vx;
         wheel_vy_debug = wheel_vy;
@@ -170,22 +181,10 @@ void ChassisEstimator::step(float dt_s) {
         vision_vx_debug = raw_vision_vx;
         vision_vy_debug = raw_vision_vy;
 
-        kf_wheel_vision_vx_.predict(control_config::kVisionWheelFusionQX);
-        // kf_wheel_vision_vx_.update(wheel_vx, control_config::kVisionWheelFusionRWheelX);
-        if (vision_vx.has_value()) {
-            kf_wheel_vision_vx_.update(raw_vision_vx, control_config::kVisionWheelFusionRVisionX);
-        }
-
-        kf_wheel_vision_vy_.predict(control_config::kVisionWheelFusionQY);
-        // kf_wheel_vision_vy_.update(wheel_vy, control_config::kVisionWheelFusionRWheelY);
-        if (vision_vy.has_value()) {
-            kf_wheel_vision_vy_.update(raw_vision_vy, control_config::kVisionWheelFusionRVisionY);
-        }
-
-        chassis_vel_meas[0] = kf_wheel_vision_vx_.v_est;
-        chassis_vel_meas[1] = kf_wheel_vision_vy_.v_est;
-        fused_chassis_vx_output_port_ = kf_wheel_vision_vx_.v_est;
-        fused_chassis_vy_output_port_ = kf_wheel_vision_vy_.v_est;
+        chassis_vel_meas[0] = filt_vx;
+        chassis_vel_meas[1] = filt_vy;
+        fused_chassis_vx_output_port_ = filt_vx;
+        fused_chassis_vy_output_port_ = filt_vy;
 
     } else if (velocity_source == 2) {
         // --- Fused: adaptive Kalman (wheel + optflow), per-axis params ---
@@ -363,8 +362,10 @@ void ChassisEstimator::reset() {
     kf_vy_ = {};
     kf_vision_vx_ = {};
     kf_vision_vy_ = {};
-    kf_wheel_vision_vx_ = {};
-    kf_wheel_vision_vy_ = {};
+    vision_vx_filter_.reset(0.0f);
+    vision_vy_filter_.reset(0.0f);
+    last_vision_vx_ = 0.0f;
+    last_vision_vy_ = 0.0f;
     wheel_chassis_limiter_initialized_ = false;
     limited_wheel_chassis_vx_ = 0.0f;
     limited_wheel_chassis_vy_ = 0.0f;

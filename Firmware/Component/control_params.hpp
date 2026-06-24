@@ -235,7 +235,7 @@ inline constexpr float kMotorClearErrorToEnableDelayMs = 10.0f;
 // 1: optical-flow-based (kf_vx / kf_vy from OptFlow)
 // 2: fused — wheel + optflow 1-state Kalman (adaptive R, tilt-aware)
 // 3: optflow + raw vision velocity fused by 1-state Kalman
-// 4: wheel + raw vision velocity fused by 1-state Kalman
+// 4: pure vision velocity with Butterworth low-pass filter (no Kalman)
 inline constexpr uint8_t kChassisVelocitySource = 2;
 
 // ---- 7b. Fusion Kalman (source == 2) ----
@@ -290,13 +290,9 @@ inline constexpr float kVisionOptflowFusionROptflowY = 0.05f;
 inline constexpr float kVisionOptflowFusionRVisionX  = 0.005f;
 inline constexpr float kVisionOptflowFusionRVisionY  = 0.005f;
 
-// ---- 7d. Wheel + Vision Velocity Fusion (source == 4) ----
-inline constexpr float kVisionWheelFusionQX       = 0.02f;
-inline constexpr float kVisionWheelFusionQY       = 0.02f;
-inline constexpr float kVisionWheelFusionRWheelX  = 0.9f;
-inline constexpr float kVisionWheelFusionRWheelY  = 0.9f;
-inline constexpr float kVisionWheelFusionRVisionX = 0.02f;
-inline constexpr float kVisionWheelFusionRVisionY = 0.02f;
+// ---- 7d. Pure Vision Velocity (source == 4) ----
+	// Vision velocity only, no Kalman fusion; smoothed by Butterworth LPF.
+inline constexpr float kVisionVelocityButterworthCutoffHz = 10.0f;
 
 
 // ==========================================================================

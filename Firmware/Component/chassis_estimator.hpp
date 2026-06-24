@@ -76,8 +76,10 @@ private:
     FusionKalman1D kf_vy_;
     FusionKalman1D kf_vision_vx_;
     FusionKalman1D kf_vision_vy_;
-    FusionKalman1D kf_wheel_vision_vx_;
-    FusionKalman1D kf_wheel_vision_vy_;
+
+    // Butterworth low-pass filters for pure vision velocity (source == 4)
+    ButterworthLowPass2 vision_vx_filter_;
+    ButterworthLowPass2 vision_vy_filter_;
 
     OutputPort<float> chassis_vx_output_port_{0.0f};
     OutputPort<float> chassis_vy_output_port_{0.0f};
@@ -100,6 +102,10 @@ private:
     bool wheel_chassis_limiter_initialized_ = false;
     float limited_wheel_chassis_vx_ = 0.0f;
     float limited_wheel_chassis_vy_ = 0.0f;
+
+    // Last raw vision velocity for source==4 holdover (when no new data)
+    float last_vision_vx_ = 0.0f;
+    float last_vision_vy_ = 0.0f;
 
 };
 
