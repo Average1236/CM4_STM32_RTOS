@@ -174,6 +174,8 @@ inline constexpr float kWheelTorqueFfLimitNm = kUseWheelSpeedPidFallback ? 0.0f 
 //  6. Wheel Motor Control
 // --------------------------------------------------------------------------
 //  Per-motor speed PID, velocity observer (PLL), virtual damping, MIT mode.
+//  When wheel-speed fallback is enabled, DMH3510 velocity mode closes the
+//  wheel-speed loop internally.
 // ==========================================================================
 
 // ---- 6a. Speed PID ----
@@ -185,6 +187,11 @@ inline constexpr float kWheelSpeedPidDiffCutoffHz   = 50.0f;
 inline constexpr float kWheelSpeedPidOutputLimitNm  = kUseWheelSpeedPidFallback ? 0.5f : 0.0f;
 inline constexpr float kWheelSpeedPidIntegLimitNm   = kUseWheelSpeedPidFallback ? 0.5f : 0.0f;
 inline constexpr float kWheelSpeedPidKpRampTimeSec  = 1.5f;    // Kp ramp-up time
+
+// ---- 6a.1. DMH3510 internal velocity loop ----
+inline constexpr float kDmh3510VelocityKpAsr = 0.45f;
+inline constexpr float kDmh3510VelocityKiAsr = 0.2f;
+inline constexpr float kDmh3510VelocityKi = 320.0f; // Damiao assistant "velocity_ki", RID 0x22
 
 // ---- 6b. Velocity PLL (motor speed observer) ----
 inline constexpr float kWheelSpeedPllBandwidth      = 75.0f;   // rad/s

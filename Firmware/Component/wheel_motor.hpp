@@ -49,6 +49,7 @@ public:
     virtual void build_save_zero_msg(can_Message_t& msg) = 0;
     virtual void build_set_velocity_kp_msg(float kp, can_Message_t& msg) = 0;
     virtual void build_set_velocity_ki_msg(float ki, can_Message_t& msg) = 0;
+    virtual void build_set_velocity_ki_gain_msg(float ki_gain, can_Message_t& msg) = 0;
     virtual void build_set_acc_msg(float acc, can_Message_t& msg) = 0;
     virtual void build_set_dec_msg(float dec, can_Message_t& msg) = 0;
     virtual void build_set_pmax_msg(float pmax, can_Message_t& msg) = 0;
@@ -126,6 +127,7 @@ public:
         kRegTMAX = 0x17,
         kRegKP_ASR = 0x19, // Kp for ASR (active speed regulation, i.e. velocity control)
         kRegKI_ASR = 0x1A, // Ki for ASR
+        kRegVL_C1 = 0x22,  // Damiao assistant "velocity_ki"
     };
 
     struct Parameter_t {
@@ -133,6 +135,7 @@ public:
         float dec = -10.0f;
         float kp_asr = 0.0f;
         float ki_asr = 0.0f;
+        float velocity_ki = 320.0f;
         float pmax = 3.1415926535f;
         float vmax = 280.0f;
         float tmax = 1.0f;
@@ -151,6 +154,7 @@ public:
     void build_save_zero_msg(can_Message_t& msg) override;
     void build_set_velocity_kp_msg(float kp, can_Message_t& msg);
     void build_set_velocity_ki_msg(float ki, can_Message_t& msg);
+    void build_set_velocity_ki_gain_msg(float ki_gain, can_Message_t& msg);
     void build_set_acc_msg(float acc, can_Message_t& msg);
     void build_set_dec_msg(float dec, can_Message_t& msg);
     void build_set_pmax_msg(float pmax, can_Message_t& msg);

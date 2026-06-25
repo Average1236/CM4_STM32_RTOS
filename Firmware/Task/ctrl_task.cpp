@@ -14,7 +14,8 @@ enum WheelCommandMode : uint8_t {
     kWheelCommandMIT = 1,
 };
 
-static constexpr WheelCommandMode kWheelCommandMode = kWheelCommandMIT;
+static constexpr WheelCommandMode kWheelCommandMode =
+    control_config::kUseWheelSpeedPidFallback ? kWheelCommandVelocity : kWheelCommandMIT;
 
 struct MITCommandConfig {
     float kp;
@@ -157,10 +158,13 @@ void motor_init() {
         can2_bus.send_message(msg);
         osDelay(20);
         if (kWheelCommandMode == kWheelCommandVelocity) {
-            robot.wheel_motors[i]->build_set_velocity_kp_msg(MotorDMH3510::Parameter_t().kp_asr, msg);
+            robot.wheel_motors[i]->build_set_velocity_kp_msg(control_config::kDmh3510VelocityKpAsr, msg);
             can2_bus.send_message(msg);
             osDelay(20);
-            robot.wheel_motors[i]->build_set_velocity_ki_msg(MotorDMH3510::Parameter_t().ki_asr, msg);
+            robot.wheel_motors[i]->build_set_velocity_ki_msg(control_config::kDmh3510VelocityKiAsr, msg);
+            can2_bus.send_message(msg);
+            osDelay(20);
+            robot.wheel_motors[i]->build_set_velocity_ki_gain_msg(control_config::kDmh3510VelocityKi, msg);
             can2_bus.send_message(msg);
             osDelay(20);
         }

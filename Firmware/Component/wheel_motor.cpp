@@ -98,6 +98,8 @@ MotorDMH3510::MotorDMH3510(const Config_t& config)
 
 void MotorDMH3510::pack_velocity_data(float velocity, uint8_t* tx_data) {
     writing_register_ = false;
+    last_torque_cmd_nm_ = 0.0f;
+    torque_cmd_output_port_ = 0.0f;
 
     std::memcpy(tx_data, &velocity, sizeof(float));
 }
@@ -460,6 +462,12 @@ void MotorDMH3510::build_set_velocity_ki_msg(float ki, can_Message_t& msg) {
     uint32_t data = 0;
     std::memcpy(&data, &ki, sizeof(float));
     const_cast<MotorDMH3510*>(this)->build_write_register_msg(kRegKI_ASR, data, msg);
+}
+
+void MotorDMH3510::build_set_velocity_ki_gain_msg(float ki_gain, can_Message_t& msg) {
+    uint32_t data = 0;
+    std::memcpy(&data, &ki_gain, sizeof(float));
+    const_cast<MotorDMH3510*>(this)->build_write_register_msg(kRegVL_C1, data, msg);
 }
 
 void MotorDMH3510::build_set_pmax_msg(float pmax, can_Message_t& msg) {
