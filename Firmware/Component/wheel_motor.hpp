@@ -129,8 +129,8 @@ public:
     };
 
     struct Parameter_t {
-        float acc = 10.0f;
-        float dec = -10.0f;
+        float acc = 100.0f;
+        float dec = -100.0f;
         float kp_asr = 0.0f;
         float ki_asr = 0.0f;
         float pmax = 3.1415926535f;

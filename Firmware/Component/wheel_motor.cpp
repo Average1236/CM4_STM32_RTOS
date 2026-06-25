@@ -98,6 +98,8 @@ MotorDMH3510::MotorDMH3510(const Config_t& config)
 
 void MotorDMH3510::pack_velocity_data(float velocity, uint8_t* tx_data) {
     writing_register_ = false;
+    last_torque_cmd_nm_ = 0.0f;
+    torque_cmd_output_port_ = 0.0f;
 
     std::memcpy(tx_data, &velocity, sizeof(float));
 }
