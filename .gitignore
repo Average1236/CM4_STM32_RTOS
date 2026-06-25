@@ -45,6 +45,7 @@ compile_commands.json
 *.lst
 
 # Debugger / probe generated files
+*.jdebug
 *.jdebug.user
 JLinkLog.txt
 
