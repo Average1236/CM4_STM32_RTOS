@@ -36,6 +36,12 @@ public:
         kModeMixedControl = 4,
     };
 
+    enum RegisterWriteCheckResult : uint8_t {
+        kRegisterWriteNotAck = 0,
+        kRegisterWriteOk = 1,
+        kRegisterWriteMismatch = 2,
+    };
+
     virtual ~WheelMotorBase() = default;
 
     virtual void pack_velocity_data(float velocity, uint8_t* tx_data) = 0;
@@ -56,6 +62,7 @@ public:
     virtual void build_set_vmax_msg(float vmax, can_Message_t& msg) = 0;
     virtual void build_set_tmax_msg(float tmax, can_Message_t& msg) = 0;
     virtual void reset_wheel_speed_pid() = 0;
+    virtual RegisterWriteCheckResult check_write_register_feedback(const can_Message_t& msg) = 0;
 
     virtual uint32_t command_can_id() const = 0;
     virtual uint32_t feedback_can_id() const { return static_cast<uint32_t>(config_.feedback_id); }
@@ -162,7 +169,12 @@ public:
     void build_set_tmax_msg(float tmax, can_Message_t& msg);
 
     bool is_writing_register() { return writing_register_; }
+    uint8_t pending_write_register_rid() const { return pending_write_register_rid_; }
+    uint32_t pending_write_register_data() const { return pending_write_register_data_; }
+    uint8_t last_write_register_rid() const { return last_write_register_rid_; }
+    uint32_t last_write_register_data() const { return last_write_register_data_; }
     void reset_wheel_speed_pid() override;
+    RegisterWriteCheckResult check_write_register_feedback(const can_Message_t& msg) override;
 
     void build_write_register_msg(uint8_t rid, uint32_t data, can_Message_t& msg);
 
@@ -174,6 +186,10 @@ private:
     State state_ = kStateMotorDisable;
     State last_error_ = kStateMotorDisable;
     bool writing_register_ = false;
+    uint8_t pending_write_register_rid_ = 0;
+    uint32_t pending_write_register_data_ = 0;
+    uint8_t last_write_register_rid_ = 0;
+    uint32_t last_write_register_data_ = 0;
     PID wheel_speed_pid_;
     float wheel_speed_pid_kp_alpha_ = 0.0f;
     bool wheel_speed_pid_prev_enabled_ = false;

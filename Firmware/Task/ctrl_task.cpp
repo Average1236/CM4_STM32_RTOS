@@ -161,9 +161,9 @@ void motor_init() {
             robot.wheel_motors[i]->build_set_velocity_kp_msg(control_config::kDmh3510VelocityKpAsr, msg);
             can2_bus.send_message(msg);
             osDelay(20);
-            robot.wheel_motors[i]->build_set_velocity_ki_msg(control_config::kDmh3510VelocityKiAsr, msg);
-            can2_bus.send_message(msg);
-            osDelay(20);
+            // robot.wheel_motors[i]->build_set_velocity_ki_msg(control_config::kDmh3510VelocityKiAsr, msg);
+            // can2_bus.send_message(msg);
+            // osDelay(20);
             robot.wheel_motors[i]->build_set_velocity_ki_gain_msg(control_config::kDmh3510VelocityKi, msg);
             can2_bus.send_message(msg);
             osDelay(20);
