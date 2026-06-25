@@ -65,7 +65,13 @@ ChassisController::ChassisController()
       vy_pid_param_(kChassisVyPidParam),
       omega_z_filter_({control_config::kChassisOmegaZFilterCutoffHz,
                        control_config::kControlDtSec},
-                      0.0f) {
+                      0.0f),
+      acc_ff_x_filter_({control_config::kChassisAccFfButterworthCutoffHz,
+                        control_config::kControlDtSec},
+                       0.0f),
+      acc_ff_y_filter_({control_config::kChassisAccFfButterworthCutoffHz,
+                        control_config::kControlDtSec},
+                       0.0f) {
     precompute_mappings();
 }
 
@@ -236,8 +242,12 @@ void ChassisController::step(float dt_s) {
     vx_acc_ff_debug = acc_ref_[0];
     vy_acc_ff_debug = acc_ref_[1];
 
-    const float vx_acc_command = acc_ref_[0] + pid_vx;
-    const float vy_acc_command = acc_ref_[1] + pid_vy;
+    // Smooth host acceleration feedforward to reduce jitter at low speed.
+    const float acc_ff_x_filt = acc_ff_x_filter_.filter(acc_ref_[0]);
+    const float acc_ff_y_filt = acc_ff_y_filter_.filter(acc_ref_[1]);
+
+    const float vx_acc_command = acc_ff_x_filt + pid_vx;
+    const float vy_acc_command = acc_ff_y_filt + pid_vy;
     const float F_task[3] = {
         control_config::kRobotMassKg * vx_acc_command,
         control_config::kRobotMassKg * vy_acc_command,
@@ -278,6 +288,8 @@ void ChassisController::reset() {
     last_chassis_omega_z_rad_s_ = 0.0f;
     last_chassis_yaw_rad_ = 0.0f;
     omega_z_filter_.reset(0.0f);
+    acc_ff_x_filter_.reset(0.0f);
+    acc_ff_y_filter_.reset(0.0f);
     omega_ref_ = 0.0f;
     for (int i = 0; i < 3; ++i) {
         f_task_[i] = 0.0f;

@@ -65,7 +65,7 @@ inline constexpr float kWheelBetaRad          = 45.0f / 180.0f * kPi;
 // ---- 3a. Target low-pass filter ----
 // Smooths the wrapped yaw target from vision / host.
 // ↑ = faster response to target changes   ↓ = less jitter
-inline constexpr float kYawTargetLowPassCutoffHz = 10.0f;
+inline constexpr float kYawTargetLowPassCutoffHz = 8.0f;
 
 // ---- 3b. Outer Angle PID (in ChassisController) ----
 // PID on wrapped angle error → ω_ref, clamped to yaw_max_vel.
@@ -82,8 +82,8 @@ inline constexpr float kYawTargetLowPassCutoffHz = 10.0f;
 // Kd: derivative gain on ω_z (dimensionless damping)
 //   D = -Kd * ω_z_meas  (derivative-on-measurement)
 //   ↑ = more damping, less overshoot   ↓ = livelier response
-inline constexpr float kYawAnglePidKp = 15.0f;
-inline constexpr float kYawAnglePidKi = 2.0f;
+inline constexpr float kYawAnglePidKp = 25.0f;
+inline constexpr float kYawAnglePidKi = 1.5f;
 inline constexpr float kYawAnglePidKd = 0.0f;
 
 // ---- 3c. Wheel-speed fallback outer angle PID (in Robot::prepare_yaw_control) ----
@@ -162,6 +162,10 @@ inline constexpr float kChassisVelPidIntegLimitY    = 20.0f;    // m/s² contrib
 inline constexpr float kChassisVelPidBackCalcGainY  = 0.3f;
 inline constexpr float kChassisVelPidDiffCutoffHzY  = 30.0f;
 
+// Feedforward acceleration Butterworth LPF cutoff (Hz).
+// Smooths host acceleration feedforward; set to 0 to disable.
+inline constexpr float kChassisAccFfButterworthCutoffHz = 20.0f;
+
 // Wheel-speed PID fallback disables chassis torque feedforward and closes
 // yaw angle through wheel velocity commands instead.
 inline constexpr bool kUseWheelSpeedPidFallback = false;
@@ -224,6 +228,15 @@ inline constexpr float kMITSafeTorqueFf = 0.0f;
 // ---- 6g. Motor Protection ----
 inline constexpr float kMotorRecoverDelayMs           = 1000.0f;
 inline constexpr float kMotorClearErrorToEnableDelayMs = 10.0f;
+
+// ---- 6h. Stationary Hold ----
+// When chassis velocity command (sqrt(vx²+vy²)) and angular velocity command
+// are both near zero, the wheel-speed PID output limit ramps from 0 to
+// kStationaryHoldPidOutputLimitNm, adding holding torque on top of chassis
+// controller torque_ff.
+inline constexpr float kStationaryHoldSpeedThreshold = 0.05f;   // m/s
+inline constexpr float kStationaryHoldOmegaThreshold = 0.1f;    // rad/s (~30 deg/s)
+inline constexpr float kStationaryHoldPidOutputLimitNm = 0.3f;  // Nm per wheel
 
 
 // ==========================================================================
@@ -292,7 +305,7 @@ inline constexpr float kVisionOptflowFusionRVisionY  = 0.005f;
 
 // ---- 7d. Pure Vision Velocity (source == 4) ----
 	// Vision velocity only, no Kalman fusion; smoothed by Butterworth LPF.
-inline constexpr float kVisionVelocityButterworthCutoffHz = 10.0f;
+inline constexpr float kVisionVelocityButterworthCutoffHz = 20.0f;
 
 
 // ==========================================================================

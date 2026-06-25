@@ -422,7 +422,19 @@ void StartCrtlTask(void *argument) {
 
                 // Observer-based control law: compute wheel torque feedforward
                 robot.update_torque_feedforward(ctrl_dt_us);
-                
+
+                // Stationary hold: blend wheel-speed PID authority based on
+                // commanded chassis velocity and angular velocity.
+                // Authority = 1.0 only when both |v_cmd|→0 and |ω_ref|→0.
+                const float v_cmd_norm = sqrtf(robot.robot_real_vel[0] * robot.robot_real_vel[0] +
+                                               robot.robot_real_vel[1] * robot.robot_real_vel[1]);
+                const float alpha_v = 1.0f - std::clamp(v_cmd_norm / control_config::kStationaryHoldSpeedThreshold,
+                                                        0.0f, 1.0f);
+                const float omega_cmd_norm = fabsf(robot.chassis_controller.omega_ref());
+                const float alpha_w = 1.0f - std::clamp(omega_cmd_norm / control_config::kStationaryHoldOmegaThreshold,
+                                                        0.0f, 1.0f);
+                const float hold_limit = control_config::kStationaryHoldPidOutputLimitNm * alpha_v * alpha_w;
+
                 can_Message_t wheel_msgs[4];
                 can_Message_t extra_can_msgs[4];
                 uint8_t extra_msg_count = 0;
@@ -430,6 +442,7 @@ void StartCrtlTask(void *argument) {
 
                 for (uint8_t i = 0; i < 4; i++) {
                     const bool safe_output = !robot.wheel_motors[i]->is_enabled() || !robot.watchdog_check();
+                    robot.wheel_motors[i]->set_stationary_hold_limit(safe_output ? 0.0f : hold_limit);
                     build_wheel_command(robot, i, safe_output, wheel_msgs[i]);
 
                     if (!robot.wheel_motors[i]->is_enabled()) {

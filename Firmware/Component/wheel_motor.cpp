@@ -110,7 +110,12 @@ void MotorDMH3510::pack_mit_data(float position, float velocity, float kp, float
 
     // velocity uses rad/s in MIT command; convert feedback from rpm to rad/s.
     const float velocity_feedback = vel_ * kPi / 30.0f;
-    const PID::Parameter_t pid_param = wheel_speed_pid_param_with_ramp();
+    const PID::Parameter_t pid_param_base = wheel_speed_pid_param_with_ramp();
+    PID::Parameter_t pid_param = pid_param_base;
+    if (stationary_hold_limit_ > pid_param.output_limit) {
+        pid_param.output_limit = stationary_hold_limit_;
+        pid_param.integ_limit = stationary_hold_limit_;
+    }
     const float torque_pid = wheel_speed_pid_.calc(velocity, velocity_feedback, pid_param);
     if (config_.feedback_id == 1) {
         wheel_integ_debug = wheel_speed_pid_.get_integ();

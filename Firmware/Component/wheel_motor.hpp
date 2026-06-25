@@ -159,6 +159,7 @@ public:
 
     bool is_writing_register() { return writing_register_; }
     void reset_wheel_speed_pid() override;
+    void set_stationary_hold_limit(float limit_nm) { stationary_hold_limit_ = limit_nm; }
 
     void build_write_register_msg(uint8_t rid, uint32_t data, can_Message_t& msg);
 
@@ -195,6 +196,10 @@ private:
     float obs_t_dist_nm_ = 0.0f;
     bool obs_initialized_ = false;
     float last_torque_cmd_nm_ = 0.0f;
+
+    // Stationary hold: per-frame output-limit override for wheel-speed PID (Nm).
+    // Set by ctrl_task each frame; 0 = no override (PID disabled when fallback=false).
+    float stationary_hold_limit_ = 0.0f;
 
     // Velocity filter for damping path
     ButterworthLowPass2 obs_vel_filter_{{0.0f, 0.0f}};
