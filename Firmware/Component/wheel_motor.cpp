@@ -499,7 +499,34 @@ void MotorDMH3510::build_write_register_msg(uint8_t rid, uint32_t data, can_Mess
     msg.buf[5] = static_cast<uint8_t>((data >> 8) & 0xFF);
     msg.buf[6] = static_cast<uint8_t>((data >> 16) & 0xFF);
     msg.buf[7] = static_cast<uint8_t>((data >> 24) & 0xFF);
+    pending_write_register_rid_ = rid;
+    pending_write_register_data_ = data;
     writing_register_ = true;
+}
+
+WheelMotorBase::RegisterWriteCheckResult MotorDMH3510::check_write_register_feedback(const can_Message_t& msg) {
+    if (!writing_register_ || msg.len != 8) {
+        return kRegisterWriteNotAck;
+    }
+
+    const uint16_t esc_id = static_cast<uint16_t>(msg.buf[0]) |
+                            (static_cast<uint16_t>(msg.buf[1]) << 8);
+    if (esc_id != static_cast<uint16_t>(config_.control_id) || msg.buf[2] != 0x55) {
+        return kRegisterWriteNotAck;
+    }
+
+    last_write_register_rid_ = msg.buf[3];
+    last_write_register_data_ = static_cast<uint32_t>(msg.buf[4]) |
+                                (static_cast<uint32_t>(msg.buf[5]) << 8) |
+                                (static_cast<uint32_t>(msg.buf[6]) << 16) |
+                                (static_cast<uint32_t>(msg.buf[7]) << 24);
+    writing_register_ = false;
+
+    if (last_write_register_rid_ == pending_write_register_rid_ &&
+        last_write_register_data_ == pending_write_register_data_) {
+        return kRegisterWriteOk;
+    }
+    return kRegisterWriteMismatch;
 }
 
 uint32_t MotorDMH3510::command_can_id() const {

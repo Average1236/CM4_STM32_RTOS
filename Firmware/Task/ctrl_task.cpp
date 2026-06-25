@@ -147,16 +147,16 @@ void motor_init() {
         robot.wheel_motors[i]->build_set_mode_msg(active_motor_mode(), msg);
         can2_bus.send_message(msg);
         osDelay(20);
-        robot.wheel_motors[i]->build_set_acc_msg(MotorDMH3510::Parameter_t().acc, msg);
-        can2_bus.send_message(msg);
-        osDelay(20);
-        robot.wheel_motors[i]->build_set_dec_msg(MotorDMH3510::Parameter_t().dec, msg);
-        can2_bus.send_message(msg);
-        osDelay(20);
         robot.wheel_motors[i]->build_set_pmax_msg(MotorDMH3510::Parameter_t().pmax, msg);
         can2_bus.send_message(msg);
         osDelay(20);
         if (kWheelCommandMode == kWheelCommandVelocity) {
+            robot.wheel_motors[i]->build_set_acc_msg(MotorDMH3510::Parameter_t().acc, msg);
+            can2_bus.send_message(msg);
+            osDelay(20);
+            robot.wheel_motors[i]->build_set_dec_msg(MotorDMH3510::Parameter_t().dec, msg);
+            can2_bus.send_message(msg);
+            osDelay(20);
             robot.wheel_motors[i]->build_set_velocity_kp_msg(MotorDMH3510::Parameter_t().kp_asr, msg);
             can2_bus.send_message(msg);
             osDelay(20);
