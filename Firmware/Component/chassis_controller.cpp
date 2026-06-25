@@ -66,6 +66,9 @@ ChassisController::ChassisController()
       omega_z_filter_({control_config::kChassisOmegaZFilterCutoffHz,
                        control_config::kControlDtSec},
                       0.0f) {
+    yaw_angle_pid_[0] = control_config::kYawAnglePidKp;
+    yaw_angle_pid_[1] = control_config::kYawAnglePidKi;
+    yaw_angle_pid_[2] = control_config::kYawAnglePidKd;
     precompute_mappings();
 }
 
@@ -117,6 +120,15 @@ void ChassisController::set_velocity_pid_gains(const float pid_x[3], const float
         vy_pid_param_.ki = pid_y[1];
         vy_pid_param_.kd = pid_y[2];
     }
+}
+
+void ChassisController::set_yaw_angle_pid_gains(const float pid[3]) {
+    if (pid == nullptr || pid[0] < 0.0f || pid[1] < 0.0f || pid[2] < 0.0f) {
+        return;
+    }
+    yaw_angle_pid_[0] = pid[0];
+    yaw_angle_pid_[1] = pid[1];
+    yaw_angle_pid_[2] = pid[2];
 }
 
 void ChassisController::step(float dt_s) {
@@ -184,14 +196,14 @@ void ChassisController::step(float dt_s) {
     if (use_imu_) {
         // ---- Outer Angle PID → ω_ref ----
         const float err_angle = wrap_to_pi(yaw_angle_target_ - yaw_rad);
-        yaw_angle_pid_integ_ += control_config::kYawAnglePidKi * err_angle * dt_s;
+        yaw_angle_pid_integ_ += yaw_angle_pid_[1] * err_angle * dt_s;
         // Anti-windup: clamp integral to yaw_max_vel range
         yaw_angle_pid_integ_ = std::clamp(yaw_angle_pid_integ_,
                                           -yaw_angle_pid_max_vel_,
                                            yaw_angle_pid_max_vel_);
-        const float P_out = control_config::kYawAnglePidKp * err_angle;
+        const float P_out = yaw_angle_pid_[0] * err_angle;
         const float I_out = yaw_angle_pid_integ_;
-        const float D_out = -control_config::kYawAnglePidKd * omega_z_rad_s;  // derivative on measurement
+        const float D_out = -yaw_angle_pid_[2] * omega_z_rad_s;  // derivative on measurement
         omega_ref = P_out + I_out + D_out;
         omega_ref = std::clamp(omega_ref, -yaw_angle_pid_max_vel_, yaw_angle_pid_max_vel_);
         yaw_angle_pid_output_debug = omega_ref;

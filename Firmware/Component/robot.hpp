@@ -30,6 +30,7 @@ struct __attribute__((packed)) CM4_to_stm32_spi
     uint8_t vision_source;     // 3: optflow + vision, 4: wheel + vision
     int16_t chassis_vel_pid[2][3]; // x/y Kp, Ki, Kd * 100
     int16_t acceleration_ff[2]; // robot-local vx/vy feedforward in mm/s^2
+    int16_t yaw_angle_pid[3]; // yaw angle Kp, Ki, Kd * 1000
 };
 
 static_assert(sizeof(CM4_to_stm32_spi) <= SPI_LENGTH, "CM4_to_stm32_spi exceeds SPI_LENGTH");
@@ -61,7 +62,9 @@ struct __attribute__((packed)) stm32_to_CM4_spi
     int16_t controller_omega_ref;  // rad/s * 100
     int16_t controller_f_task[3];  // Fx, Fy, Fpsi * 100
     int16_t chassis_vel_pid[2][3]; // applied x/y Kp, Ki, Kd * 100
-    int16_t reserved;
+    int16_t wheel1_target;  // wheel 1 target RPM * 10
+    int16_t wheel3_target;  // wheel 3 target RPM * 10
+    int16_t yaw_angle_pid[3]; // applied yaw angle Kp, Ki, Kd * 1000
 };
 
 static_assert(sizeof(CM4_to_stm32_spi) <= SPI_LENGTH, "CM4_to_stm32_spi exceeds SPI buffer length");
@@ -152,6 +155,7 @@ public:
         {30.0f, 300.0f, 0.0f},
         {30.0f, 300.0f, 0.0f},
     };
+    float yaw_angle_pid[3] = {15.0f, 2.0f, 0.0f};
 
     // m/s
     float robot_vel[3] = {0};

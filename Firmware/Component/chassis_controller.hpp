@@ -29,6 +29,7 @@ public:
     void set_yaw_angle_target(float target_filt, float yaw_max_vel);
     void set_vxvy_acc_limits(float acc_x, float acc_y);
     void set_velocity_pid_gains(const float pid_x[3], const float pid_y[3]);
+    void set_yaw_angle_pid_gains(const float pid[3]);
     float omega_ref() const { return omega_ref_; }
     float f_task(std::size_t index) const { return (index < 3) ? f_task_[index] : 0.0f; }
     void step(float dt_s);
@@ -69,6 +70,7 @@ private:
     float yaw_angle_pid_integ_ = 0.0f;
     float yaw_angle_target_ = 0.0f;
     float yaw_angle_pid_max_vel_ = 25.0f;
+    float yaw_angle_pid_[3] = {0.0f, 0.0f, 0.0f};
 
     // Runtime acc limits from SPI (clamp vx/vy PID output)
     float vx_acc_limit_ = 7.0f;
