@@ -66,6 +66,9 @@ ChassisController::ChassisController()
       omega_z_filter_({control_config::kChassisOmegaZFilterCutoffHz,
                        control_config::kControlDtSec},
                       0.0f),
+      yaw_angle_diff_filter_({control_config::kYawAnglePidDiffCutoffHz,
+                              control_config::kControlDtSec},
+                             0.0f),
       acc_ff_x_filter_({control_config::kChassisAccFfButterworthCutoffHz,
                         control_config::kControlDtSec},
                        0.0f),
@@ -197,7 +200,8 @@ void ChassisController::step(float dt_s) {
                                            yaw_angle_pid_max_vel_);
         const float P_out = control_config::kYawAnglePidKp * err_angle;
         const float I_out = yaw_angle_pid_integ_;
-        const float D_out = -control_config::kYawAnglePidKd * omega_z_rad_s;  // derivative on measurement
+        const float omega_z_diff = yaw_angle_diff_filter_.filter(omega_z_rad_s_raw);
+        const float D_out = -control_config::kYawAnglePidKd * omega_z_diff;  // derivative on measurement
         omega_ref = P_out + I_out + D_out;
         omega_ref = std::clamp(omega_ref, -yaw_angle_pid_max_vel_, yaw_angle_pid_max_vel_);
         yaw_angle_pid_output_debug = omega_ref;
@@ -288,6 +292,7 @@ void ChassisController::reset() {
     last_chassis_omega_z_rad_s_ = 0.0f;
     last_chassis_yaw_rad_ = 0.0f;
     omega_z_filter_.reset(0.0f);
+    yaw_angle_diff_filter_.reset(0.0f);
     acc_ff_x_filter_.reset(0.0f);
     acc_ff_y_filter_.reset(0.0f);
     omega_ref_ = 0.0f;

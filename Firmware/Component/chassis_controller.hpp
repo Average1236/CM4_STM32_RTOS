@@ -85,6 +85,7 @@ private:
     float last_chassis_yaw_rad_ = 0.0f;
 
     ButterworthLowPass2 omega_z_filter_;
+    ButterworthLowPass2 yaw_angle_diff_filter_;  // separate D-term LPF for angle PID
     ButterworthLowPass2 acc_ff_x_filter_;
     ButterworthLowPass2 acc_ff_y_filter_;
     float omega_ref_ = 0.0f;

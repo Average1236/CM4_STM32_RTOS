@@ -82,9 +82,10 @@ inline constexpr float kYawTargetLowPassCutoffHz = 8.0f;
 // Kd: derivative gain on ω_z (dimensionless damping)
 //   D = -Kd * ω_z_meas  (derivative-on-measurement)
 //   ↑ = more damping, less overshoot   ↓ = livelier response
-inline constexpr float kYawAnglePidKp = 25.0f;
-inline constexpr float kYawAnglePidKi = 1.5f;
-inline constexpr float kYawAnglePidKd = 0.0f;
+inline constexpr float kYawAnglePidKp = 35.0f;
+inline constexpr float kYawAnglePidKi = 0.0f;
+inline constexpr float kYawAnglePidKd = 0.4f;
+inline constexpr float kYawAnglePidDiffCutoffHz = 50.0f;  // low-pass on D-term ωz (0 = passthrough)
 
 // ---- 3c. Wheel-speed fallback outer angle PID (in Robot::prepare_yaw_control) ----
 // Separate from the torque-control yaw PID so wheel-speed fallback can be tuned
