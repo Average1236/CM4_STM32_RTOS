@@ -202,7 +202,6 @@ void Robot::pi_decode_spi() {
             dribble_torque_ff = 0.15f;
         }
     }
-    dribble_torque_ff = SpiRx.drib_torque_ff / 1000.0f;
 
     for (uint8_t i = 0; i < 2; ++i) {
         const float acc_cmd = SpiRx.xy_max_acc[i] / 1000.0f;
