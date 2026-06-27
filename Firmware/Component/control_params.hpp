@@ -51,15 +51,13 @@ inline constexpr float kWheelBetaRad          = 45.0f / 180.0f * kPi;
 
 
 // ==========================================================================
-//  3. Yaw Control  —  Angle PID → Rate LADRC  (ACTIVE PATH)
+//  3. Yaw Control  - Angle Trapezoid Planner -> Rate LADRC  (ACTIVE PATH)
 // --------------------------------------------------------------------------
-//  Replaces the old YawSCurve-based planner.
-//
 //  Data flow:
-//    wrapped target → CircularLPF → Angle PID (in ChassisController) → ω_ref
-//                   → Inner Rate LADRC (ChassisController LESO) → F_task_ψ
+//    wrapped target -> CircularLPF -> trapezoid planner (ChassisController) -> omega_ref
+//                   -> Inner Rate LADRC (ChassisController LESO) -> F_task_psi
 //
-//  Tuning order:  inner rate → outer angle PID → LPF cutoff
+//  Tuning order:  inner rate -> yaw velocity/acceleration limits -> LPF cutoff
 // ==========================================================================
 
 // ---- 3a. Target low-pass filter ----
@@ -67,25 +65,14 @@ inline constexpr float kWheelBetaRad          = 45.0f / 180.0f * kPi;
 // ↑ = faster response to target changes   ↓ = less jitter
 inline constexpr float kYawTargetLowPassCutoffHz = 8.0f;
 
-// ---- 3b. Outer Angle PID (in ChassisController) ----
-// PID on wrapped angle error → ω_ref, clamped to yaw_max_vel.
-// D-term uses actual angular velocity (derivative-on-measurement, no kick).
-//
-// Kp: proportional gain (rad/s per rad error)
-//   e.g. 0.1 rad error × Kp=100 → 10 rad/s ω_ref
-//   ↑ = stiffer angle tracking   ↓ = softer, less oscillation
-//
-// Ki: integral gain (rad/s per rad·s)
-//   Eliminates steady-state error from unmodeled friction / bias.
-//   ↑ = faster bias rejection    ↓ = less windup risk
-//
-// Kd: derivative gain on ω_z (dimensionless damping)
-//   D = -Kd * ω_z_meas  (derivative-on-measurement)
-//   ↑ = more damping, less overshoot   ↓ = livelier response
+// ---- 3b. Deprecated outer angle PID constants ----
+// The active IMU yaw path now uses runtime yaw_max_vel/yaw_max_acc limits
+// from SPI to generate a trapezoid-planned omega_ref. These constants are
+// kept only for reference while tuning historical logs.
 inline constexpr float kYawAnglePidKp = 35.0f;
 inline constexpr float kYawAnglePidKi = 0.0f;
 inline constexpr float kYawAnglePidKd = 0.4f;
-inline constexpr float kYawAnglePidDiffCutoffHz = 50.0f;  // low-pass on D-term ωz (0 = passthrough)
+inline constexpr float kYawAnglePidDiffCutoffHz = 50.0f;
 
 // ---- 3c. Wheel-speed fallback outer angle PID (in Robot::prepare_yaw_control) ----
 // Separate from the torque-control yaw PID so wheel-speed fallback can be tuned

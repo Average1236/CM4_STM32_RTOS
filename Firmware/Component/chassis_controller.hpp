@@ -26,7 +26,7 @@ public:
     void set_reference(const float vel_ref[3], const float acc_ref[3]);
     void set_use_imu_yaw(bool enable);
     void set_yaw_target(float target_pos, float target_vel);
-    void set_yaw_angle_target(float target_filt, float yaw_max_vel);
+    void set_yaw_angle_target(float target_filt, float yaw_max_vel, float yaw_max_acc);
     void set_vxvy_acc_limits(float acc_x, float acc_y);
     void set_velocity_pid_gains(const float pid_x[3], const float pid_y[3]);
     float omega_ref() const { return omega_ref_; }
@@ -65,10 +65,11 @@ private:
     float yaw_target_vel_ = 0.0f;
     bool use_imu_ = false;
 
-    // Angle PID state (outer loop → ω_ref)
-    float yaw_angle_pid_integ_ = 0.0f;
+    // Yaw trapezoid planner state (outer angle loop -> omega_ref)
     float yaw_angle_target_ = 0.0f;
-    float yaw_angle_pid_max_vel_ = 25.0f;
+    float yaw_angle_max_vel_ = 25.0f;
+    float yaw_angle_max_acc_ = 40.0f;
+    float yaw_angle_acc_ref_ = 0.0f;
 
     // Runtime acc limits from SPI (clamp vx/vy PID output)
     float vx_acc_limit_ = 7.0f;
@@ -85,7 +86,6 @@ private:
     float last_chassis_yaw_rad_ = 0.0f;
 
     ButterworthLowPass2 omega_z_filter_;
-    ButterworthLowPass2 yaw_angle_diff_filter_;  // separate D-term LPF for angle PID
     ButterworthLowPass2 acc_ff_x_filter_;
     ButterworthLowPass2 acc_ff_y_filter_;
     float omega_ref_ = 0.0f;

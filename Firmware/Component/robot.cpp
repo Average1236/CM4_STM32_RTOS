@@ -430,11 +430,11 @@ void Robot::prepare_yaw_control(float dt_s) {
     }
 
     const float yaw_ref = yaw_target_lpf_.state();
-    // Pass filtered target to ChassisController for angle PID
-    chassis_controller.set_yaw_angle_target(yaw_ref, yaw_max_vel);
+    // Pass filtered target and runtime limits to the yaw trapezoid planner.
+    chassis_controller.set_yaw_angle_target(yaw_ref, yaw_max_vel, yaw_max_acc);
 
     // robot_real_vel[2] / robot_acc[2] no longer used for yaw in IMU mode;
-    // angle PID → inner rate LADRC runs entirely inside ChassisController::step().
+    // yaw trapezoid planner -> inner rate LADRC runs inside ChassisController::step().
     float omega_ref = 0.0f;
     if constexpr (control_config::kUseWheelSpeedPidFallback) {
         const auto yaw_opt = chassis_estimator.chassis_yaw_output_port()->any();

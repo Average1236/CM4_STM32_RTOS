@@ -66,9 +66,6 @@ ChassisController::ChassisController()
       omega_z_filter_({control_config::kChassisOmegaZFilterCutoffHz,
                        control_config::kControlDtSec},
                       0.0f),
-      yaw_angle_diff_filter_({control_config::kYawAnglePidDiffCutoffHz,
-                              control_config::kControlDtSec},
-                             0.0f),
       acc_ff_x_filter_({control_config::kChassisAccFfButterworthCutoffHz,
                         control_config::kControlDtSec},
                        0.0f),
@@ -91,6 +88,8 @@ void ChassisController::set_use_imu_yaw(bool enable) {
         yaw_leso_[1] = 0.0f;
         yaw_target_pos_ = 0.0f;
         yaw_target_vel_ = 0.0f;
+        yaw_angle_acc_ref_ = 0.0f;
+        omega_ref_ = 0.0f;
         use_imu_ = enable;
     }
 }
@@ -103,9 +102,14 @@ void ChassisController::set_yaw_target(float target_pos, float target_vel) {
     // yaw_target_vel_debug = target_vel;
 }
 
-void ChassisController::set_yaw_angle_target(float target_filt, float yaw_max_vel) {
+void ChassisController::set_yaw_angle_target(float target_filt, float yaw_max_vel, float yaw_max_acc) {
     yaw_angle_target_ = target_filt;
-    yaw_angle_pid_max_vel_ = yaw_max_vel;
+    if (yaw_max_vel > 0.0f) {
+        yaw_angle_max_vel_ = yaw_max_vel;
+    }
+    if (yaw_max_acc > 0.0f) {
+        yaw_angle_max_acc_ = yaw_max_acc;
+    }
 
     yaw_target_pos_debug = target_filt;
 }
@@ -191,27 +195,48 @@ void ChassisController::step(float dt_s) {
     float F_task_psi;
     float omega_ref = vel_ref_[2];
     if (use_imu_) {
-        // ---- Outer Angle PID → ω_ref ----
         const float err_angle = wrap_to_pi(yaw_angle_target_ - yaw_rad);
-        yaw_angle_pid_integ_ += control_config::kYawAnglePidKi * err_angle * dt_s;
-        // Anti-windup: clamp integral to yaw_max_vel range
-        yaw_angle_pid_integ_ = std::clamp(yaw_angle_pid_integ_,
-                                          -yaw_angle_pid_max_vel_,
-                                           yaw_angle_pid_max_vel_);
-        const float P_out = control_config::kYawAnglePidKp * err_angle;
-        const float I_out = yaw_angle_pid_integ_;
-        const float omega_z_diff = yaw_angle_diff_filter_.filter(omega_z_rad_s_raw);
-        const float D_out = -control_config::kYawAnglePidKd * omega_z_diff;  // derivative on measurement
-        omega_ref = P_out + I_out + D_out;
-        omega_ref = std::clamp(omega_ref, -yaw_angle_pid_max_vel_, yaw_angle_pid_max_vel_);
+        const float yaw_max_vel = fabsf(yaw_angle_max_vel_);
+        const float yaw_max_acc = fabsf(yaw_angle_max_acc_);
+        const float omega_prev = std::clamp(omega_ref_, -yaw_max_vel, yaw_max_vel);
+
+        if (yaw_max_vel <= 1e-6f || yaw_max_acc <= 1e-6f) {
+            yaw_angle_acc_ref_ = 0.0f;
+            omega_ref = 0.0f;
+        } else if (fabsf(err_angle) <= control_config::kYawTargetStopBandRad &&
+                   fabsf(omega_prev) <= control_config::kYawTargetVelZeroEpsRadS) {
+            yaw_angle_acc_ref_ = 0.0f;
+            omega_ref = 0.0f;
+        } else {
+            const float omega_dir = (omega_prev >= 0.0f) ? 1.0f : -1.0f;
+            const bool inside_stop_band = fabsf(err_angle) <= control_config::kYawTargetStopBandRad;
+
+            if (inside_stop_band) {
+                yaw_angle_acc_ref_ = -omega_dir * yaw_max_acc;
+            } else {
+                const float err_dir = (err_angle >= 0.0f) ? 1.0f : -1.0f;
+                const float brake_distance = (omega_prev * omega_prev) / (2.0f * yaw_max_acc);
+                const bool moving_toward_target = (omega_prev * err_angle) > 0.0f;
+                const bool should_brake = moving_toward_target && (brake_distance >= fabsf(err_angle));
+                yaw_angle_acc_ref_ = should_brake ? (-omega_dir * yaw_max_acc) : (err_dir * yaw_max_acc);
+            }
+
+            omega_ref = omega_prev + yaw_angle_acc_ref_ * dt_s;
+            if (inside_stop_band && (omega_prev * omega_ref) < 0.0f) {
+                omega_ref = 0.0f;
+                yaw_angle_acc_ref_ = (omega_ref - omega_prev) / dt_s;
+            }
+            omega_ref = std::clamp(omega_ref, -yaw_max_vel, yaw_max_vel);
+        }
+
         yaw_angle_pid_output_debug = omega_ref;
-        yaw_angle_pid_integ_debug  = yaw_angle_pid_integ_;
-        yaw_angle_pid_diff_debug = D_out;
+        yaw_angle_pid_integ_debug = yaw_angle_acc_ref_;
+        yaw_angle_pid_diff_debug = 0.0f;
 
         // ---- Inner Rate LADRC ----
-        // P + disturbance-rejection on ω_z.
+        // P + disturbance-rejection on omega_z.
         const float err_wz = omega_ref - yaw_leso_[0];
-        err_psi_pos_debug = omega_ref;     // outer PID output
+        err_psi_pos_debug = omega_ref;     // trapezoid-planned omega_ref
         err_psi_vel_debug = err_wz;        // velocity tracking error
         const float wc_rate = control_config::kYawRateControllerBandwidth;
         fb_psi = wc_rate * err_wz;
@@ -281,7 +306,7 @@ void ChassisController::step(float dt_s) {
 void ChassisController::reset() {
     yaw_leso_[0] = 0.0f;
     yaw_leso_[1] = 0.0f;
-    yaw_angle_pid_integ_ = 0.0f;
+    yaw_angle_acc_ref_ = 0.0f;
     vx_pid_.reset();
     vy_pid_.reset();
     for (int i = 0; i < 4; ++i) {
@@ -292,7 +317,6 @@ void ChassisController::reset() {
     last_chassis_omega_z_rad_s_ = 0.0f;
     last_chassis_yaw_rad_ = 0.0f;
     omega_z_filter_.reset(0.0f);
-    yaw_angle_diff_filter_.reset(0.0f);
     acc_ff_x_filter_.reset(0.0f);
     acc_ff_y_filter_.reset(0.0f);
     omega_ref_ = 0.0f;

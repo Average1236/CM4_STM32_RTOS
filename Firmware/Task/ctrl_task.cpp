@@ -414,7 +414,7 @@ void StartCrtlTask(void *argument) {
                 const float dt_s = static_cast<float>(ctrl_dt_us / 1000000.0);
                 robot.motion_planner(ctrl_dt_us);
 
-                // Yaw angle control: S-curve planned omega (not raw P controller)
+                // Yaw angle control: trapezoid-planned omega (not raw P controller)
                 robot.prepare_yaw_control(dt_s);
 
                 // Inverse kinematics: compute wheel velocities
