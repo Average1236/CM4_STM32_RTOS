@@ -197,15 +197,16 @@ void ChassisController::step(float dt_s) {
     if (use_imu_) {
         const float err_angle = wrap_to_pi(yaw_angle_target_ - yaw_rad);
         const float yaw_max_vel = fabsf(yaw_angle_max_vel_);
+        const float yaw_acc_cmd = fabsf(yaw_angle_max_acc_);
+        const float yaw_acc_floor = fminf(yaw_acc_cmd, control_config::kYawAccelDecayMinRadS2);
         const float yaw_acc_decay_span = fmaxf(control_config::kYawAccelDecayEndSpeedMS
                                            - control_config::kYawAccelDecayStartSpeedMS,
                                            1e-6f);
         const float yaw_acc_decay_alpha = std::clamp((v_norm - control_config::kYawAccelDecayStartSpeedMS)
                                                      / yaw_acc_decay_span,
                                                      0.0f, 1.0f);
-        const float yaw_acc_min_scale = std::clamp(control_config::kYawAccelDecayMinScale, 0.0f, 1.0f);
-        const float yaw_acc_scale = 1.0f - (1.0f - yaw_acc_min_scale) * yaw_acc_decay_alpha;
-        const float yaw_max_acc = fabsf(yaw_angle_max_acc_) * yaw_acc_scale;
+        const float yaw_acc_curve_norm = yaw_acc_decay_alpha * (2.0f - yaw_acc_decay_alpha);
+        const float yaw_max_acc = yaw_acc_cmd - (yaw_acc_cmd - yaw_acc_floor) * yaw_acc_curve_norm;
         const float omega_prev = std::clamp(omega_ref_, -yaw_max_vel, yaw_max_vel);
 
         if (yaw_max_vel <= 1e-6f || yaw_max_acc <= 1e-6f) {

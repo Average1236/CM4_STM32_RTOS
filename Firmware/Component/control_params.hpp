@@ -66,12 +66,11 @@ inline constexpr float kWheelBetaRad          = 45.0f / 180.0f * kPi;
 inline constexpr float kYawTargetLowPassCutoffHz = 8.0f;
 
 // ---- 3b. Speed-scheduled yaw acceleration limit ----
-// Effective yaw acceleration is yaw_max_acc * scale, where scale fades
-// linearly from 1.0 at kYawAccelDecayStartSpeedMS to
-// kYawAccelDecayMinScale at kYawAccelDecayEndSpeedMS.
+// Effective yaw acceleration decays from yaw_max_acc toward a fixed floor.
+// The quadratic curve drops faster at low speed and slower near the floor.
 inline constexpr float kYawAccelDecayStartSpeedMS = 0.0f;
 inline constexpr float kYawAccelDecayEndSpeedMS   = 2.0f;
-inline constexpr float kYawAccelDecayMinScale     = 0.2f;
+inline constexpr float kYawAccelDecayMinRadS2     = 10.0f;
 
 // Deprecated outer angle PID constants. Kept only for reference.
 inline constexpr float kYawAnglePidKp = 35.0f;
@@ -102,8 +101,8 @@ inline constexpr float kYawVyCoupling = 0.0f;
 // ==========================================================================
 
 // ---- 4a. LESO bandwidth scheduling ----
-inline constexpr float kLesoAngleObserverBandwidth  = 250.0f;   // max bandwidth (rad/s)
-inline constexpr float kLesoAngleBandwidthMin       = 250.0f;   // min bandwidth (rad/s)
+inline constexpr float kLesoAngleObserverBandwidth  = 200.0f;   // max bandwidth (rad/s)
+inline constexpr float kLesoAngleBandwidthMin       = 200.0f;   // min bandwidth (rad/s)
 inline constexpr float kLesoScheduleVelocityThreshold = 0.01f;  // scheduling knee (m/s)
 inline constexpr float kLesoScheduleOmegaThreshold    = 0.01f;  // scheduling knee (rad/s)
 
@@ -112,7 +111,7 @@ inline constexpr float kLesoScheduleOmegaThreshold    = 0.01f;  // scheduling kn
 // Control law: F_task_ψ = I · (wc_rate · (ω_ref − ω_z_est) − disturbance + coupling)
 //   ↑ = tighter velocity tracking        ↓ = less motor saturation
 //   Rule of thumb: wc_rate ≤ inner_wo / 3
-inline constexpr float kYawRateControllerBandwidth = 120.0f;
+inline constexpr float kYawRateControllerBandwidth = 100.0f;
 
 // ---- 4c. Omega-z / gyro pre-filtering (Butterworth 2nd-order) ----
 // 0.0 = passthrough.  Non-zero adds delay, use only if gyro is noisy.

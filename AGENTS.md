@@ -26,15 +26,26 @@ CMakePresets.json defines `Debug` and `Release` presets. Both use the Ninja gene
 ## Local tooling constraints
 
 - Run visualization scripts, including `Docs/visualize_stm32_velocity.py`, with the Anaconda base environment (`D:\anaconda\python.exe`). The default system Python may not contain the required plotting dependencies.
+- The current sandbox configuration cannot run `apply_patch`. Do not use `apply_patch` in this repository; use PowerShell-based file editing while preserving the existing file encoding and unrelated changes.
 
 ## Raspberry Pi side workflow
 
-The Raspberry Pi project may be present locally at `rpi_timer/robot/` and is deployed to `/home/pi/rpi_timer/robot/` on the Pi (`pi@192.168.31.245`, password`123`). Use `paramiko` from the base Python environment for password-based SFTP/SSH when key auth is unavailable; do not commit credentials.
+The Raspberry Pi project may be present locally at `rpi_timer/robot/` and is deployed to `/home/pi/rpi_timer/robot/` on the Pi (`pi@192.168.31.245`, password provided out-of-band when needed). Use `paramiko` from the base Python environment for password-based SFTP/SSH when key auth is unavailable; do not commit credentials.
 
-Before making any local changes under `rpi_timer/robot/`, copy/sync the current remote project from the Pi first so the local and deployed Raspberry Pi code stay in sync.
+Before making local changes under `rpi_timer/robot/`, use the Git remote workflow rather than editing the deployed Pi copy directly:
+
+```bash
+cd rpi_timer/robot
+git fetch RobotCM4 --prune
+git switch -f -C f-control RobotCM4/f-control
+git reset --hard RobotCM4/f-control
+git clean -fd
+git switch -c <feature-branch>
+```
+
+Make changes only on the new feature branch, commit them there, and publish the branch to Gitee with `git push -u RobotCM4 <feature-branch>`. The Gitee account username is `Average1236`; use the password only for interactive authentication or a temporary credential helper, never in committed files, scripts, remotes, or logs. Do not directly modify existing remote branches such as `f-control`/`main`.
 
 When changing Raspberry Pi protobuf files:
-
 ```bash
 # On the Pi, regenerate generated protobuf code after editing share/proto/*.proto
 cd /home/pi/rpi_timer/robot/share/proto
