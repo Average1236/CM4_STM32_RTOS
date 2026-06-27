@@ -101,17 +101,17 @@ inline constexpr float kYawVyCoupling = 0.0f;
 // ==========================================================================
 
 // ---- 4a. LESO bandwidth scheduling ----
-inline constexpr float kLesoAngleObserverBandwidth  = 200.0f;   // max bandwidth (rad/s)
-inline constexpr float kLesoAngleBandwidthMin       = 200.0f;   // min bandwidth (rad/s)
-inline constexpr float kLesoScheduleVelocityThreshold = 0.01f;  // scheduling knee (m/s)
-inline constexpr float kLesoScheduleOmegaThreshold    = 0.01f;  // scheduling knee (rad/s)
+inline constexpr float kLesoAngleObserverBandwidth  = 150.0f;   // max bandwidth (rad/s)
+inline constexpr float kLesoAngleBandwidthMin       = 20.0f;   // min bandwidth (rad/s)
+inline constexpr float kLesoScheduleVelocityThreshold = 0.02f;  // scheduling knee (m/s)
+inline constexpr float kLesoScheduleOmegaThreshold    = 0.02f;  // scheduling knee (rad/s)
 
 // ---- 4b. Rate P controller ----
 // P-gain from ω_z error → yaw torque (rad/s).
 // Control law: F_task_ψ = I · (wc_rate · (ω_ref − ω_z_est) − disturbance + coupling)
 //   ↑ = tighter velocity tracking        ↓ = less motor saturation
 //   Rule of thumb: wc_rate ≤ inner_wo / 3
-inline constexpr float kYawRateControllerBandwidth = 100.0f;
+inline constexpr float kYawRateControllerBandwidth = 75.0f;
 
 // ---- 4c. Omega-z / gyro pre-filtering (Butterworth 2nd-order) ----
 // 0.0 = passthrough.  Non-zero adds delay, use only if gyro is noisy.
