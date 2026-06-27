@@ -189,13 +189,17 @@ void Robot::pi_decode_spi() {
     }
 
     dribble_velocity = SpiRx.drib_velocity / 100.0f;
+    dribble_torque_ff = SpiRx.drib_torque_ff / 1000.0f;
     if (dribbler_mode == control_config::kDribblerModeSpeed) {
         if (SpiRx.drib_power == 10) {
             dribble_velocity = -10.0f;
+            dribble_torque_ff = 0.15f;
         } else if (SpiRx.drib_power == 20) {
             dribble_velocity = -50.0f;
+            dribble_torque_ff = 0.15f;
         } else if (SpiRx.drib_power == 30) {
-            dribble_velocity = -100.0f;
+            dribble_velocity = -120.0f;
+            dribble_torque_ff = 0.15f;
         }
     }
     dribble_torque_ff = SpiRx.drib_torque_ff / 1000.0f;
