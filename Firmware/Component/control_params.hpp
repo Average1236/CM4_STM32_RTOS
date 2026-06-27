@@ -65,10 +65,15 @@ inline constexpr float kWheelBetaRad          = 45.0f / 180.0f * kPi;
 // ↑ = faster response to target changes   ↓ = less jitter
 inline constexpr float kYawTargetLowPassCutoffHz = 8.0f;
 
-// ---- 3b. Deprecated outer angle PID constants ----
-// The active IMU yaw path now uses runtime yaw_max_vel/yaw_max_acc limits
-// from SPI to generate a trapezoid-planned omega_ref. These constants are
-// kept only for reference while tuning historical logs.
+// ---- 3b. Speed-scheduled yaw acceleration limit ----
+// Effective yaw acceleration is yaw_max_acc * scale, where scale fades
+// linearly from 1.0 at kYawAccelDecayStartSpeedMS to
+// kYawAccelDecayMinScale at kYawAccelDecayEndSpeedMS.
+inline constexpr float kYawAccelDecayStartSpeedMS = 0.0f;
+inline constexpr float kYawAccelDecayEndSpeedMS   = 2.0f;
+inline constexpr float kYawAccelDecayMinScale     = 0.2f;
+
+// Deprecated outer angle PID constants. Kept only for reference.
 inline constexpr float kYawAnglePidKp = 35.0f;
 inline constexpr float kYawAnglePidKi = 0.0f;
 inline constexpr float kYawAnglePidKd = 0.4f;
@@ -107,7 +112,7 @@ inline constexpr float kLesoScheduleOmegaThreshold    = 0.01f;  // scheduling kn
 // Control law: F_task_ψ = I · (wc_rate · (ω_ref − ω_z_est) − disturbance + coupling)
 //   ↑ = tighter velocity tracking        ↓ = less motor saturation
 //   Rule of thumb: wc_rate ≤ inner_wo / 3
-inline constexpr float kYawRateControllerBandwidth = 75.0f;
+inline constexpr float kYawRateControllerBandwidth = 120.0f;
 
 // ---- 4c. Omega-z / gyro pre-filtering (Butterworth 2nd-order) ----
 // 0.0 = passthrough.  Non-zero adds delay, use only if gyro is noisy.
