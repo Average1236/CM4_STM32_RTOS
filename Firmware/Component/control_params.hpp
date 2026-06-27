@@ -12,7 +12,7 @@ inline constexpr uint8_t kDribblerModeSpeed = 2;
 inline constexpr uint8_t kDribblerModeHybrid = 3;
 
 inline constexpr float kDribblerHybridTorqueNm = -0.05f;
-inline constexpr float kDribblerHybridSpeedRps = -100.0f;
+inline constexpr float kDribblerHybridSpeedRps = -120.0f;
 inline constexpr float kDribblerHybridTorqueLimitNm = 0.15f;
 inline constexpr uint32_t kDribblerHybridBallHoldFrames = 20;
 inline constexpr uint32_t kDribblerHybridBallLostFrames = 10;
@@ -22,7 +22,7 @@ inline constexpr float kDribblerSpeedBaseRps = -50.0f;
 inline constexpr float kDribblerSpeedCompensateGain = 23.0f;
 inline constexpr float kDribblerSpeedSlipMargin = 1.3f;
 inline constexpr float kDribblerSpeedDeadZone = -0.05f;
-inline constexpr float kDribblerSpeedSafetyClamp = -100.0f;
+inline constexpr float kDribblerSpeedSafetyClamp = -120.0f;
 
 // ==========================================================================
 //  1. System Constants
