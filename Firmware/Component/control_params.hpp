@@ -89,9 +89,9 @@ inline constexpr float kYawAnglePidKd = 0.0f;
 // ---- 3c. Wheel-speed fallback outer angle PID (in Robot::prepare_yaw_control) ----
 // Separate from the torque-control yaw PID so wheel-speed fallback can be tuned
 // without changing the active torque/LADRC yaw path.
-inline constexpr float kYawFallbackAnglePidKp = 15.0f;
+inline constexpr float kYawFallbackAnglePidKp = 10.0f;
 inline constexpr float kYawFallbackAnglePidKi = 2.0f;
-inline constexpr float kYawFallbackAnglePidKd = 0.1f;
+inline constexpr float kYawFallbackAnglePidKd = 0.3f;
 inline constexpr float kYawFallbackOmegaZFilterCutoffHz = 50.0f;
 
 // ---- 3d. Vy coupling feedforward ----
