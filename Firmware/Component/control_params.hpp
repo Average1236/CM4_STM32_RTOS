@@ -225,7 +225,7 @@ inline constexpr float kMotorClearErrorToEnableDelayMs = 10.0f;
 // kStationaryHoldPidOutputLimitNm, adding holding torque on top of chassis
 // controller torque_ff.
 inline constexpr float kStationaryHoldSpeedThreshold = 0.1f;   // m/s
-inline constexpr float kStationaryHoldOmegaThreshold = 0.5f;    // rad/s
+inline constexpr float kStationaryHoldOmegaThreshold = 1.0f;    // rad/s
 inline constexpr float kStationaryHoldPidOutputLimitNm = 0.3f;  // Nm per wheel
 
 
