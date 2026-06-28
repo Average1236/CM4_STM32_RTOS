@@ -11,6 +11,7 @@ inline constexpr uint8_t kDribblerModeTorque = 1;
 inline constexpr uint8_t kDribblerModeSpeed = 2;
 inline constexpr uint8_t kDribblerModeHybrid = 3;
 
+// ---- Dribbler hybrid control ----
 inline constexpr float kDribblerHybridTorqueNm = -0.05f;
 inline constexpr float kDribblerHybridSpeedRps = -120.0f;
 inline constexpr float kDribblerHybridTorqueLimitNm = 0.15f;
@@ -18,11 +19,8 @@ inline constexpr uint32_t kDribblerHybridBallHoldFrames = 20;
 inline constexpr uint32_t kDribblerHybridBallLostFrames = 10;
 inline constexpr uint32_t kDribblerHybridDebounceStep = 2;
 
-inline constexpr float kDribblerSpeedBaseRps = -50.0f;
-inline constexpr float kDribblerSpeedCompensateGain = 23.0f;
-inline constexpr float kDribblerSpeedSlipMargin = 1.3f;
-inline constexpr float kDribblerSpeedDeadZone = -0.05f;
-inline constexpr float kDribblerSpeedSafetyClamp = -120.0f;
+// Test kick: bypass infrared sensor, rising-edge trigger on kick_discharge_time
+inline constexpr bool kTestKick = false;
 
 // ==========================================================================
 //  1. System Constants
@@ -72,12 +70,6 @@ inline constexpr float kYawAccelDecayStartSpeedMS = 0.0f;
 inline constexpr float kYawAccelDecayEndSpeedMS   = 2.0f;
 inline constexpr float kYawAccelDecayMinRadS2     = 10.0f;
 
-// Deprecated outer angle PID constants. Kept only for reference.
-inline constexpr float kYawAnglePidKp = 35.0f;
-inline constexpr float kYawAnglePidKi = 0.0f;
-inline constexpr float kYawAnglePidKd = 0.4f;
-inline constexpr float kYawAnglePidDiffCutoffHz = 50.0f;
-
 // ---- 3c. Wheel-speed fallback outer angle PID (in Robot::prepare_yaw_control) ----
 // Separate from the torque-control yaw PID so wheel-speed fallback can be tuned
 // without changing the active torque/LADRC yaw path.
@@ -86,7 +78,13 @@ inline constexpr float kYawFallbackAnglePidKi = 2.0f;
 inline constexpr float kYawFallbackAnglePidKd = 0.3f;
 inline constexpr float kYawFallbackOmegaZFilterCutoffHz = 50.0f;
 
-// ---- 3d. Vy coupling feedforward ----
+// ---- 3d. Yaw trapezoid planner stop condition ----
+// When angle error and angular velocity are both within these thresholds,
+// the trapezoid planner considers the target reached and holds position.
+inline constexpr float kYawTargetStopBandRad    = 1e-3f;
+inline constexpr float kYawTargetVelZeroEpsRadS = 0.02f;
+
+// ---- 3e. Vy coupling feedforward ----
 // Feeds forward vy reference into yaw torque (Coriolis-like coupling).
 // 0.0 = disabled.  Non-zero when lateral motion affects yaw noticeably.
 inline constexpr float kYawVyCoupling = 0.0f;
@@ -226,8 +224,8 @@ inline constexpr float kMotorClearErrorToEnableDelayMs = 10.0f;
 // are both near zero, the wheel-speed PID output limit ramps from 0 to
 // kStationaryHoldPidOutputLimitNm, adding holding torque on top of chassis
 // controller torque_ff.
-inline constexpr float kStationaryHoldSpeedThreshold = 0.05f;   // m/s
-inline constexpr float kStationaryHoldOmegaThreshold = 0.1f;    // rad/s (~30 deg/s)
+inline constexpr float kStationaryHoldSpeedThreshold = 0.1f;   // m/s
+inline constexpr float kStationaryHoldOmegaThreshold = 0.5f;    // rad/s
 inline constexpr float kStationaryHoldPidOutputLimitNm = 0.3f;  // Nm per wheel
 
 
@@ -347,39 +345,6 @@ inline constexpr uint8_t  kImuBiasValidWindows           = 2;       // stable wi
 // ---- 9c. Roll / Pitch Complementary Filter ----
 // Alpha for accel-gyro complementary filter (closer to 1 = trust gyro more)
 inline constexpr float kImuRollPitchAlpha = 0.98f;
-
-
-// ==========================================================================
-// 10. Dribbler & Kick
-// ==========================================================================
-
-// Dribbler control mode
-// true  = torque control (CAN ID 0xAD)
-// false = velocity control (CAN ID 0xAC)
-inline constexpr bool kDribblerTorqueMode = true;
-
-// Test kick: bypass infrared sensor, rising-edge trigger on kick_discharge_time
-inline constexpr bool kTestKick = false;
-
-
-// ==========================================================================
-//  A. Deprecated Parameters
-// --------------------------------------------------------------------------
-//  Kept for reference / potential fallback.  Not on the active control path.
-// ==========================================================================
-
-// Was used by YawSCurve incremental reference tracker (replaced by §3).
-inline constexpr float kYawTargetReplanDeadbandRad = 1e-2f;
-inline constexpr float kYawTargetStopBandRad       = 1e-3f;
-inline constexpr float kYawTargetVelZeroEpsRadS    = 0.02f;
-
-// Was used by YawSCurve linear fallback timer.
-inline constexpr float kYawAngleLinearFallbackMinTimeSec = 0.05f;
-
-// Was used by ChassisController IMU-branch PD position control
-// (replaced by §3 inner-rate P control + §4 LESO).
-inline constexpr float kAngleControllerBandwidth    = 50.0f;
-inline constexpr float kAngleControllerBandwidthMin = 50.0f;
 
 } // namespace control_config
 

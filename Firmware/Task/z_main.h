@@ -23,8 +23,8 @@ extern "C" {
 #define INFRARED_THRESHOLD (0.5f)
 
 const uint8_t piRxFrameHeader = 0xbb;
-const float bat_k = 106.04f / 6.04f;
-const float cap_k = 113.73;
+inline const float bat_k = (95.3f+5.6f)/5.6f;
+inline const float cap_k = 113.73;
 
 #ifdef __cplusplus
 }

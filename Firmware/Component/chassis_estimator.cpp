@@ -238,7 +238,7 @@ void ChassisEstimator::step(float dt_s) {
 
             kf_vx_.predict(control_config::kFusionKalmanQX);
             kf_vx_.update(wheel_vx, R_w_x);
-            kf_vx_.update(flow_vx, R_of_x);
+            // kf_vx_.update(flow_vx, R_of_x);
         }
 
         // ---- vy axis ----
@@ -274,7 +274,7 @@ void ChassisEstimator::step(float dt_s) {
 
             kf_vy_.predict(control_config::kFusionKalmanQY);
             kf_vy_.update(wheel_vy, R_w_y);
-            kf_vy_.update(flow_vy, R_of_y);
+            // kf_vy_.update(flow_vy, R_of_y);
         }
 
         chassis_vel_meas[0] = kf_vx_.v_est;
