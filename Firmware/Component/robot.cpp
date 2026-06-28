@@ -4,6 +4,7 @@
 #include <cstring>
 #include <cmath>
 #include <algorithm>
+#include <cstddef>
 
 // Debug
 volatile float target_vx_debug = 0;
@@ -49,6 +50,67 @@ namespace {
 
 constexpr uint16_t kKickPulseMaxUs = 15000;
 constexpr uint32_t kKickIntervalMs = 300;
+constexpr std::size_t kSpiCrcLength = 2;
+constexpr std::size_t kSpiCrcPayloadLength = SPI_LENGTH - kSpiCrcLength;
+constexpr uint32_t kSpiMotionFailsafeBadFrames = 50;
+constexpr uint32_t kSpiDribbleHoldBadFrames = 500;
+
+uint16_t spi_crc16_ccitt(const uint8_t* data, std::size_t length) {
+    uint16_t crc = 0xffffu;
+    for (std::size_t i = 0; i < length; ++i) {
+        crc ^= static_cast<uint16_t>(data[i]) << 8;
+        for (uint8_t bit = 0; bit < 8; ++bit) {
+            if ((crc & 0x8000u) != 0u) {
+                crc = static_cast<uint16_t>((crc << 1) ^ 0x1021u);
+            } else {
+                crc = static_cast<uint16_t>(crc << 1);
+            }
+        }
+    }
+    return crc;
+}
+
+uint16_t read_spi_frame_crc(const uint8_t* frame) {
+    return static_cast<uint16_t>(frame[kSpiCrcPayloadLength]) |
+           (static_cast<uint16_t>(frame[kSpiCrcPayloadLength + 1]) << 8);
+}
+
+void write_spi_frame_crc(uint8_t* frame) {
+    const uint16_t crc = spi_crc16_ccitt(frame, kSpiCrcPayloadLength);
+    frame[kSpiCrcPayloadLength] = static_cast<uint8_t>(crc & 0xffu);
+    frame[kSpiCrcPayloadLength + 1] = static_cast<uint8_t>(crc >> 8);
+}
+
+bool spi_frame_crc_valid(const uint8_t* frame) {
+    return read_spi_frame_crc(frame) == spi_crc16_ccitt(frame, kSpiCrcPayloadLength);
+}
+
+void apply_spi_failsafe_command(Robot& robot_ref) {
+    robot_ref.robot_vel[0] = 0.0f;
+    robot_ref.robot_vel[1] = 0.0f;
+    robot_ref.robot_vel[2] = robot_ref.use_imu ? robot_ref.yaw_target_rad : 0.0f;
+    robot_ref.acceleration_ff[0] = 0.0f;
+    robot_ref.acceleration_ff[1] = 0.0f;
+    robot_ref.raw_vision_vel_mm_s[0] = 0.0f;
+    robot_ref.raw_vision_vel_mm_s[1] = 0.0f;
+    robot_ref.vision_source = 0.0f;
+    robot_ref.kick_discharge_time = 0;
+
+    if (robot_ref.spi_crc_bad_streak > kSpiDribbleHoldBadFrames) {
+        robot_ref.dribble_power = 0.0f;
+        robot_ref.dribble_velocity = 0.0f;
+        robot_ref.dribble_torque_ff = 0.0f;
+    }
+
+    target_vx_debug = robot_ref.robot_vel[0];
+    target_vy_debug = robot_ref.robot_vel[1];
+    target_vw_debug = robot_ref.robot_vel[2];
+    yaw_target_debug = robot_ref.yaw_target_rad;
+    kick_discharge_time_debug = 0.0f;
+    dribble_power_debug = robot_ref.dribble_power;
+    dribble_velocity_debug = robot_ref.dribble_velocity;
+    dribble_torque_ff_debug = robot_ref.dribble_torque_ff;
+}
 
 int16_t encode_i16(const float value) {
     if (!std::isfinite(value)) {
@@ -165,6 +227,19 @@ Robot::~Robot() {
 }
 
 void Robot::pi_decode_spi() {
+    if (!spi_frame_crc_valid(spi_rx_data)) {
+        spi_error_count++;
+        if (spi_crc_bad_streak < 0xffffffffu) {
+            spi_crc_bad_streak++;
+        }
+        if (spi_crc_bad_streak > kSpiMotionFailsafeBadFrames) {
+            apply_spi_failsafe_command(*this);
+        }
+        return;
+    }
+
+    spi_crc_ok_count++;
+    spi_crc_bad_streak = 0;
     memcpy(&SpiRx, spi_rx_data, sizeof(SpiRx));
 
     // Decode robot velocity commands from Pi (if implemented)
@@ -402,7 +477,9 @@ void Robot::pi_encode_spi() {
         SpiTx.imu_data[i] = static_cast<int16_t>(imu_data[i] * 100);
     }
 
+    memset(spi_tx_data, 0, SPI_LENGTH);
     memcpy(spi_tx_data, &SpiTx, sizeof(SpiTx));
+    write_spi_frame_crc(spi_tx_data);
 }
 
 void Robot::prepare_yaw_control(float dt_s) {

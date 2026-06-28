@@ -32,7 +32,7 @@ struct __attribute__((packed)) CM4_to_stm32_spi
     int16_t acceleration_ff[2]; // robot-local vx/vy feedforward in mm/s^2
 };
 
-static_assert(sizeof(CM4_to_stm32_spi) <= SPI_LENGTH, "CM4_to_stm32_spi exceeds SPI_LENGTH");
+static_assert(sizeof(CM4_to_stm32_spi) <= SPI_LENGTH - 2, "CM4_to_stm32_spi exceeds SPI payload length");
 
 struct __attribute__((packed)) stm32_to_CM4_spi
 {
@@ -64,8 +64,8 @@ struct __attribute__((packed)) stm32_to_CM4_spi
     int16_t reserved;
 };
 
-static_assert(sizeof(CM4_to_stm32_spi) <= SPI_LENGTH, "CM4_to_stm32_spi exceeds SPI buffer length");
-static_assert(sizeof(stm32_to_CM4_spi) <= SPI_LENGTH, "stm32_to_CM4_spi exceeds SPI buffer length");
+static_assert(sizeof(CM4_to_stm32_spi) <= SPI_LENGTH - 2, "CM4_to_stm32_spi exceeds SPI payload length");
+static_assert(sizeof(stm32_to_CM4_spi) <= SPI_LENGTH - 2, "stm32_to_CM4_spi exceeds SPI payload length");
 
 class Robot: public RobotIntf {
 public:
@@ -169,6 +169,8 @@ public:
     ChassisController chassis_controller;
 
     uint32_t spi_error_count = 0;
+    uint32_t spi_crc_ok_count = 0;
+    uint32_t spi_crc_bad_streak = 0;
 
     // Watchdog
     uint32_t watchdog_current_value_ = 0;
