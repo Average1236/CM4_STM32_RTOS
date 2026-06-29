@@ -284,8 +284,10 @@ void ChassisController::step(float dt_s) {
     const float acc_ff_x_filt = acc_ff_x_filter_.filter(acc_ref_[0]);
     const float acc_ff_y_filt = acc_ff_y_filter_.filter(acc_ref_[1]);
 
-    const float vx_acc_command = acc_ff_x_filt + pid_vx;
-    const float vy_acc_command = acc_ff_y_filt + pid_vy;
+    float vx_acc_command = acc_ff_x_filt + pid_vx;
+    float vy_acc_command = acc_ff_y_filt + pid_vy;
+    vx_acc_command = std::clamp(vx_acc_command, -vx_acc_limit_ * control_config::kAccLimitScale, vx_acc_limit_ * control_config::kAccLimitScale);
+    vy_acc_command = std::clamp(vy_acc_command, -vy_acc_limit_ * control_config::kAccLimitScale, vy_acc_limit_ * control_config::kAccLimitScale);
     const float F_task[3] = {
         control_config::kRobotMassKg * vx_acc_command,
         control_config::kRobotMassKg * vy_acc_command,

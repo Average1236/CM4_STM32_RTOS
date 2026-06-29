@@ -155,6 +155,7 @@ inline constexpr float kChassisVelPidDiffCutoffHzY  = 30.0f;
 // Feedforward acceleration Butterworth LPF cutoff (Hz).
 // Smooths host acceleration feedforward; set to 0 to disable.
 inline constexpr float kChassisAccFfButterworthCutoffHz = 20.0f;
+inline constexpr float kAccLimitScale = 1.2f;   // scale factor for runtime acc limit from SPI
 
 // Wheel-speed PID fallback disables chassis torque feedforward and closes
 // yaw angle through wheel velocity commands instead.
