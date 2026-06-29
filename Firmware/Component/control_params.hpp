@@ -61,13 +61,13 @@ inline constexpr float kWheelBetaRad          = 45.0f / 180.0f * kPi;
 // ---- 3a. Target low-pass filter ----
 // Smooths the wrapped yaw target from vision / host.
 // ↑ = faster response to target changes   ↓ = less jitter
-inline constexpr float kYawTargetLowPassCutoffHz = 8.0f;
+inline constexpr float kYawTargetLowPassCutoffHz = 20.0f;
 
 // ---- 3b. Speed-scheduled yaw acceleration limit ----
 // Effective yaw acceleration decays from yaw_max_acc toward a fixed floor.
 // The quadratic curve drops faster at low speed and slower near the floor.
 inline constexpr float kYawAccelDecayStartSpeedMS = 0.0f;
-inline constexpr float kYawAccelDecayEndSpeedMS   = 2.0f;
+inline constexpr float kYawAccelDecayEndSpeedMS   = 3.0f;
 inline constexpr float kYawAccelDecayMinRadS2     = 10.0f;
 
 // ---- 3c. Wheel-speed fallback outer angle PID (in Robot::prepare_yaw_control) ----
@@ -99,8 +99,8 @@ inline constexpr float kYawVyCoupling = 0.0f;
 // ==========================================================================
 
 // ---- 4a. LESO bandwidth scheduling ----
-inline constexpr float kLesoAngleObserverBandwidth  = 150.0f;   // max bandwidth (rad/s)
-inline constexpr float kLesoAngleBandwidthMin       = 20.0f;   // min bandwidth (rad/s)
+inline constexpr float kLesoAngleObserverBandwidth  = 200.0f;   // max bandwidth (rad/s)
+inline constexpr float kLesoAngleBandwidthMin       = 100.0f;   // min bandwidth (rad/s)
 inline constexpr float kLesoScheduleVelocityThreshold = 0.02f;  // scheduling knee (m/s)
 inline constexpr float kLesoScheduleOmegaThreshold    = 0.02f;  // scheduling knee (rad/s)
 
@@ -109,12 +109,12 @@ inline constexpr float kLesoScheduleOmegaThreshold    = 0.02f;  // scheduling kn
 // Control law: F_task_ψ = I · (wc_rate · (ω_ref − ω_z_est) − disturbance + coupling)
 //   ↑ = tighter velocity tracking        ↓ = less motor saturation
 //   Rule of thumb: wc_rate ≤ inner_wo / 3
-inline constexpr float kYawRateControllerBandwidth = 75.0f;
+inline constexpr float kYawRateControllerBandwidth = 100.0f;
 
 // ---- 4c. Omega-z / gyro pre-filtering (Butterworth 2nd-order) ----
 // 0.0 = passthrough.  Non-zero adds delay, use only if gyro is noisy.
 inline constexpr float kChassisOmegaZFilterCutoffHz  = 0.0f;
-inline constexpr float kImuOmegaButterworthCutoffHz  = 0.0f;
+inline constexpr float kImuOmegaButterworthCutoffHz  = 350.0f;
 
 // Gyro-Z bias correction factor (1.0 = raw, < 1.0 = attenuate)
 inline constexpr float kImuOmegaBiasZ = 1.0f;
