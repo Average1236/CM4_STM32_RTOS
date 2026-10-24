@@ -110,16 +110,19 @@ void MotorDMH3510::pack_mit_data(float position, float velocity, float kp, float
 
     // velocity uses rad/s in MIT command; convert feedback from rpm to rad/s.
     const float velocity_feedback = vel_ * kPi / 30.0f;
-    const PID::Parameter_t pid_param_base = wheel_speed_pid_param_with_ramp();
-    PID::Parameter_t pid_param = pid_param_base;
-    if (stationary_hold_limit_ > pid_param.output_limit) {
-        pid_param.output_limit = stationary_hold_limit_;
-        pid_param.integ_limit = stationary_hold_limit_;
-    }
-    const float torque_pid = wheel_speed_pid_.calc(velocity, velocity_feedback, pid_param);
-    if (config_.feedback_id == 1) {
-        wheel_integ_debug = wheel_speed_pid_.get_integ();
-        wheel_diff_debug = wheel_speed_pid_.get_diff();
+    float torque_pid = 0.0f;
+    if (!external_torque_only_) {
+        const PID::Parameter_t pid_param_base = wheel_speed_pid_param_with_ramp();
+        PID::Parameter_t pid_param = pid_param_base;
+        if (stationary_hold_limit_ > pid_param.output_limit) {
+            pid_param.output_limit = stationary_hold_limit_;
+            pid_param.integ_limit = stationary_hold_limit_;
+        }
+        torque_pid = wheel_speed_pid_.calc(velocity, velocity_feedback, pid_param);
+        if (config_.feedback_id == 1) {
+            wheel_integ_debug = wheel_speed_pid_.get_integ();
+            wheel_diff_debug = wheel_speed_pid_.get_diff();
+        }
     }
 
     // --- 3-state Luenberger observer ---
@@ -163,18 +166,21 @@ void MotorDMH3510::pack_mit_data(float position, float velocity, float kp, float
     // Damping coefficient decreases with speed: high at low speed (airborne
     // oscillation suppression), low at high speed (natural friction active).
     const float obs_vel_filtered = obs_vel_filter_.filter(obs_omega_rad_s_);
-    float damp_eff = control_config::kWheelVirtualDampingNmPerRadPS;
-    if constexpr (!control_config::kUseWheelSpeedPidFallback) {
-        const float damp_alpha = 1.0f - std::clamp(fabsf(velocity) / control_config::kWheelDampScheduleSpeedRadPS, 0.0f, 1.0f);
-        damp_eff = control_config::kWheelVirtualDampingMin
-                 + (control_config::kWheelVirtualDampingNmPerRadPS - control_config::kWheelVirtualDampingMin) * damp_alpha;
+    float torque_damp = 0.0f;
+    if (!external_torque_only_) {
+        float damp_eff = control_config::kWheelVirtualDampingNmPerRadPS;
+        if constexpr (!control_config::kUseWheelSpeedPidFallback) {
+            const float damp_alpha = 1.0f - std::clamp(fabsf(velocity) / control_config::kWheelDampScheduleSpeedRadPS, 0.0f, 1.0f);
+            damp_eff = control_config::kWheelVirtualDampingMin
+                     + (control_config::kWheelVirtualDampingNmPerRadPS - control_config::kWheelVirtualDampingMin) * damp_alpha;
+        }
+        const float torque_damp_raw = enabled_
+            ? (damp_eff * (velocity - obs_vel_filtered))
+            : 0.0f;
+        torque_damp = std::clamp(torque_damp_raw,
+            -control_config::kWheelVirtualDampingLimitNm,
+             control_config::kWheelVirtualDampingLimitNm);
     }
-    const float torque_damp_raw = enabled_
-        ? (damp_eff * (velocity - obs_vel_filtered))
-        : 0.0f;
-    const float torque_damp = std::clamp(torque_damp_raw,
-        -control_config::kWheelVirtualDampingLimitNm,
-         control_config::kWheelVirtualDampingLimitNm);
 
     if (config_.feedback_id == 1) {
         wheel_obs_vel_debug = obs_omega_rad_s_;

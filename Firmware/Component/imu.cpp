@@ -64,9 +64,12 @@ bool IMU::init()
 void IMU::process_once()
 {
     bool updated = false;
+    new_sample_ = false;
+    data_valid_ = false;
     if (icm42688_read_burst(icm_rx_buffer_, IMU_ICM42688_BURST_DATA_LENGTH)) {
         updated = decode_icm42688(icm_rx_buffer_, IMU_ICM42688_BURST_DATA_LENGTH);
     }
+    data_valid_ = updated;
 
     imu_acc_x_debug = data_[kAccX];
     imu_acc_y_debug = data_[kAccY];
@@ -76,8 +79,24 @@ void IMU::process_once()
     imu_gyro_z_debug = data_[kOmegaZ];
 
     if (updated) {
+        ++raw_sequence_;
+        new_sample_ = true;
         publish_ports_from_cache();
     }
+}
+
+bool IMU::consume_raw_sample(float accel_m_s2[3], float gyro_rad_s[3],
+                             std::uint32_t* sequence) {
+    if (!new_sample_ || accel_m_s2 == nullptr || gyro_rad_s == nullptr) {
+        return false;
+    }
+    for (int i = 0; i < 3; ++i) {
+        accel_m_s2[i] = raw_acc_m_s2_[i];
+        gyro_rad_s[i] = raw_gyro_rad_s_[i];
+    }
+    if (sequence != nullptr) *sequence = raw_sequence_;
+    new_sample_ = false;
+    return true;
 }
 
 bool IMU::decode_icm42688(const uint8_t* raw_data, size_t len)
@@ -100,6 +119,16 @@ bool IMU::decode_icm42688(const uint8_t* raw_data, size_t len)
     data_[kOmegaX] = static_cast<float>(gx) * gyro_sensitivity_;
     data_[kOmegaY] = static_cast<float>(gy) * gyro_sensitivity_;
     data_[kOmegaZ] = static_cast<float>(gz) * gyro_sensitivity_;
+
+    // Keep an uncorrected snapshot for the new estimator.  The legacy ports
+    // below still apply the constant bias for the old controller.
+    raw_acc_m_s2_[0] = data_[kAccX];
+    raw_acc_m_s2_[1] = data_[kAccY];
+    raw_acc_m_s2_[2] = data_[kAccZ];
+    constexpr float kDegToRad = 0.017453292519943295f;
+    raw_gyro_rad_s_[0] = data_[kOmegaX] * kDegToRad;
+    raw_gyro_rad_s_[1] = data_[kOmegaY] * kDegToRad;
+    raw_gyro_rad_s_[2] = data_[kOmegaZ] * kDegToRad;
 
     data_[kOmegaZ] -= control_config::kImuOmegaBiasZ;
 

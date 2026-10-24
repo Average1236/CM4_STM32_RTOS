@@ -63,6 +63,12 @@ file(GLOB GENERAL_HEADERS CONFIGURE_DEPENDS
 	${CMAKE_CURRENT_SOURCE_DIR}/*.hpp
 )
 
+# Shared motion kernel (also compiled by Kun2 and by the host runners).
+set(KUN2_MOTION_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../motion)
+file(GLOB MOTION_SOURCES CONFIGURE_DEPENDS
+    ${KUN2_MOTION_DIR}/src/*.cpp
+)
+
 if(TARGET CM4_stm32_RTOS)
     target_sources(CM4_stm32_RTOS PRIVATE 
         ${TASK_SOURCES} 
@@ -73,12 +79,14 @@ if(TARGET CM4_stm32_RTOS)
         ${COMMUNICATION_HEADERS} 
         ${INTERFACE_HEADERS} 
         ${GENERAL_HEADERS}
+        ${MOTION_SOURCES}
     )
     target_include_directories(CM4_stm32_RTOS PRIVATE 
         ${TASK_DIR} 
         ${CMAKE_CURRENT_SOURCE_DIR}/Component
         ${CMAKE_CURRENT_SOURCE_DIR}/Communication 
         ${CMAKE_CURRENT_SOURCE_DIR}/Communication/can 
+        ${KUN2_MOTION_DIR}/include
         ${CMAKE_CURRENT_SOURCE_DIR}/Interface 
         ${CMAKE_CURRENT_SOURCE_DIR}
     )

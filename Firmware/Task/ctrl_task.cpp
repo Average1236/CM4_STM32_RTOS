@@ -85,7 +85,12 @@ bool build_wheel_command(Robot& robot, uint8_t index, bool safe_output, can_Mess
         const float torque_ff = torque_ff_opt.has_value() ? *torque_ff_opt : 0.0f;
         const float velocity_ref = safe_output ? 0.0f : (vel_cmd_rpm * kRadPerRpm);
         const float position_ref = motor->get_angle() * kDegToRad;
-        const MITCommandConfig cfg = safe_output ? kMITSafeConfig : kMITRunConfig;
+        MITCommandConfig cfg = safe_output ? kMITSafeConfig : kMITRunConfig;
+        if (robot.motion_v2_enabled()) {
+            // The shared kernel owns the only wheel-speed PI/damping; the
+            // MIT encoder carries pure torque with Kp=Kd=0.
+            cfg = MITCommandConfig{0.0f, 0.0f, 0.0f};
+        }
         float kd_cmd = cfg.kd;
 
         if (!safe_output && motor_enabled) {
@@ -203,6 +208,11 @@ void StartCrtlTask(void *argument) {
 
     // Initialize motors (set control mode, PID gains, enable)
     motor_init();
+
+    // New default backend: the shared motion kernel is the only place that
+    // computes estimation, trajectory and wheel torque.  The legacy path
+    // below is kept for explicit LEGACY selection.
+    robot.ensure_motion_engine(motion_now_us());
     
     uint32_t ctrl_start_tick = 0;
     uint32_t ctrl_end_tick = 0;
@@ -330,7 +340,9 @@ void StartCrtlTask(void *argument) {
                 }
 
                 // ============ Stage D – Build CAN Command (Explicit 4-Branch Dispatch) ============
-                const bool dribbler_enabled = (robot.dribble_power != 0);
+                const bool dribbler_enabled =
+                    (robot.dribble_power != 0) &&
+                    (!robot.motion_v2_enabled() || robot.motion_engine.dribbleAllowed());
                 const float chassis_vx = robot.robot_real_vel[0];  // backward is negative
                 can_Message_t dribbler_cmd_msg;
                 can_Message_t dribbler_stop_msg;
@@ -392,48 +404,53 @@ void StartCrtlTask(void *argument) {
                     robot.dribbler.build_velocity_msg(dribbler_stop_msg, 0.0f, 0.0f);
                 }
 
-                // Kick trigger
+                // Kick trigger.  In v2 the kick event is additionally gated by
+                // the motion safety state, sequence and validity window.
                 if (control_config::kTestKick) {
-                    // Test mode: rising-edge on kick_discharge_time (0 → non-zero)
                     static uint16_t prev_discharge_time = 0;
                     if (robot.kick_discharge_time > 0 && prev_discharge_time == 0) {
-                        robot.request_kick_from_spi();
+                        if (!robot.motion_v2_enabled() ||
+                            robot.motion_engine.kickAllowed(motion_now_us())) {
+                            robot.request_kick_from_spi();
+                        }
                     }
                     prev_discharge_time = robot.kick_discharge_time;
                 } else {
-                    // Normal mode: require infrared ball detection
                     if (robot.dribbler.infra_voltage_filt > INFRARED_THRESHOLD) {
                         robot.infrare_flag = true;
-                        robot.request_kick_from_spi();
+                        if (!robot.motion_v2_enabled() ||
+                            robot.motion_engine.kickAllowed(motion_now_us())) {
+                            robot.request_kick_from_spi();
+                        }
                     } else {
                         robot.infrare_flag = false;
                     }
                 }
 
-                // Motion planning: compute acceleration from velocity setpoints
                 const float dt_s = static_cast<float>(ctrl_dt_us / 1000000.0);
-                robot.motion_planner(ctrl_dt_us);
+                float hold_limit = 0.0f;
+                if (robot.motion_v2_enabled()) {
+                    // Shared kernel: fixed-lag EKF -> trajectory -> wheel
+                    // targets -> feed-forward + software wheel-speed PI ->
+                    // joint limits.  No legacy planner/PID/LADRC runs here.
+                    robot.update_motion_v2(motion_now_us());
+                } else {
+                    // LEGACY backend retained for explicit comparison only.
+                    robot.motion_planner(ctrl_dt_us);
+                    robot.prepare_yaw_control(dt_s);
+                    robot.ik_solve();
+                    robot.update_torque_feedforward(ctrl_dt_us);
+                    robot.push_legacy_torque_to_motion_ports();
 
-                // Yaw angle control: trapezoid-planned omega (not raw P controller)
-                robot.prepare_yaw_control(dt_s);
-
-                // Inverse kinematics: compute wheel velocities
-                robot.ik_solve();
-
-                // Observer-based control law: compute wheel torque feedforward
-                robot.update_torque_feedforward(ctrl_dt_us);
-
-                // Stationary hold: blend wheel-speed PID authority based on
-                // commanded chassis velocity and angular velocity.
-                // Authority = 1.0 only when both |v_cmd|→0 and |ω_ref|→0.
-                const float v_cmd_norm = sqrtf(robot.robot_real_vel[0] * robot.robot_real_vel[0] +
-                                               robot.robot_real_vel[1] * robot.robot_real_vel[1]);
-                const float alpha_v = 1.0f - std::clamp(v_cmd_norm / control_config::kStationaryHoldSpeedThreshold,
-                                                        0.0f, 1.0f);
-                const float omega_cmd_norm = fabsf(robot.chassis_controller.omega_ref());
-                const float alpha_w = 1.0f - std::clamp(omega_cmd_norm / control_config::kStationaryHoldOmegaThreshold,
-                                                        0.0f, 1.0f);
-                const float hold_limit = control_config::kStationaryHoldPidOutputLimitNm * alpha_v * alpha_w;
+                    const float v_cmd_norm = sqrtf(robot.robot_real_vel[0] * robot.robot_real_vel[0] +
+                                                   robot.robot_real_vel[1] * robot.robot_real_vel[1]);
+                    const float alpha_v = 1.0f - std::clamp(v_cmd_norm / control_config::kStationaryHoldSpeedThreshold,
+                                                            0.0f, 1.0f);
+                    const float omega_cmd_norm = fabsf(robot.chassis_controller.omega_ref());
+                    const float alpha_w = 1.0f - std::clamp(omega_cmd_norm / control_config::kStationaryHoldOmegaThreshold,
+                                                            0.0f, 1.0f);
+                    hold_limit = control_config::kStationaryHoldPidOutputLimitNm * alpha_v * alpha_w;
+                }
 
                 can_Message_t wheel_msgs[4];
                 can_Message_t extra_can_msgs[4];
@@ -441,7 +458,9 @@ void StartCrtlTask(void *argument) {
                 uint32_t current_tick = HAL_GetTick();
 
                 for (uint8_t i = 0; i < 4; i++) {
-                    const bool safe_output = !robot.wheel_motors[i]->is_enabled() || !robot.watchdog_check();
+                    const bool safe_output =
+                        !robot.wheel_motors[i]->is_enabled() || !robot.watchdog_check() ||
+                        (robot.motion_v2_enabled() && !robot.motion_engine.motorsEnabled());
                     robot.wheel_motors[i]->set_stationary_hold_limit(safe_output ? 0.0f : hold_limit);
                     build_wheel_command(robot, i, safe_output, wheel_msgs[i]);
 

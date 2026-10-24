@@ -7,6 +7,9 @@
 #include "dribbler_zfoc.hpp"
 #include "yaw_s_curve.hpp"
 #include "circular_lpf.hpp"
+#include "motion_engine.hpp"
+
+#include <atomic>
 
 struct __attribute__((packed)) CM4_to_stm32_spi
 {
@@ -74,6 +77,18 @@ public:
 
     void pi_encode_spi();
     void pi_decode_spi();
+    // New default path: one 256-byte v2 exchange per SPI frame.
+    void process_spi_v2(motion::TimeUs now_us);
+    void ensure_motion_engine(motion::TimeUs now_us);
+    void update_motion_v2(motion::TimeUs now_us);
+    // Lock-free IMU snapshot hand-off from the 800 Hz IMU task to the 500 Hz
+    // control task; the estimator queue is only touched by the control task.
+    void queue_raw_imu(const motion::RawImuSample& sample);
+    void drain_raw_imu(motion::TimeUs now_us);
+    void push_legacy_torque_to_motion_ports();
+    bool motion_v2_enabled() const { return motion_v2_enabled_; }
+    bool motion_engine_ready() const { return motion_engine_ready_; }
+    motion::ControllerOutput motion_control() const { return motion_control_; }
     void request_kick_from_spi();
     void on_kick_timeout_irq();
 
@@ -107,6 +122,18 @@ public:
     float cap_ADC3_val = 0;
 
     MotorDMH3510* wheel_motors[4];
+
+    // New default backend.  The legacy ChassisEstimator/ChassisController stay
+    // available but are not called when motion_v2_enabled_ is true.
+    stm32_motion::MotionEngine motion_engine;
+    motion::ControllerOutput motion_control_;
+    static constexpr std::size_t kImuQueueSize = 16;
+    motion::RawImuSample imu_queue_[kImuQueueSize];
+    std::atomic<std::uint32_t> imu_queue_head_{0};
+    std::atomic<std::uint32_t> imu_queue_tail_{0};
+    OutputPort<float> motion_torque_ports_[4] = {
+        OutputPort<float>(0.0f), OutputPort<float>(0.0f),
+        OutputPort<float>(0.0f), OutputPort<float>(0.0f)};
 
     float motor_vel[4] = {0};
     float last_motor_vel[4] = {0};
@@ -178,6 +205,8 @@ public:
 
 private:
     void start_kick_pulse(bool chip_mode, uint16_t pulse_us);
+    bool motion_engine_ready_ = false;
+    bool motion_v2_enabled_ = true;
 
     OutputPort<float>* optflow_body_vx_port_ = nullptr;
     OutputPort<float>* optflow_body_vy_port_ = nullptr;

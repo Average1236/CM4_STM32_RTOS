@@ -2,6 +2,7 @@
 #include "freertos_vars.h"
 #include "z_main.h"
 #include "Component/control_params.hpp"
+#include "motion/types.hpp"
 #include <cstring>
 
 float imu_last_time = 0;
@@ -30,6 +31,22 @@ void StartImuRxTask(void *argument) {
             imu.compute_stationary_and_bias();
             imu.update_integrated_yaw(imu_dt);
             imu.update_roll_pitch(imu_dt);
+
+            // Feed the new estimator from raw, freshly decoded values only.
+            // A failed burst read is not published (consume_raw_sample false).
+            float accel[3];
+            float gyro[3];
+            std::uint32_t sequence = 0;
+            if (imu.consume_raw_sample(accel, gyro, &sequence)) {
+                motion::RawImuSample raw;
+                raw.sample_time_us = motion_now_us();
+                raw.accel_raw_m_s2 = motion::Vec3(accel[0], accel[1], accel[2]);
+                raw.gyro_raw_rad_s = motion::Vec3(gyro[0], gyro[1], gyro[2]);
+                raw.sequence = sequence;
+                raw.calibration_version = 1;
+                raw.valid = true;
+                robot.queue_raw_imu(raw);
+            }
         }
     }
 }

@@ -18,7 +18,7 @@ extern "C" {
 
 #define PI_UART_TX_DATA_LENGTH 3
 #define PI_UART_RX_DATA_LENGTH 7
-#define SPI_LENGTH 112
+#define SPI_LENGTH 256
 
 #define INFRARED_THRESHOLD (0.5f)
 
@@ -27,6 +27,24 @@ inline const float bat_k = (95.3f+5.6f)/5.6f;
 inline const float cap_k = 113.73;
 
 #ifdef __cplusplus
+}
+
+#include <cstdint>
+
+// Monotonic microsecond timebase shared by the IMU, SPI and control tasks.
+// TIM13 is a free-running 1 MHz 16-bit counter; extend it to 64 bits under a
+// short interrupt mask so 800 Hz sensor samples keep distinct timestamps.
+inline std::uint64_t motion_now_us() {
+    static std::uint32_t last_count = 0;
+    static std::uint64_t base = 0;
+    const std::uint32_t primask = __get_PRIMASK();
+    __disable_irq();
+    const std::uint32_t count = TIM13->CNT;
+    if (count < last_count) base += 65536u;
+    last_count = count;
+    const std::uint64_t now = base + count;
+    __set_PRIMASK(primask);
+    return now;
 }
 
 #include "interfaces.hpp"

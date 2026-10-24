@@ -55,6 +55,10 @@ public:
     void get_data(float out_data[9]) const;
     void publish_ports_from_cache();
     void reset_ports();
+    // New motion core input.  Consumes one freshly decoded raw sample; a
+    // failed/cached read is reported as false instead of stale success.
+    bool consume_raw_sample(float accel_m_s2[3], float gyro_rad_s[3], std::uint32_t* sequence);
+    bool last_read_ok() const { return data_valid_; }
 
     OutputPort<float>* omega_x_port() { return &omega_x_port_; }
     OutputPort<float>* omega_y_port() { return &omega_y_port_; }
@@ -116,6 +120,11 @@ private:
     uint8_t icm_rx_buffer_[IMU_ICM42688_BURST_DATA_LENGTH] = {0};
 
     float data_[12] = {0};
+    float raw_acc_m_s2_[3] = {0.0f, 0.0f, 0.0f};
+    float raw_gyro_rad_s_[3] = {0.0f, 0.0f, 0.0f};
+    std::uint32_t raw_sequence_ = 0;
+    bool new_sample_ = false;
+    bool data_valid_ = false;
     OutputPort<float> omega_x_port_{0.0f};
     OutputPort<float> omega_y_port_{0.0f};
     OutputPort<float> omega_z_port_{0.0f};

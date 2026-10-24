@@ -167,6 +167,9 @@ public:
     bool is_writing_register() { return writing_register_; }
     void reset_wheel_speed_pid() override;
     void set_stationary_hold_limit(float limit_nm) { stationary_hold_limit_ = limit_nm; }
+    // New backend owns the only wheel-speed PI and damping.  When true this
+    // driver only encodes the supplied torque (MIT Kp=Kd=0).
+    void set_external_torque_only(bool enabled) { external_torque_only_ = enabled; }
     RegisterWriteCheckResult check_write_register_feedback(const can_Message_t& msg) override;
 
     void build_write_register_msg(uint8_t rid, uint32_t data, can_Message_t& msg);
@@ -216,6 +219,7 @@ private:
     // Stationary hold: per-frame output-limit override for wheel-speed PID (Nm).
     // Set by ctrl_task each frame; 0 = no override (PID disabled when fallback=false).
     float stationary_hold_limit_ = 0.0f;
+    bool external_torque_only_ = false;
 
     // Velocity filter for damping path
     ButterworthLowPass2 obs_vel_filter_{{0.0f, 0.0f}};
