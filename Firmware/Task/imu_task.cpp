@@ -28,9 +28,14 @@ void StartImuRxTask(void *argument) {
             imu_last_time = current_time;
 
             imu.process_once();
-            imu.compute_stationary_and_bias();
-            imu.update_integrated_yaw(imu_dt);
-            imu.update_roll_pitch(imu_dt);
+            // The legacy estimator still needs the driver-internal yaw and
+            // dynamic bias.  The v2 backend consumes only the raw snapshot
+            // below; the shared preprocessor/EKF owns bias and attitude.
+            if (!robot.motion_v2_enabled()) {
+                imu.compute_stationary_and_bias();
+                imu.update_integrated_yaw(imu_dt);
+                imu.update_roll_pitch(imu_dt);
+            }
 
             // Feed the new estimator from raw, freshly decoded values only.
             // A failed burst read is not published (consume_raw_sample false).
