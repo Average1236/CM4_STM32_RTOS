@@ -97,6 +97,9 @@ bool MotionEngine::onSpiFrame(const std::uint8_t* rx_frame, std::uint8_t* tx_fra
                     // A configuration change is only legal at rest.
                     if (core_.isStopped() || !core_.estimate().vision_fused) {
                         configure(config, imu_config_, spi_watchdog_enabled_, now_us);
+                        core_.noteSpiFrame(now_us);
+                        last_spi_frame_us_ = now_us;
+                        has_spi_frame_ = true;
                         ok = true;
                     }
                 }

@@ -227,6 +227,21 @@ Robot::~Robot() {
 }
 
 
+bool Robot::select_motion_backend(bool use_v2, motion::TimeUs now_us) {
+    if (use_v2 == motion_v2_enabled_) return true;
+    if (motion_engine_ready_ && !motion_engine.core().isStopped()) return false;
+    motion_v2_enabled_ = use_v2;
+    for (uint8_t i = 0; i < 4; ++i) {
+        wheel_motors[i]->set_external_torque_only(use_v2);
+    }
+    if (use_v2) {
+        ensure_motion_engine(now_us);
+    } else {
+        motion_engine_ready_ = false;
+    }
+    return true;
+}
+
 void Robot::ensure_motion_engine(motion::TimeUs now_us) {
     if (motion_engine_ready_) return;
 

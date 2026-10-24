@@ -87,6 +87,9 @@ public:
     void drain_raw_imu(motion::TimeUs now_us);
     void push_legacy_torque_to_motion_ports();
     bool motion_v2_enabled() const { return motion_v2_enabled_; }
+    // Backend changes are accepted only while stopped; switching never stitches
+    // two different estimators/controllers together in motion.
+    bool select_motion_backend(bool use_v2, motion::TimeUs now_us);
     bool motion_engine_ready() const { return motion_engine_ready_; }
     motion::ControllerOutput motion_control() const { return motion_control_; }
     void request_kick_from_spi();
