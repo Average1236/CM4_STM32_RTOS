@@ -320,6 +320,10 @@ void Robot::update_motion_v2(motion::TimeUs now_us) {
     wheels.sequence = static_cast<std::uint32_t>(now_us);
     wheels.valid = true;
     for (uint8_t i = 0; i < 4; ++i) {
+        const auto time = wheel_motors[i]->feedback_time_us();
+        wheels.valid = wheels.valid && wheel_motors[i]->is_enabled() &&
+            time != 0 && time <= now_us && now_us - time <= 15000;
+        if (time < wheels.sample_time_us) wheels.sample_time_us = time;
         wheels.wheel_speed_rad_s[i] =
             wheel_motors[i]->get_velocity() * control_config::kPi / 30.0f;
     }

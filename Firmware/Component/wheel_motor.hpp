@@ -69,6 +69,8 @@ public:
     Mode get_mode() const { return mode_; }
     float get_angle() const { return angle_; }
     float get_velocity() const { return vel_; }
+    void mark_feedback_received(std::uint64_t time_us) { feedback_time_us_ = time_us; }
+    std::uint64_t feedback_time_us() const { return feedback_time_us_; }
     float get_current() const { return current_; }
     float get_torque() const { return torque_; }
     Type get_type() const { return type_; }
@@ -86,6 +88,7 @@ public:
     void reset_ports();
 
 protected:
+    std::uint64_t feedback_time_us_ = 0;
     WheelMotorBase(Type type, const Config_t& config, const Info_t& info);
     void publish_feedback_ports();
 

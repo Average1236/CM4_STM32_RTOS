@@ -350,7 +350,8 @@ void MotorDMH3510::parse_feedback_data(const uint8_t rx_data[8]) {
         last_error_ = state_;
     }
     update_wheel_speed_pll_from_pos(measured_pos_rad, enabled_);
-    vel_ = enabled_ ? (pll_vel_est_rad_s_ * 30.0f / kPi * pll_vel_ramp_alpha_) : 0.0f;
+    vel_ = enabled_ ? (pll_vel_est_rad_s_ * 30.0f / kPi *
+                      (external_torque_only_ ? 1.0f : pll_vel_ramp_alpha_)) : 0.0f;
     publish_feedback_ports();
 }
 

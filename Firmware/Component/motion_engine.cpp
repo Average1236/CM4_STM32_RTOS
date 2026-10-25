@@ -1,4 +1,5 @@
 #include "motion_engine.hpp"
+#include "motion/validation.hpp"
 
 namespace stm32_motion {
 
@@ -14,6 +15,9 @@ void MotionEngine::configure(const motion::MotionConfigV2& config,
     control_ = motion::ControllerOutput{};
     command_time_map_.reset();
     last_kick_sequence_ = 0;
+    last_kick_session_ = 0;
+    kick_seen_ = false;
+    kick_consumed_ = false;
     kick_edge_state_ = false;
     last_spi_frame_us_ = now_us;
     has_spi_frame_ = false;
@@ -71,12 +75,22 @@ bool MotionEngine::handleCommandFrame(const std::uint8_t* frame,
     command.received_time_us = now_us;
 
     if (has_vision && vision.valid) {
-        core_.submitVision(vision, now_us);
-        if (!core_.estimate().vision_fused) {
-            core_.resetToVision(vision, now_us);
-        }
+        submitVision(vision, now_us);
     }
-    core_.submitCommand(command, now_us);
+    if (core_.submitCommand(command, now_us)) {
+        const bool new_event = command.kick_requested &&
+            (!kick_seen_ || command.session_id != last_kick_session_ ||
+             (command.kick_sequence != 0 && command.kick_sequence != last_kick_sequence_) ||
+             (command.kick_sequence == 0 && !kick_edge_state_));
+        if (new_event) {
+            last_kick_session_ = command.session_id;
+            last_kick_sequence_ = command.kick_sequence;
+            kick_event_time_us_ = command.generated_time_us;
+            kick_seen_ = true;
+            kick_consumed_ = false;
+        }
+        kick_edge_state_ = command.kick_requested;
+    }
     core_.noteSpiFrame(now_us);
     last_spi_frame_us_ = now_us;
     has_spi_frame_ = true;
@@ -93,10 +107,16 @@ bool MotionEngine::onSpiFrame(const std::uint8_t* rx_frame, std::uint8_t* tx_fra
             motion::frameIsValid(rx_frame, header.type)) {
             if (header.type == motion::FrameType::kConfig) {
                 motion::MotionConfigV2 config;
-                if (motion::decodeConfigFrame(rx_frame, &config)) {
+                if (motion::decodeConfigFrame(rx_frame, &config) &&
+                    config_sequences_.accepts(header.session_id, header.sequence)) {
                     // A configuration change is only legal at rest.
-                    if (core_.isStopped() || !core_.estimate().vision_fused) {
+                    if (core_.isStopped()) {
+                        config_sequences_.accept(header.session_id, header.sequence);
                         configure(config, imu_config_, spi_watchdog_enabled_, now_us);
+                        // Configuration carries a fresh bridge timestamp.
+                        // Seed the mapping before a potentially old command
+                        // arrives, so its original age survives boot offsets.
+                        command_time_map_.observe(header.generated_time_us, now_us);
                         core_.noteSpiFrame(now_us);
                         last_spi_frame_us_ = now_us;
                         has_spi_frame_ = true;
@@ -145,7 +165,6 @@ void MotionEngine::encodeFeedback(std::uint8_t* frame, motion::TimeUs now_us) co
     feedback.session_id = core_.activeCommand().session_id;
     feedback.executed_sequence = core_.lastCommandSequence();
     feedback.trajectory_epoch = core_.activeEpoch();
-    feedback.active_command_age_us = 0;
     feedback.safety = core_.safety();
     feedback.battery_voltage = battery_voltage_;
     feedback.capacitance_voltage = capacitance_voltage_;
@@ -157,6 +176,7 @@ void MotionEngine::encodeFeedback(std::uint8_t* frame, motion::TimeUs now_us) co
 
 void MotionEngine::step(motion::TimeUs now_us, motion::ControllerOutput* control) {
     core_.step(now_us, &control_);
+    if (core_.safety() != motion::SafetyState::kReady) kick_consumed_ = true;
     if (control != nullptr) *control = control_;
 }
 
@@ -175,6 +195,8 @@ void MotionEngine::submitOptFlow(const motion::OptFlowSample& sample) {
 
 void MotionEngine::submitVision(const motion::VisionObservationV2& vision,
                                 motion::TimeUs now_us) {
+    if (!motion::validVision(vision) || vision.capture_time_us > now_us ||
+        now_us - vision.capture_time_us > motion::secondsToUs(config_.vision_degrade_s)) return;
     core_.submitVision(vision, now_us);
     if (!core_.estimate().vision_fused) core_.resetToVision(vision, now_us);
 }
@@ -191,29 +213,16 @@ bool MotionEngine::dribbleAllowed() const {
 
 bool MotionEngine::kickAllowed(motion::TimeUs now_us) {
     if (core_.safety() != motion::SafetyState::kReady || !core_.commandActive()) {
-        kick_edge_state_ = false;
+        kick_consumed_ = true;
         return false;
     }
     const motion::MotionCommandV2& command = core_.activeCommand();
-    if (!command.kick_requested) {
-        kick_edge_state_ = false;
-        return false;
-    }
-    if (command.kick_sequence != 0) {
-        if (command.kick_sequence == last_kick_sequence_) return false;
-        const motion::TimeUs valid_for = command.kick_valid_for_us != 0
-                                             ? command.kick_valid_for_us
-                                             : motion::secondsToUs(0.1f);
-        if (now_us >= command.received_time_us &&
-            now_us - command.received_time_us > valid_for) {
-            return false;
-        }
-        last_kick_sequence_ = command.kick_sequence;
-        return true;
-    }
-    // Legacy-style continuous request: trigger only on the rising edge.
-    if (kick_edge_state_) return false;
-    kick_edge_state_ = true;
+    const motion::TimeUs valid_for = command.kick_valid_for_us != 0
+        ? command.kick_valid_for_us : motion::secondsToUs(0.1f);
+    if (!command.kick_requested || !kick_seen_ || kick_consumed_ ||
+        !command.isValidAt(now_us) || now_us < kick_event_time_us_ ||
+        now_us - kick_event_time_us_ > valid_for) return false;
+    kick_consumed_ = true;
     return true;
 }
 

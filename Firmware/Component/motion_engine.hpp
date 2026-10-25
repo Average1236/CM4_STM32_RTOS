@@ -65,12 +65,17 @@ private:
     motion::MotionConfigV2 config_;
     motion::ImuPreprocessorConfig imu_config_;
     motion::TimeMapper command_time_map_;
+    motion::SequenceGate config_sequences_;
     motion::ControllerOutput control_;
     bool spi_watchdog_enabled_ = false;
     std::uint32_t crc_errors_ = 0;
     std::uint32_t frames_received_ = 0;
     std::uint32_t config_frames_ = 0;
     std::uint32_t last_kick_sequence_ = 0;
+    std::uint32_t last_kick_session_ = 0;
+    motion::TimeUs kick_event_time_us_ = 0;
+    bool kick_seen_ = false;
+    bool kick_consumed_ = false;
     bool kick_edge_state_ = false;
     motion::TimeUs last_spi_frame_us_ = 0;
     bool has_spi_frame_ = false;

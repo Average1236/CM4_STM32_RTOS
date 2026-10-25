@@ -264,6 +264,9 @@ void StartCrtlTask(void *argument) {
                     robot.robot_vel[2] = 0.0f;
                 }
 
+                // Evaluate this tick's timeouts before ANY actuator gate.
+                if (robot.motion_v2_enabled()) robot.update_motion_v2(motion_now_us());
+
                 // ============ Dribbler: Stage A – Sensor Input ============
                 robot.infra_voltage = robot.dribbler.infra_voltage_raw;
                 robot.dribbler.filter_voltage();  // asymmetric LPF
@@ -433,7 +436,7 @@ void StartCrtlTask(void *argument) {
                     // Shared kernel: fixed-lag EKF -> trajectory -> wheel
                     // targets -> feed-forward + software wheel-speed PI ->
                     // joint limits.  No legacy planner/PID/LADRC runs here.
-                    robot.update_motion_v2(motion_now_us());
+                    // Already updated before dribbler and kick gating above.
                 } else {
                     // LEGACY backend retained for explicit comparison only.
                     robot.motion_planner(ctrl_dt_us);
