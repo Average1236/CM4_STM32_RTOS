@@ -56,14 +56,14 @@ bool board_init() {
     if (!can2_bus.start(&hcan2)) {
         return false;
     }
-    
+
     // Subscribe to optical flow sensor (CAN1, ID 0x300-0x301)
     MsgIdFilterSpecs optflow_filter;
     optflow_filter.id = (uint16_t)0x300;
     optflow_filter.mask = 0x7FE;  // Match IDs 0x300-0x301
     optflow_filter.fifo = CAN_RX_FIFO0;
     can1_bus.subscribe(optflow_filter, on_optflow_rx, nullptr, nullptr);
-    
+
     // Subscribe to dribbler ZFOC heartbeat (CAN1, node_id=5, cmd=0x001 -> ID 0x0A1)
     MsgIdFilterSpecs dribbler_filter;
     dribbler_filter.id = (uint16_t)((5 << 5) | 0x001);
@@ -84,9 +84,7 @@ bool board_init() {
 
     HAL_TIM_Base_Start_IT(&htim2);
 
-    if (imu.model() == IMU::Model::kIcm42688) {
-        HAL_TIM_Base_Start_IT(&htim7);
-    }
+    HAL_TIM_Base_Start_IT(&htim7);
 
     // Start TIM13 for optical flow sensor timing
     HAL_TIM_Base_Start(&htim13);
@@ -114,9 +112,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
     }
 
     if (htim->Instance == TIM7) {
-        if (imu.model() == IMU::Model::kIcm42688) {
-            osSemaphoreRelease(sem_imu_readyHandle);
-        }
+        osSemaphoreRelease(sem_imu_readyHandle);
     }
 
     if (htim->Instance == TIM6) {
@@ -140,9 +136,6 @@ void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan) {
 
 void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 {
-    if (hspi == imu.spi_handle()) {
-        // ICM42688 uses TIM7-triggered polling, not SPI IRQ wakeups.
-    }
     if (hspi->Instance == SPI1) {
         // Trigger SPI exchange task, similar to ctrl task trigger flow
         if (sem_spi_triggerHandle != nullptr) {
@@ -173,7 +166,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
     (void)Size;
 
     if (huart->Instance == USART1) {
-        
+
     }
 
     if (huart->Instance == UART4) {
@@ -184,7 +177,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
     if (huart->Instance == USART1) {
-        
+
     }
 
     if (huart->Instance == UART4) {
@@ -192,4 +185,3 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 }
 
 } // extern "C"
-

@@ -50,7 +50,6 @@
 osMessageQueueId_t q_can1_rxHandle;
 osMessageQueueId_t q_optflow_dataHandle;
 osMessageQueueId_t q_motor_fbHandle;
-osMessageQueueId_t q_imu_dataHandle;
 
 // Semaphores
 osSemaphoreId_t sem_can_txHandle;
@@ -160,7 +159,6 @@ void MX_FREERTOS_Init(void) {
   /* add queues, ... */
   q_optflow_dataHandle = osMessageQueueNew(8, 32, NULL);  // 8 snapshots, 32 bytes each (DualOptFlowSnapshot_t)
   q_motor_fbHandle = osMessageQueueNew(25, 16, NULL);     // 25 messages for 5 motors
-  q_imu_dataHandle = osMessageQueueNew(8, 36, NULL);      // 8 messages, 36 bytes (9 floats)
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
@@ -325,4 +323,3 @@ __weak void StartHealthTask(void *argument)
 /* USER CODE BEGIN Application */
 
 /* USER CODE END Application */
-

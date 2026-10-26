@@ -93,13 +93,7 @@ void process_completed_spi_frame() {
     }
 
     if (osMutexAcquire(mtx_robot_stateHandle, 10) == osOK) {
-        if (robot.motion_v2_enabled()) {
-            robot.process_spi_v2(motion_now_us());
-        } else {
-            robot.pi_encode_spi();
-            robot.pi_decode_spi();
-        }
-        robot.watchdog_feed();
+        robot.process_spi_v2(motion_now_us());
         osMutexRelease(mtx_robot_stateHandle);
     } else {
         spi_mutex_skip_count++;

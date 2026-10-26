@@ -23,9 +23,9 @@ extern "C" {
 // MotorRxTask - Process motor feedback messages
 void StartMotorRxTask(void *argument) {
     osDelay(100);  // Wait for initialization
-    
+
     can_Message_t fb_msg;
-    
+
     for(;;) {
         // Block waiting for motor feedback from queue
         if (osMessageQueueGet(q_motor_fbHandle, &fb_msg, NULL, osWaitForever) == osOK) {
@@ -43,7 +43,7 @@ void StartMotorRxTask(void *argument) {
                 motor_fb_count[matched_wheel_idx]++;
                 MotorDMH3510* motor = robot.wheel_motors[matched_wheel_idx];
                 if (motor->is_writing_register()) {
-                    const WheelMotorBase::RegisterWriteCheckResult result =
+                    const MotorDMH3510::RegisterWriteCheckResult result =
                         motor->check_write_register_feedback(fb_msg);
                     motor_write_reg_last_index = static_cast<uint8_t>(matched_wheel_idx);
                     motor_write_reg_last_result = static_cast<uint8_t>(result);
@@ -52,16 +52,15 @@ void StartMotorRxTask(void *argument) {
                     motor_write_reg_last_actual_rid = motor->last_write_register_rid();
                     motor_write_reg_last_actual_data = motor->last_write_register_data();
 
-                    if (result == WheelMotorBase::kRegisterWriteOk) {
+                    if (result == MotorDMH3510::kRegisterWriteOk) {
                         motor_write_reg_ok_count[matched_wheel_idx]++;
-                    } else if (result == WheelMotorBase::kRegisterWriteMismatch) {
+                    } else if (result == MotorDMH3510::kRegisterWriteMismatch) {
                         motor_write_reg_mismatch_count[matched_wheel_idx]++;
                     } else {
                         motor_write_reg_non_ack_count[matched_wheel_idx]++;
                     }
                 } else {
                     // Publish speed and freshness as one snapshot, shared
-                    // with the control task; never refresh cached samples.
                     if (fb_msg.len == 8 && osMutexAcquire(mtx_robot_stateHandle, 0) == osOK) {
                         motor->parse_feedback_data(fb_msg.buf);
                         motor->mark_feedback_received(motion_now_us());

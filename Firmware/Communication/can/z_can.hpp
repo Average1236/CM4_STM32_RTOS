@@ -5,7 +5,6 @@
 
 #include "canbus.hpp"
 #include "can_simple.hpp"
-#include <interfaces.hpp>
 
 #include <array>
 
@@ -21,14 +20,13 @@ enum {
     CAN_BAUD_1M = 1000000
 };
 
-class ZCAN : public CanBusBase, public RobotIntf::CanIntf {
+class ZCAN : public CanBusBase {
 public:
     struct Config_t {
         uint32_t baud_rate = CAN_BAUD_1M;
         uint32_t time_seg1 = 9;  // in time quanta
         uint32_t time_seg2 = 4;  // in time quanta
         uint32_t sjw = 1;        // in time quanta
-        Protocol protocol = PROTOCOL_SIMPLE;
 
         ZCAN* parent = nullptr; // set in apply_config()
         void set_baud_rate(uint32_t value) { parent->set_baud_rate(value); }
@@ -45,7 +43,6 @@ public:
     void process_rx_fifo(uint32_t fifo);
     bool set_baud_rate(uint32_t baud_rate);
 
-    Error error_ = ERROR_NONE;
 
     Config_t config_;
     CANSimple can_simple_{this};
@@ -64,7 +61,7 @@ private:
     };
 
     bool reinit();
-    
+
     // Hardware supports at most 28 filters unless we do optimizations. For now
     // we don't need that many.
     std::array<ZCANSubscription, 28> subscriptions_;

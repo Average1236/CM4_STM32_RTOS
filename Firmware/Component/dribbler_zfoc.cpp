@@ -50,7 +50,6 @@ void DribblerZfoc::filter_voltage() {
 
 void DribblerZfoc::process_state_machine(bool torque_mode) {
     // Idle confirmation gate: wait until heartbeat has reported Idle (buf[4]==1)
-    // for at least kIdleConfirmDelayMs continuously before sending any CAN commands.
     if (!idle_confirmed_) {
         if (!has_error && current_state == kAxisStateIdle) {
             if (idle_first_tick_ == 0) {

@@ -4,7 +4,6 @@
 #include <cmsis_os.h>
 
 #include "freertos_vars.h"
-// #include "utils.hpp"
 
 #include "board.h"
 
@@ -71,7 +70,6 @@ void ZCAN::process_rx_fifo(uint32_t fifo) {
         rxmsg.len = header.DLC;
         rxmsg.rtr = header.RTR;
 
-        // TODO: this could be optimized with an ahead-of-time computed
         // index-to-filter map
 
         size_t fifo0_idx = 0;
@@ -110,13 +108,10 @@ bool ZCAN::send_message(const can_Message_t &txmsg) {
     if (!HAL_CAN_GetTxMailboxesFreeLevel(handle_)) {
         return false;
     }
-    
+
     return HAL_CAN_AddTxMessage(handle_, &header, (uint8_t*)txmsg.buf, &retTxMailbox) == HAL_OK;
 }
 
-//void ZCAN::set_error(Error error) {
-//    error_ |= error;
-//}
 
 bool ZCAN::subscribe(const MsgIdFilterSpecs& filter, on_can_message_cb_t callback, void* ctx, CanSubscription** handle) {
     auto it = std::find_if(subscriptions_.begin() + start_bank_, subscriptions_.end(), [](auto& subscription) {
@@ -186,10 +181,6 @@ void HAL_CAN_TxMailbox2CompleteCallback(CAN_HandleTypeDef *hcan) {
 void HAL_CAN_TxMailbox0AbortCallback(CAN_HandleTypeDef *hcan) {}
 void HAL_CAN_TxMailbox1AbortCallback(CAN_HandleTypeDef *hcan) {}
 void HAL_CAN_TxMailbox2AbortCallback(CAN_HandleTypeDef *hcan) {}
-// void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan) {}
-// void HAL_CAN_RxFifo0FullCallback(CAN_HandleTypeDef *hcan) {}
-// void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan) {}
-// void HAL_CAN_RxFifo1FullCallback(CAN_HandleTypeDef *hcan) {}
 void HAL_CAN_SleepCallback(CAN_HandleTypeDef *hcan) {}
 void HAL_CAN_WakeUpFromRxMsgCallback(CAN_HandleTypeDef *hcan) {}
 

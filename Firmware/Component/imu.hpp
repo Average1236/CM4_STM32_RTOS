@@ -1,81 +1,16 @@
-#ifndef __IMU_HPP
-#define __IMU_HPP
-
+#ifndef IMU_HPP
+#define IMU_HPP
 #include <cstdint>
 #include <cstddef>
 #include "spi.h"
-#include "component.hpp"
-#include "Task/utils.hpp"
-
-constexpr size_t IMU_ICM42688_BURST_DATA_LENGTH = 12U;
 
 class IMU {
 public:
-    enum class Model : uint8_t {
-        kIcm42688 = 0,
-    };
-    
-    enum DataType {
-        kAccX = 0,
-        kAccY,
-        kAccZ,
-        kTemperature,
-        kOmegaX,
-        kOmegaY,
-        kOmegaZ,
-        kVoltage,
-        kAngleX,
-        kAngleY,
-        kAngleZ,
-        kVersion
-    };
-
-    enum Mode {
-        kAcc = 0,
-        kOmega,
-        kAngle,
-        kAuto
-    };
-
-    IMU(
-        Model model,
-        SPI_HandleTypeDef* hspi,
-        GPIO_TypeDef* cs_port = nullptr,
-        uint16_t cs_pin = 0U
-    );
-    ~IMU() = default;
-
+    IMU(SPI_HandleTypeDef* spi, GPIO_TypeDef* cs_port, uint16_t cs_pin)
+        : hspi_(spi), cs_port_(cs_port), cs_pin_(cs_pin) {}
     bool init();
     void process_once();
-
-    Model model() const { return model_; }
-    SPI_HandleTypeDef* spi_handle() const { return hspi_; }
-
-    float get_data(const DataType type) const { return data_[type]; }
-    void get_data(float out_data[9]) const;
-    void publish_ports_from_cache();
-    void reset_ports();
-    // New motion core input.  Consumes one freshly decoded raw sample; a
-    // failed/cached read is reported as false instead of stale success.
     bool consume_raw_sample(float accel_m_s2[3], float gyro_rad_s[3], std::uint32_t* sequence);
-    bool last_read_ok() const { return data_valid_; }
-
-    OutputPort<float>* omega_x_port() { return &omega_x_port_; }
-    OutputPort<float>* omega_y_port() { return &omega_y_port_; }
-    OutputPort<float>* omega_z_port() { return &omega_z_port_; }
-    OutputPort<float>* yaw_port() { return &yaw_port_; }
-    OutputPort<float>* roll_port() { return &roll_port_; }
-    OutputPort<float>* pitch_port() { return &pitch_port_; }
-    OutputPort<float>* acc_x_port() { return &acc_x_port_; }
-    OutputPort<float>* acc_y_port() { return &acc_y_port_; }
-    OutputPort<float>* acc_z_port() { return &acc_z_port_; }
-
-    ButterworthLowPass2 omega_filter_{{0.0f, 0.0f}};
-
-    void update_integrated_yaw(float dt_s);
-    void update_roll_pitch(float dt_s);
-    void compute_stationary_and_bias();
-
 private:
     static constexpr uint8_t kIcm42688WhoAmI = 0x75;
     static constexpr uint8_t kIcm42688WhoAmIValue = 0x47;
@@ -88,77 +23,22 @@ private:
 
     static constexpr uint8_t kIcm42688Afs4G = 0x02;
     static constexpr uint8_t kIcm42688Aodr1000Hz = 0x06;
-    static constexpr uint8_t kIcm42688Aodr200Hz = 0x07;
-    static constexpr uint8_t kIcm42688Aodr100Hz = 0x08;
-    static constexpr uint8_t kIcm42688Gfs2000Dps = 0x00;
     static constexpr uint8_t kIcm42688Gfs1000Dps = 0x01;
-    static constexpr uint8_t kIcm42688Godr2000Hz = 0x05;
     static constexpr uint8_t kIcm42688Godr1000Hz = 0x06;
-    static constexpr uint8_t kIcm42688Godr200Hz = 0x07;
-    static constexpr uint8_t kIcm42688Godr100Hz = 0x08;
-
-    bool decode_icm42688(const uint8_t* raw_data, size_t len);
 
     bool icm42688_init();
     uint8_t icm42688_read_reg(uint8_t reg);
-    void icm42688_read_regs(uint8_t reg, uint8_t* data, uint16_t len);
+    bool icm42688_read_regs(uint8_t reg, uint8_t* data, uint16_t len);
     void icm42688_write_reg(uint8_t reg, uint8_t value);
-    bool icm42688_read_burst(uint8_t* data, uint16_t len);
-
     void icm42688_cs_low();
     void icm42688_cs_high();
-
-private:
-    Model model_;
     SPI_HandleTypeDef* hspi_;
     GPIO_TypeDef* cs_port_;
     uint16_t cs_pin_;
-
-    float acc_sensitivity_ = 16.0f * 9.8f / 32768.0f;
-    float gyro_sensitivity_ = 2000.0f / 32768.0f;
-
-    uint8_t icm_rx_buffer_[IMU_ICM42688_BURST_DATA_LENGTH] = {0};
-
-    float data_[12] = {0};
-    float raw_acc_m_s2_[3] = {0.0f, 0.0f, 0.0f};
-    float raw_gyro_rad_s_[3] = {0.0f, 0.0f, 0.0f};
-    std::uint32_t raw_sequence_ = 0;
+    float acc_sensitivity_ = 4.f * 9.8f / 32768.f;
+    float gyro_sensitivity_ = 1000.f / 32768.f;
+    float accel_[3] = {}, gyro_[3] = {};
+    std::uint32_t sequence_ = 0;
     bool new_sample_ = false;
-    bool data_valid_ = false;
-    OutputPort<float> omega_x_port_{0.0f};
-    OutputPort<float> omega_y_port_{0.0f};
-    OutputPort<float> omega_z_port_{0.0f};
-    OutputPort<float> yaw_port_{0.0f};
-    OutputPort<float> roll_port_{0.0f};
-    OutputPort<float> pitch_port_{0.0f};
-    OutputPort<float> acc_x_port_{0.0f};
-    OutputPort<float> acc_y_port_{0.0f};
-    OutputPort<float> acc_z_port_{0.0f};
-    float integrated_yaw_deg_ = 0.0f;
-    float integrated_roll_deg_ = 0.0f;
-    float integrated_pitch_deg_ = 0.0f;
-
-    // IMU-internal stationary detection + gyro bias estimation
-    // No flow dependency — uses only IMU data
-    struct ImuStationaryState {
-        bool  trust_accel = false;
-        float bias_gx_dps = 0.0f;
-        float bias_gy_dps = 0.0f;
-        float bias_gz_dps = 0.0f;
-        uint16_t confirm_count = 0;
-    };
-    ImuStationaryState imu_stat_;
-    float prev_acc_norm_ = 9.81f;
-    enum class ImuStatPhase { kNormal, kCollecting, kVerifying };
-    ImuStatPhase imu_stat_phase_ = ImuStatPhase::kNormal;
-    bool imu_bias_valid_ = false;
-    uint8_t imu_bias_valid_window_count_ = 0;
-    uint32_t imu_stat_sample_count_ = 0;
-    uint16_t imu_stat_collect_count_ = 0;
-    float imu_stat_sum_acc_norm_ = 0.0f;
-    float imu_stat_sum_acc_norm_sq_ = 0.0f;
-    float imu_stat_sum_gx_ = 0.0f, imu_stat_sum_gy_ = 0.0f, imu_stat_sum_gz_ = 0.0f;
-    float imu_stat_sum_gx_sq_ = 0.0f, imu_stat_sum_gy_sq_ = 0.0f, imu_stat_sum_gz_sq_ = 0.0f;
 };
-
-#endif // __IMU_HPP
+#endif

@@ -1,137 +1,26 @@
 #include "imu.hpp"
-#include "control_params.hpp"
-
 #include <cstring>
 
-// Debug
-volatile float imu_acc_x_debug = 0.0f;
-volatile float imu_acc_y_debug = 0.0f;
-volatile float imu_acc_z_debug = 0.0f;
-volatile float imu_gyro_x_debug = 0.0f;
-volatile float imu_gyro_y_debug = 0.0f;
-volatile float imu_gyro_z_debug = 0.0f;
-volatile float imu_omega_z_filt_debug = 0.0f;
-volatile float imu_yaw_debug = 0.0f;
-volatile float imu_bias_gx_debug = 0.0f;
-volatile float imu_bias_gy_debug = 0.0f;
-volatile float imu_bias_gz_debug = 0.0f;
-volatile float imu_bias_window_std_debug = 0.0f;
-volatile uint32_t imu_bias_confirm_count_debug = 0;
-
-namespace {
-
-constexpr float kGravityMS2 = 9.81f;
-
-float variance_from_sums(float sum, float sum_sq, float n) {
-    if (n <= 1.0f) {
-        return 0.0f;
-    }
-    const float mean = sum / n;
-    const float variance = sum_sq / n - mean * mean;
-    return (variance > 0.0f) ? variance : 0.0f;
-}
-
-float clamp_delta(float delta, float limit_abs) {
-    if (delta > limit_abs) {
-        return limit_abs;
-    }
-    if (delta < -limit_abs) {
-        return -limit_abs;
-    }
-    return delta;
-}
-
-float update_bias_limited(float current, float measured) {
-    const float delta = control_config::kImuBiasAlpha * (measured - current);
-    return current + clamp_delta(delta, control_config::kImuBiasMaxUpdateStepDegPerS);
-}
-
-} // namespace
-
-IMU::IMU(
-    Model model,
-    SPI_HandleTypeDef* hspi,
-    GPIO_TypeDef* cs_port,
-    uint16_t cs_pin
-) : omega_filter_({control_config::kImuOmegaButterworthCutoffHz, 0.00125f}),
-    model_(model), hspi_(hspi), cs_port_(cs_port), cs_pin_(cs_pin) {}
-
-bool IMU::init()
-{
-    return icm42688_init();
-}
-
-void IMU::process_once()
-{
-    bool updated = false;
+bool IMU::init() { return icm42688_init(); }
+void IMU::process_once() {
     new_sample_ = false;
-    data_valid_ = false;
-    if (icm42688_read_burst(icm_rx_buffer_, IMU_ICM42688_BURST_DATA_LENGTH)) {
-        updated = decode_icm42688(icm_rx_buffer_, IMU_ICM42688_BURST_DATA_LENGTH);
-    }
-    data_valid_ = updated;
-
-    imu_acc_x_debug = data_[kAccX];
-    imu_acc_y_debug = data_[kAccY];
-    imu_acc_z_debug = data_[kAccZ];
-    imu_gyro_x_debug = data_[kOmegaX];
-    imu_gyro_y_debug = data_[kOmegaY];
-    imu_gyro_z_debug = data_[kOmegaZ];
-
-    if (updated) {
-        ++raw_sequence_;
-        new_sample_ = true;
-        publish_ports_from_cache();
-    }
-}
-
-bool IMU::consume_raw_sample(float accel_m_s2[3], float gyro_rad_s[3],
-                             std::uint32_t* sequence) {
-    if (!new_sample_ || accel_m_s2 == nullptr || gyro_rad_s == nullptr) {
-        return false;
-    }
+    uint8_t bytes[12];
+    if (!icm42688_read_regs(kIcm42688AccelDataX1, bytes, sizeof(bytes))) return;
     for (int i = 0; i < 3; ++i) {
-        accel_m_s2[i] = raw_acc_m_s2_[i];
-        gyro_rad_s[i] = raw_gyro_rad_s_[i];
+        const auto accel = static_cast<int16_t>((static_cast<uint16_t>(bytes[i*2]) << 8) | bytes[i*2+1]);
+        const auto gyro = static_cast<int16_t>((static_cast<uint16_t>(bytes[i*2+6]) << 8) | bytes[i*2+7]);
+        accel_[i] = accel * acc_sensitivity_;
+        gyro_[i] = gyro * gyro_sensitivity_ * 0.017453292519943295f;
     }
-    if (sequence != nullptr) *sequence = raw_sequence_;
-    new_sample_ = false;
-    return true;
+    ++sequence_;
+    new_sample_ = true;
 }
-
-bool IMU::decode_icm42688(const uint8_t* raw_data, size_t len)
-{
-    if (raw_data == nullptr || len < IMU_ICM42688_BURST_DATA_LENGTH) {
-        return false;
-    }
-
-    const int16_t ax = static_cast<int16_t>((static_cast<uint16_t>(raw_data[0]) << 8) | raw_data[1]);
-    const int16_t ay = static_cast<int16_t>((static_cast<uint16_t>(raw_data[2]) << 8) | raw_data[3]);
-    const int16_t az = static_cast<int16_t>((static_cast<uint16_t>(raw_data[4]) << 8) | raw_data[5]);
-    const int16_t gx = static_cast<int16_t>((static_cast<uint16_t>(raw_data[6]) << 8) | raw_data[7]);
-    const int16_t gy = static_cast<int16_t>((static_cast<uint16_t>(raw_data[8]) << 8) | raw_data[9]);
-    const int16_t gz = static_cast<int16_t>((static_cast<uint16_t>(raw_data[10]) << 8) | raw_data[11]);
-
-    data_[kAccX] = static_cast<float>(ax) * acc_sensitivity_;
-    data_[kAccY] = static_cast<float>(ay) * acc_sensitivity_;
-    data_[kAccZ] = static_cast<float>(az) * acc_sensitivity_;
-
-    data_[kOmegaX] = static_cast<float>(gx) * gyro_sensitivity_;
-    data_[kOmegaY] = static_cast<float>(gy) * gyro_sensitivity_;
-    data_[kOmegaZ] = static_cast<float>(gz) * gyro_sensitivity_;
-
-    // Keep an uncorrected snapshot for the new estimator.  The legacy ports
-    // below still apply the constant bias for the old controller.
-    raw_acc_m_s2_[0] = data_[kAccX];
-    raw_acc_m_s2_[1] = data_[kAccY];
-    raw_acc_m_s2_[2] = data_[kAccZ];
-    constexpr float kDegToRad = 0.017453292519943295f;
-    raw_gyro_rad_s_[0] = data_[kOmegaX] * kDegToRad;
-    raw_gyro_rad_s_[1] = data_[kOmegaY] * kDegToRad;
-    raw_gyro_rad_s_[2] = data_[kOmegaZ] * kDegToRad;
-
-    data_[kOmegaZ] -= control_config::kImuOmegaBiasZ;
-
+bool IMU::consume_raw_sample(float accel[3], float gyro[3], std::uint32_t* sequence) {
+    if (!new_sample_ || !accel || !gyro) return false;
+    std::memcpy(accel, accel_, sizeof(accel_));
+    std::memcpy(gyro, gyro_, sizeof(gyro_));
+    if (sequence) *sequence = sequence_;
+    new_sample_ = false;
     return true;
 }
 
@@ -182,10 +71,10 @@ uint8_t IMU::icm42688_read_reg(uint8_t reg)
     return rx[1];
 }
 
-void IMU::icm42688_read_regs(uint8_t reg, uint8_t* data, uint16_t len)
+bool IMU::icm42688_read_regs(uint8_t reg, uint8_t* data, uint16_t len)
 {
     if (data == nullptr || len == 0U) {
-        return;
+        return false;
     }
 
     uint8_t tx_data[24] = {0};
@@ -193,10 +82,12 @@ void IMU::icm42688_read_regs(uint8_t reg, uint8_t* data, uint16_t len)
     tx_data[0] = static_cast<uint8_t>(reg | 0x80U);
 
     icm42688_cs_low();
-    if (HAL_SPI_TransmitReceive(hspi_, tx_data, rx_data, len + 1U, 10U) == HAL_OK) {
+    const bool success = HAL_SPI_TransmitReceive(hspi_, tx_data, rx_data, len + 1U, 10U) == HAL_OK;
+    if (success) {
         std::memcpy(data, rx_data + 1, len);
     }
     icm42688_cs_high();
+    return success;
 }
 
 void IMU::icm42688_write_reg(uint8_t reg, uint8_t value)
@@ -208,256 +99,5 @@ void IMU::icm42688_write_reg(uint8_t reg, uint8_t value)
     icm42688_cs_high();
 }
 
-bool IMU::icm42688_read_burst(uint8_t* data, uint16_t len)
-{
-    if (data == nullptr || len == 0U) {
-        return false;
-    }
-    icm42688_read_regs(kIcm42688AccelDataX1, data, len);
-    return true;
-}
-
-void IMU::icm42688_cs_low()
-{
-    HAL_GPIO_WritePin(cs_port_, cs_pin_, GPIO_PIN_RESET);
-}
-
-void IMU::icm42688_cs_high()
-{
-    HAL_GPIO_WritePin(cs_port_, cs_pin_, GPIO_PIN_SET);
-}
-
-void IMU::get_data(float out_data[9]) const
-{
-    out_data[0] = data_[kAccX];
-    out_data[1] = data_[kAccY];
-    out_data[2] = data_[kAccZ];
-    // correct mapping: omega X/Y/Z
-    out_data[3] = data_[kOmegaX];
-    out_data[4] = data_[kOmegaY];
-    out_data[5] = data_[kOmegaZ];
-    
-    out_data[6] = data_[kAngleX];
-    out_data[7] = data_[kAngleY];
-    out_data[8] = data_[kAngleZ];
-}
-
-void IMU::update_integrated_yaw(float dt_s) {
-    // 使用动态估计的陀螺 Z 偏置（静止窗口 EMA 更新）
-    const float dynamic_bias_gz = imu_bias_valid_ ? imu_stat_.bias_gz_dps : 0.0f;
-    const float omega_z_corrected = data_[kOmegaZ] - dynamic_bias_gz;
-    const float omega_z_filt = omega_filter_.filter(omega_z_corrected);
-    imu_omega_z_filt_debug = omega_z_filt * (3.1415926535f / 180.0f);
-    omega_z_port_ = omega_z_filt;
-    integrated_yaw_deg_ += dt_s * omega_z_filt;
-    integrated_yaw_deg_ = wrap_to_pi(integrated_yaw_deg_ * (3.1415926535f / 180.0f)) * (180.0f / 3.1415926535f);
-    data_[kAngleZ] = integrated_yaw_deg_;
-    yaw_port_ = integrated_yaw_deg_;
-}
-
-void IMU::publish_ports_from_cache() {
-    omega_x_port_ = data_[kOmegaX];
-    omega_y_port_ = data_[kOmegaY];
-    acc_x_port_ = data_[kAccX];
-    acc_y_port_ = data_[kAccY];
-    acc_z_port_ = data_[kAccZ];
-    // omega_z and yaw are published by update_integrated_yaw()
-}
-
-void IMU::update_roll_pitch(float dt_s) {
-    // 锚定帧计数器（函数级静态，跨调用保持；仅 trust_accel 退出时清零）
-    static uint8_t anchor_frame_count = 0;
-
-    // 1. 去偏后陀螺积分（使用内部估计的 bias）
-    const float dynamic_bias_gx = imu_bias_valid_ ? imu_stat_.bias_gx_dps : 0.0f;
-    const float dynamic_bias_gy = imu_bias_valid_ ? imu_stat_.bias_gy_dps : 0.0f;
-    const float omega_x = data_[kOmegaX] - dynamic_bias_gx;
-    const float omega_y = data_[kOmegaY] - dynamic_bias_gy;
-    integrated_roll_deg_  += dt_s * omega_x;
-    integrated_pitch_deg_ += dt_s * omega_y;
-
-    // 2. 加速度计锚定（仅在内部 trust_accel=true 时）
-    if (imu_stat_.trust_accel) {
-        const float alpha = (anchor_frame_count < 3)
-            ? 0.5f : control_config::kImuRollPitchAlpha;
-        anchor_frame_count++;
-
-        const float gy = data_[kAccY];
-        const float gz = data_[kAccZ];
-        const float gx = data_[kAccX];
-
-        constexpr float kRadToDeg = 180.0f / 3.1415926535f;
-        const float acc_roll  = atan2f(gy, gz) * kRadToDeg;
-        const float acc_pitch = atan2f(-gx, sqrtf(gy*gy + gz*gz)) * kRadToDeg;
-
-        integrated_roll_deg_  = alpha * integrated_roll_deg_
-                              + (1.0f - alpha) * acc_roll;
-        integrated_pitch_deg_ = alpha * integrated_pitch_deg_
-                              + (1.0f - alpha) * acc_pitch;
-    } else {
-        anchor_frame_count = 0;
-    }
-
-    data_[kAngleX] = integrated_roll_deg_;
-    data_[kAngleY] = integrated_pitch_deg_;
-    roll_port_  = integrated_roll_deg_;
-    pitch_port_ = integrated_pitch_deg_;
-}
-
-void IMU::compute_stationary_and_bias() {
-    imu_stat_sample_count_++;
-
-    const float ax = data_[kAccX], ay = data_[kAccY], az = data_[kAccZ];
-    const float gx = data_[kOmegaX], gy = data_[kOmegaY], gz = data_[kOmegaZ];
-
-    const float acc_norm = sqrtf(ax*ax + ay*ay + az*az);
-    const float acc_var  = fabsf(acc_norm - prev_acc_norm_);
-    prev_acc_norm_ = acc_norm;
-
-    const bool accel_norm_ok = fabsf(acc_norm - kGravityMS2) < control_config::kImuBiasAccelNormTolerance;
-    const bool accel_stable = (acc_var < control_config::kImuBiasAccelVarThreshold);
-    const bool gyro_still = (fabsf(gx) < control_config::kImuBiasGyroStillThresholdDegPerS)
-                         && (fabsf(gy) < control_config::kImuBiasGyroStillThresholdDegPerS)
-                         && (fabsf(gz) < control_config::kImuBiasGyroStillThresholdDegPerS);
-    const bool all_still = accel_norm_ok && accel_stable && gyro_still;
-
-    auto reset_collect_window = [this]() {
-        imu_stat_collect_count_ = 0;
-        imu_stat_sum_acc_norm_ = 0.0f;
-        imu_stat_sum_acc_norm_sq_ = 0.0f;
-        imu_stat_sum_gx_ = 0.0f;
-        imu_stat_sum_gy_ = 0.0f;
-        imu_stat_sum_gz_ = 0.0f;
-        imu_stat_sum_gx_sq_ = 0.0f;
-        imu_stat_sum_gy_sq_ = 0.0f;
-        imu_stat_sum_gz_sq_ = 0.0f;
-    };
-
-    auto reset_to_normal = [this, &reset_collect_window]() {
-        imu_stat_phase_ = ImuStatPhase::kNormal;
-        imu_stat_.confirm_count = 0;
-        imu_stat_.trust_accel = false;
-        if (!imu_bias_valid_) {
-            imu_bias_valid_window_count_ = 0;
-        }
-        reset_collect_window();
-    };
-
-    if (imu_stat_sample_count_ < control_config::kImuBiasStartupIgnoreFrames) {
-        reset_to_normal();
-        imu_bias_gx_debug = imu_stat_.bias_gx_dps;
-        imu_bias_gy_debug = imu_stat_.bias_gy_dps;
-        imu_bias_gz_debug = imu_stat_.bias_gz_dps;
-        imu_bias_confirm_count_debug = imu_stat_.confirm_count;
-        return;
-    }
-
-    switch (imu_stat_phase_) {
-    case ImuStatPhase::kNormal:
-        if (all_still) {
-            imu_stat_.confirm_count++;
-            if (imu_stat_.confirm_count >= control_config::kImuBiasConfirmFrames) {
-                imu_stat_phase_ = ImuStatPhase::kCollecting;
-                reset_collect_window();
-            }
-        } else {
-            imu_stat_.confirm_count = 0;
-        }
-        imu_stat_.trust_accel = false;
-        break;
-
-    case ImuStatPhase::kCollecting:
-        if (!all_still) {
-            reset_to_normal();
-            break;
-        }
-        imu_stat_sum_acc_norm_ += acc_norm;
-        imu_stat_sum_acc_norm_sq_ += acc_norm * acc_norm;
-        imu_stat_sum_gx_ += gx;
-        imu_stat_sum_gy_ += gy;
-        imu_stat_sum_gz_ += gz;
-        imu_stat_sum_gx_sq_ += gx * gx;
-        imu_stat_sum_gy_sq_ += gy * gy;
-        imu_stat_sum_gz_sq_ += gz * gz;
-        imu_stat_collect_count_++;
-        if (imu_stat_collect_count_ >= control_config::kImuBiasWindowFrames) {
-            imu_stat_phase_ = ImuStatPhase::kVerifying;
-        }
-        imu_stat_.trust_accel = true;
-        break;
-
-    case ImuStatPhase::kVerifying:
-        if (all_still && imu_stat_collect_count_ > 0) {
-            const float n = static_cast<float>(imu_stat_collect_count_);
-            const float mean_acc_norm = imu_stat_sum_acc_norm_ / n;
-            const float mean_gx = imu_stat_sum_gx_ / n;
-            const float mean_gy = imu_stat_sum_gy_ / n;
-            const float mean_gz = imu_stat_sum_gz_ / n;
-
-            const float acc_std = sqrtf(variance_from_sums(imu_stat_sum_acc_norm_, imu_stat_sum_acc_norm_sq_, n));
-            const float gx_std = sqrtf(variance_from_sums(imu_stat_sum_gx_, imu_stat_sum_gx_sq_, n));
-            const float gy_std = sqrtf(variance_from_sums(imu_stat_sum_gy_, imu_stat_sum_gy_sq_, n));
-            const float gz_std = sqrtf(variance_from_sums(imu_stat_sum_gz_, imu_stat_sum_gz_sq_, n));
-
-            const bool acc_window_ok = fabsf(mean_acc_norm - kGravityMS2) < control_config::kImuBiasAccelNormTolerance
-                                    && acc_std < control_config::kImuBiasAccelStdMax;
-            const bool gyro_window_ok = fabsf(mean_gx) < control_config::kImuBiasMaxAbsDegPerS
-                                      && fabsf(mean_gy) < control_config::kImuBiasMaxAbsDegPerS
-                                      && fabsf(mean_gz) < control_config::kImuBiasMaxAbsDegPerS
-                                      && gx_std < control_config::kImuBiasGyroStdMaxDegPerS
-                                      && gy_std < control_config::kImuBiasGyroStdMaxDegPerS
-                                      && gz_std < control_config::kImuBiasGyroStdMaxDegPerS;
-
-            imu_bias_window_std_debug = fmaxf(fmaxf(gx_std, gy_std), gz_std);
-            if (acc_window_ok && gyro_window_ok) {
-                if (imu_bias_valid_) {
-                    imu_stat_.bias_gx_dps = update_bias_limited(imu_stat_.bias_gx_dps, mean_gx);
-                    imu_stat_.bias_gy_dps = update_bias_limited(imu_stat_.bias_gy_dps, mean_gy);
-                    imu_stat_.bias_gz_dps = update_bias_limited(imu_stat_.bias_gz_dps, mean_gz);
-                } else {
-                    if (imu_bias_valid_window_count_ < control_config::kImuBiasValidWindows) {
-                        imu_bias_valid_window_count_++;
-                    }
-                    if (imu_bias_valid_window_count_ >= control_config::kImuBiasValidWindows) {
-                        imu_stat_.bias_gx_dps = mean_gx;
-                        imu_stat_.bias_gy_dps = mean_gy;
-                        imu_stat_.bias_gz_dps = mean_gz;
-                        imu_bias_valid_ = true;
-                    }
-                }
-                imu_stat_phase_ = ImuStatPhase::kCollecting;
-                reset_collect_window();
-                imu_stat_.trust_accel = true;
-            } else {
-                if (!imu_bias_valid_) {
-                    imu_bias_valid_window_count_ = 0;
-                }
-                reset_to_normal();
-            }
-        } else {
-            reset_to_normal();
-        }
-        break;
-    }
-
-    if (!all_still && imu_stat_phase_ == ImuStatPhase::kCollecting) {
-        reset_to_normal();
-    }
-
-    imu_bias_gx_debug = imu_stat_.bias_gx_dps;
-    imu_bias_gy_debug = imu_stat_.bias_gy_dps;
-    imu_bias_gz_debug = imu_stat_.bias_gz_dps;
-    imu_bias_confirm_count_debug = imu_stat_.confirm_count;
-}
-
-void IMU::reset_ports() {
-    omega_x_port_.reset();
-    omega_y_port_.reset();
-    omega_z_port_.reset();
-    yaw_port_.reset();
-    roll_port_.reset();
-    pitch_port_.reset();
-    acc_x_port_.reset();
-    acc_y_port_.reset();
-    acc_z_port_.reset();
-}
+void IMU::icm42688_cs_low() { HAL_GPIO_WritePin(cs_port_, cs_pin_, GPIO_PIN_RESET); }
+void IMU::icm42688_cs_high() { HAL_GPIO_WritePin(cs_port_, cs_pin_, GPIO_PIN_SET); }

@@ -3,7 +3,6 @@
 #include "Communication/can/canbus.hpp"
 #include "Component/opt_flow.hpp"
 #include "Component/wheel_motor.hpp"
-#include "Component/dribble_motor.hpp"
 #include "Component/dribbler_zfoc.hpp"
 #include "freertos_vars.h"
 #include <cstring>
@@ -70,7 +69,7 @@ void on_dribbler_heartbeat_rx(void* ctx, const can_Message_t& msg) {
 
 // Callback for motor feedback messages (exact wheel feedback IDs on CAN2)
 void on_motor_fb_rx(void* ctx, const can_Message_t& msg) {
-    WheelMotorBase* motor = static_cast<WheelMotorBase*>(ctx);
+    MotorDMH3510* motor = static_cast<MotorDMH3510*>(ctx);
     if (msg.len != 8) {
         motor_fb_bad_len_count++;
         return;

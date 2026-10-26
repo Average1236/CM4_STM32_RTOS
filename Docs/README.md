@@ -10,10 +10,7 @@
   负责通信协议的实现，例如 CAN 总线通信 (`can/`) 等。
 
 - **Component/**
-  包含机器人各个功能组件的驱动与逻辑实现，如 IMU (`imu.cpp`)、电机 (`motor.cpp`)、光流 (`opt_flow.cpp`) 以及机器人主体类 (`robot.cpp`)。
-
-- **Interface/**
-  定义项目通用的接口类 (`interfaces.hpp`)。
+  包含机器人各个功能组件的驱动与逻辑实现，如 IMU (`imu.cpp`)、轮电机 (`wheel_motor.cpp`) 和吸球电机 (`dribbler_zfoc.cpp`)、光流 (`opt_flow.cpp`) 以及机器人主体类 (`robot.cpp`)。
 
 - **Task/**
   包含 FreeRTOS 的各个任务实现（如控制任务 `ctrl_task`、IMU 任务 `imu_task` 等）以及 C++ 主程序入口 (`main.cpp`, `z_main.h`)。
@@ -27,10 +24,11 @@
   - 示例：`motor_speed`, `calculate_pid_output()`
 
 ## 3. 开发指南
-- **算法实现**：
-  - 新的算法（例如卡尔曼滤波）应尽量直接添加在 `Firmware/Component` 文件夹下对应组件的 `.cpp` 和 `.hpp` 文件中。
-  - **原则上尽量不要新建文件**，除非是新增了全新的硬件组件，或者该算法在多个组件中被广泛使用。
-  - 如果是代码量较小的通用算法或工具函数，可以考虑添加在 `Firmware/Task/utils.hpp` 中。
+
+- 估计、轨迹、运动学和控制算法统一位于 Kun2 的 `motion/` 共享内核。固件通过 `Component/motion_engine.hpp` 接入，不另建重复控制环。
+- `Component/` 只维护设备驱动、传感器快照和执行器编码；`Task/` 负责调度、互斥和硬件访问。
+- 当前 SPI 帧版本为 3；CM4、Kun2 与固件必须配套更新。不保留旧协议或旧控制后端。
+- 代码改动后在 `Firmware/` 执行 `cmake --build build/Debug`。本机完整验收入口为 Kun2 根目录的 `./kun2 test motion-all`，不使用硬件。
 
 ## 4. 已知问题与注意事项
 - **HAL_TIM_PeriodElapsedCallback 重复定义错误**

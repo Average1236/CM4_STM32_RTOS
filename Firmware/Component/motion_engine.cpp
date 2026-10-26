@@ -18,7 +18,6 @@ void MotionEngine::configure(const motion::MotionConfigV2& config,
     last_kick_session_ = 0;
     kick_seen_ = false;
     kick_consumed_ = false;
-    kick_edge_state_ = false;
     last_spi_frame_us_ = now_us;
     has_spi_frame_ = false;
     crc_errors_ = 0;
@@ -80,8 +79,7 @@ bool MotionEngine::handleCommandFrame(const std::uint8_t* frame,
     if (core_.submitCommand(command, now_us)) {
         const bool new_event = command.kick_requested &&
             (!kick_seen_ || command.session_id != last_kick_session_ ||
-             (command.kick_sequence != 0 && command.kick_sequence != last_kick_sequence_) ||
-             (command.kick_sequence == 0 && !kick_edge_state_));
+             command.kick_sequence != last_kick_sequence_);
         if (new_event) {
             last_kick_session_ = command.session_id;
             last_kick_sequence_ = command.kick_sequence;
@@ -89,7 +87,6 @@ bool MotionEngine::handleCommandFrame(const std::uint8_t* frame,
             kick_seen_ = true;
             kick_consumed_ = false;
         }
-        kick_edge_state_ = command.kick_requested;
     }
     core_.noteSpiFrame(now_us);
     last_spi_frame_us_ = now_us;

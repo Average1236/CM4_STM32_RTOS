@@ -2,7 +2,6 @@
 #define MOTION_ENGINE_HPP
 
 // STM32 production motion boundary.  This file is hardware independent and is
-// compiled both into the ARM firmware and into the host integration runner;
 // the firmware only supplies clock, sensor snapshots and the SPI buffers.
 
 #include "motion/motion_core.hpp"
@@ -76,7 +75,6 @@ private:
     motion::TimeUs kick_event_time_us_ = 0;
     bool kick_seen_ = false;
     bool kick_consumed_ = false;
-    bool kick_edge_state_ = false;
     motion::TimeUs last_spi_frame_us_ = 0;
     bool has_spi_frame_ = false;
     float battery_voltage_ = 0.0f;

@@ -32,7 +32,6 @@ inline const float cap_k = 113.73;
 #include <cstdint>
 
 // Monotonic microsecond timebase shared by the IMU, SPI and control tasks.
-// TIM13 is a free-running 1 MHz 16-bit counter; extend it to 64 bits under a
 // short interrupt mask so 800 Hz sensor samples keep distinct timestamps.
 inline std::uint64_t motion_now_us() {
     static std::uint32_t last_count = 0;
@@ -47,17 +46,14 @@ inline std::uint64_t motion_now_us() {
     return now;
 }
 
-#include "interfaces.hpp"
 
 // Component includes
 #include "Component/wheel_motor.hpp"
-#include "Component/dribble_motor.hpp"
 #include "Component/imu.hpp"
 #include "Component/opt_flow.hpp"
 #include "Component/robot.hpp"
 
 // Task includes
-#include "Task/utils.hpp"
 #include "Communication/can/z_can.hpp"
 
 // Forward declarations to ensure types are known before externs
