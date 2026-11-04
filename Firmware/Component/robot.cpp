@@ -1,5 +1,6 @@
 #include "robot.hpp"
 #include "control_params.hpp"
+#include "motion/production_config.hpp"
 #include "tim.h"
 #include <algorithm>
 
@@ -29,43 +30,7 @@ Robot::~Robot() {
 void Robot::ensure_motion_engine(motion::TimeUs now_us) {
     if (motion_engine_ready_) return;
 
-    motion::MotionConfigV2 config;
-    config.robot = motion::defaultRobotModel();
-    config.robot.mass_kg = control_config::kRobotMassKg;
-    config.robot.inertia_kg_m2 = control_config::kRobotInertiaKgM2;
-    config.robot.wheel_radius_m = control_config::kWheelRadiusM;
-    config.robot.wheel_center_distance_m = control_config::kWheelCenterDistanceM;
-    config.robot.wheel_inertia_kg_m2 = control_config::kWheelInertiaKgM2;
-    config.robot.wheel_viscous_nm_per_rad_s =
-        control_config::kWheelViscousDampingNmPerRadPS;
-    config.robot.efficiency = 0.90f;
-    config.robot.max_wheel_torque_nm = 0.70f;
-    config.robot.max_wheel_speed_rad_s = 3.14159265f * 2000.0f / 30.0f;
-    config.robot.max_linear_speed_m_s = 3.0f;
-    config.robot.max_linear_accel_m_s2 = 7.0f;
-    config.robot.max_linear_decel_m_s2 = 10.0f;
-    config.robot.max_yaw_speed_rad_s = 25.0f;
-    config.robot.max_yaw_accel_rad_s2 = 40.0f;
-
-    config.limits.max_linear_speed_m_s = 3.0f;
-    config.limits.max_linear_accel_m_s2 = 7.0f;
-    config.limits.max_linear_decel_m_s2 = 10.0f;
-    config.limits.max_yaw_speed_rad_s = 25.0f;
-    config.limits.max_yaw_accel_rad_s2 = 40.0f;
-    config.limits.max_wheel_torque_nm = 0.70f;
-    config.limits.max_torque_rate_nm_per_s = 200.0f;
-    config.limits.position_correction_gain = 4.0f;
-    config.limits.position_correction_limit_m_s = 0.5f;
-    config.limits.yaw_correction_gain = 6.0f;
-    config.limits.yaw_rate_gain = 0.3f;
-    config.limits.wheel_speed_kp = 0.08f;
-    config.limits.wheel_speed_ki = 1.0f;
-    config.limits.wheel_speed_backcalc = 0.4f;
-    config.command_timeout_s = 0.100f;
-    config.spi_timeout_s = 0.050f;
-    config.vision_degrade_s = 0.100f;
-    config.vision_invalid_s = 0.250f;
-    config.config_version = 1;
+    const motion::MotionConfigV2 config = motion::productionMotionConfig();
 
     motion::ImuPreprocessorConfig imu_config;
     motion_engine.configure(config, imu_config, true, now_us);
