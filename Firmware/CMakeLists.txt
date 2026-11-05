@@ -65,6 +65,7 @@ set(MOTION_SOURCES
     ${KUN2_MOTION_DIR}/src/estimator.cpp
     ${KUN2_MOTION_DIR}/src/kinematics.cpp
     ${KUN2_MOTION_DIR}/src/motion_core.cpp
+    ${KUN2_MOTION_DIR}/src/physical_trajectory.cpp
     ${KUN2_MOTION_DIR}/src/protocol.cpp
     ${KUN2_MOTION_DIR}/src/trajectory.cpp
 )
