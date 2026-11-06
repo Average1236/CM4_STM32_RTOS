@@ -95,7 +95,8 @@ void Robot::process_spi_v2(motion::TimeUs now_us) {
 
     const auto& command = motion_engine.core().activeCommand();
     if (motion_engine.core().commandActive() &&
-        motion_engine.core().safety() == motion::SafetyState::kReady) {
+        motion_engine.core().safety() == motion::SafetyState::kReady &&
+        motion_engine.core().estimate().quality == motion::LocalizationQuality::kGood) {
         dribble_power = command.dribble_power;
         dribbler_mode = command.dribble_mode;
         dribble_velocity = command.dribble_velocity_rps;

@@ -173,7 +173,8 @@ void MotionEngine::encodeFeedback(std::uint8_t* frame, motion::TimeUs now_us) co
 
 void MotionEngine::step(motion::TimeUs now_us, motion::ControllerOutput* control) {
     core_.step(now_us, &control_);
-    if (core_.safety() != motion::SafetyState::kReady) kick_consumed_ = true;
+    if (core_.safety() != motion::SafetyState::kReady ||
+        core_.estimate().quality != motion::LocalizationQuality::kGood) kick_consumed_ = true;
     if (control != nullptr) *control = control_;
 }
 
@@ -205,11 +206,13 @@ bool MotionEngine::motorsEnabled() const {
 }
 
 bool MotionEngine::dribbleAllowed() const {
-    return core_.safety() == motion::SafetyState::kReady && core_.commandActive();
+    return core_.safety() == motion::SafetyState::kReady && core_.commandActive() &&
+           core_.estimate().quality == motion::LocalizationQuality::kGood;
 }
 
 bool MotionEngine::kickAllowed(motion::TimeUs now_us) {
-    if (core_.safety() != motion::SafetyState::kReady || !core_.commandActive()) {
+    if (core_.safety() != motion::SafetyState::kReady || !core_.commandActive() ||
+        core_.estimate().quality != motion::LocalizationQuality::kGood) {
         kick_consumed_ = true;
         return false;
     }
