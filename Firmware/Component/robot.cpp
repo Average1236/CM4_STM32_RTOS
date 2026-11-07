@@ -109,29 +109,29 @@ void Robot::process_spi_v2(motion::TimeUs now_us) {
     }
 }
 
-void Robot::request_kick_from_spi() {
+bool Robot::request_kick_from_spi() {
     if (kick_discharge_time == 0) {
-        return;
+        return false;
     }
 
     // Busy policy: ignore new kick request while pulse is active.
     if (kick_active_) {
-        return;
+        return false;
     }
 
     // Minimum interval between kicks: 300ms
     if (HAL_GetTick() - last_kick_tick_ < kKickIntervalMs) {
-        return;
+        return false;
     }
 
     last_kick_tick_ = HAL_GetTick();
     const uint16_t pulse_us = static_cast<uint16_t>(std::min<uint32_t>(kick_discharge_time, kKickPulseMaxUs));
-    start_kick_pulse(kick_mode, pulse_us);
+    return start_kick_pulse(kick_mode, pulse_us);
 }
 
-void Robot::start_kick_pulse(const bool chip_mode, const uint16_t pulse_us) {
+bool Robot::start_kick_pulse(const bool chip_mode, const uint16_t pulse_us) {
     if (pulse_us == 0) {
-        return;
+        return false;
     }
 
     // Ensure exclusive output: clear both lines before selecting one.
@@ -152,7 +152,9 @@ void Robot::start_kick_pulse(const bool chip_mode, const uint16_t pulse_us) {
         HAL_GPIO_WritePin(CHIP_GPIO_Port, CHIP_Pin, GPIO_PIN_RESET);
         HAL_GPIO_WritePin(SHOOT_GPIO_Port, SHOOT_Pin, GPIO_PIN_RESET);
         kick_active_ = false;
+        return false;
     }
+    return true;
 }
 
 void Robot::on_kick_timeout_irq() {

@@ -16,7 +16,9 @@ public:
     // Single producer (IMU task), single consumer (control task).
     void queue_raw_imu(const motion::RawImuSample& sample);
     void drain_raw_imu(motion::TimeUs now_us);
-    void request_kick_from_spi();
+    // Returns false when the pulse was not started (busy policy, interval or
+    // timer failure) so the execution feedback reports a rejected event.
+    bool request_kick_from_spi();
     void on_kick_timeout_irq();
 
     float infra_voltage = 0;
@@ -51,7 +53,7 @@ public:
     uint16_t kick_discharge_time = 0;
 
 private:
-    void start_kick_pulse(bool chip_mode, uint16_t pulse_us);
+    bool start_kick_pulse(bool chip_mode, uint16_t pulse_us);
     bool motion_engine_ready_ = false;
     bool kick_active_ = false;
     uint32_t last_kick_tick_ = 0;

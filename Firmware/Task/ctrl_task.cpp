@@ -245,7 +245,11 @@ void StartCrtlTask(void *argument) {
                 if (robot.dribbler.infra_voltage_filt > INFRARED_THRESHOLD) {
                     robot.infrare_flag = true;
                     if (robot.motion_engine.kickAllowed(motion_now_us())) {
-                        robot.request_kick_from_spi();
+                        // Report the ACTUAL pulse outcome; match execution
+                        // feedback (when enabled) is rejected when the board
+                        // busy policy or the timer prevents the discharge.
+                        const bool executed = robot.request_kick_from_spi();
+                        robot.motion_engine.noteKickExecution(motion_now_us(), executed);
                     }
                 } else {
                     robot.infrare_flag = false;
